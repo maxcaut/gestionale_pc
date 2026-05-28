@@ -1,6 +1,6 @@
 FROM php:8.3-fpm
 
-# Installazione delle dipendenze di sistema necessarie per le estensioni
+# 1. Installazione delle dipendenze di sistema
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -12,16 +12,13 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     nginx
 
-# Installazione delle estensioni PHP (inclusa 'zip' che serve a Composer)
+# 2. Installazione delle estensioni PHP necessarie a Laravel (scritto una volta sola)
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
-# Pulizia cache
+# Pulizia cache di apt per alleggerire l'immagine
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Installazione estensioni PHP richieste da Laravel
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
-
-# Installazione di Composer
+# 3. Installazione di Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Setta la directory di lavoro
@@ -30,21 +27,13 @@ WORKDIR /var/www
 # Copia i file del progetto
 COPY . /var/www
 
-
+# 4. Esegui il composer install (crea la cartella vendor)
 RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
 
-RUN php artisan config:clear
-RUN php artisan cache:clear
-RUN php artisan view:clear
+# 5. Gestione permessi (Eseguita DOPO il composer install così include anche la cartella vendor)
+RUN chown -R www-data:www-data /var/www && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
-
-# Assicurati che i file appartengano all'utente del server web
-RUN chown -R www-data:www-data /var/www
-
-# Dai i permessi di scrittura specifici a storage e cache
-RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
-
-# Rimuovi la configurazione predefinita di Nginx e copia la nostra
+# 6. Configurazione Nginx
 RUN rm /etc/nginx/sites-enabled/default || true
 COPY nginx.conf /etc/nginx/sites-available/laravel.conf
 RUN ln -s /etc/nginx/sites-available/laravel.conf /etc/nginx/sites-enabled/
@@ -52,5 +41,9 @@ RUN ln -s /etc/nginx/sites-available/laravel.conf /etc/nginx/sites-enabled/
 # Esponi la porta 80 per Render
 EXPOSE 80
 
-# Avvia sia PHP-FPM (in background) che Nginx (in foreground)
-CMD php-fpm -D && nginx -g "daemon off;"
+# 7. Avvio e pulizia cache di Laravel a runtime
+CMD php artisan config:clear && \
+    php artisan cache:clear && \
+    php artisan view:clear && \
+    php-fpm -D && \
+    nginx -g "daemon off;"
