@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 // --- INIZIALIZZAZIONE SUPABASE ---
 // Invece di import.meta.env, leggiamo una variabile passata da Laravel nel file HTML
 const supabaseUrl = window.laravelConfig?.supabaseUrl || import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = window.laravelConfig?.supabaseKey || import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseKey = window.laravelConfig?.supabaseKey || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
