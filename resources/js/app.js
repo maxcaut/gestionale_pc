@@ -7,6 +7,75 @@ const supabaseKey = window.laravelConfig?.supabaseKey || import.meta.env.VITE_SU
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+// --- AUTENTICAZIONE SUPABASE ---
+
+function showApp(user) {
+    document.getElementById('login-screen').style.display = 'none';
+    const appLayout = document.getElementById('app-layout');
+    appLayout.classList.remove('hidden');
+    appLayout.style.display = 'flex';
+
+    // Mostra l'email dell'utente nel badge
+    if (user && user.email) {
+        const badge = document.getElementById('user-email-badge');
+        if (badge) badge.innerText = user.email;
+    }
+}
+
+function showLogin() {
+    document.getElementById('app-layout').classList.add('hidden');
+    document.getElementById('app-layout').style.display = '';
+    document.getElementById('login-screen').style.display = '';
+    document.getElementById('login-form').reset();
+    document.getElementById('login-error').classList.add('hidden');
+}
+
+async function handleLogin(event) {
+    event.preventDefault();
+
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errorDiv = document.getElementById('login-error');
+    const errorText = document.getElementById('login-error-text');
+    const btn = document.getElementById('login-btn');
+    const btnText = document.getElementById('login-btn-text');
+    const spinner = document.getElementById('login-spinner');
+
+    // Mostra loading
+    btn.disabled = true;
+    spinner.classList.remove('hidden');
+    btnText.innerText = 'Accesso in corso...';
+    errorDiv.classList.add('hidden');
+
+    try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+        if (error) throw error;
+
+        showApp(data.user);
+        fetchDataFromSupabase();
+        startRealtimeClock();
+    } catch (err) {
+        let msg = 'Credenziali non valide. Riprova.';
+        if (err.message && err.message.toLowerCase().includes('email not confirmed')) {
+            msg = 'Email non confermata. Controlla la tua casella di posta.';
+        } else if (err.message) {
+            msg = err.message;
+        }
+        errorText.innerText = msg;
+        errorDiv.classList.remove('hidden');
+    } finally {
+        btn.disabled = false;
+        spinner.classList.add('hidden');
+        btnText.innerText = 'Accedi';
+    }
+}
+
+async function handleLogout() {
+    await supabase.auth.signOut();
+    showLogin();
+}
+
 // --- MEMORIA DATI INITIALI (MOCK DATABASE) ---
 const DEFAULT_VOLONTARI = [
     { id: "v1", nome: "Mario", cognome: "Rossi", cf: "RSSMRA80A01H501U", ruolo: "Coordinatore", telefono: "3331234567", stato: "Operativo" },
@@ -866,9 +935,27 @@ window.completaServizio = completaServizio;
 window.deleteServizio = deleteServizio;
 window.renderServizi = renderServizi;
 window.updateUI = updateUI;
+window.handleLogin = handleLogin;
+window.handleLogout = handleLogout;
 
 // --- INIZIALIZZAZIONE ALL'AVVIO ---
-window.addEventListener("DOMContentLoaded", () => {
-    fetchDataFromSupabase();
-    startRealtimeClock();
+window.addEventListener("DOMContentLoaded", async () => {
+    // Controlla se esiste già una sessione attiva
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (session && session.user) {
+        showApp(session.user);
+        fetchDataFromSupabase();
+        startRealtimeClock();
+    } else {
+        // Mostra la schermata di login
+        showLogin();
+    }
+
+    // Ascolta i cambiamenti di stato auth
+    supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT') {
+            showLogin();
+        }
+    });
 });
