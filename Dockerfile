@@ -12,10 +12,14 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     nginx
 
-# 2. Installazione delle estensioni PHP necessarie a Laravel (scritto una volta sola)
+# 1b. INSERITO: Installazione di Node.js e NPM (necessari per compilare Vite)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
+
+# 2. Installazione delle estensioni PHP necessarie a Laravel
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
-# Pulizia cache di apt per alleggerire l'immagine
+# Pulizia cache di apt
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 3. Installazione di Composer
@@ -27,18 +31,13 @@ WORKDIR /var/www
 # Copia i file del progetto
 COPY . /var/www
 
-# 4. Esegui il composer install (crea la cartella vendor)
+# 4. Esegui il composer install
 RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
 
+# 4b. INSERITO: Compilazione dei file CSS/JS con Vite
+RUN npm install && npm run build
 
-# Forza la creazione di tutte le sottocartelle di storage che Git potrebbe aver ignorato
-RUN mkdir -p /var/www/storage/framework/cache/data \
-             /var/www/storage/framework/app \
-             /var/www/storage/framework/sessions \
-             /var/www/storage/framework/views \
-             /var/www/storage/logs
-
-# 5. Gestione permessi (Eseguita DOPO il composer install così include anche la cartella vendor)
+# 5. Gestione permessi (Eseguita DOPO la build di Vite, così include anche la cartella public/build)
 RUN chown -R www-data:www-data /var/www && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
 # 6. Configurazione Nginx
@@ -49,8 +48,7 @@ RUN ln -s /etc/nginx/sites-available/laravel.conf /etc/nginx/sites-enabled/
 # Esponi la porta 80 per Render
 EXPOSE 80
 
-# AVVIO: Eseguiamo i comandi come www-data per evitare conflitti di permessi,
-# poi avviamo PHP-FPM e Nginx
+# 7. Avvio e pulizia cache di Laravel a runtime
 CMD su -s /bin/sh -c "php artisan config:clear && php artisan cache:clear && php artisan view:clear" www-data && \
     php-fpm -D && \
     nginx -g "daemon off;"
