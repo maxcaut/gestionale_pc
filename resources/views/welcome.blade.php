@@ -12,7 +12,7 @@
     <script>
     window.laravelConfig = {
         supabaseUrl: "{{ env('VITE_SUPABASE_URL') }}",
-        supabaseKey: "{{ env('VITE_SUPABASE_ANON_KEY') }}"
+        supabaseKey: "{{ env('VITE_SUPABASE_PUBLISHABLE_KEY') }}"
     };
 </script>
 
