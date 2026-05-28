@@ -30,6 +30,14 @@ COPY . /var/www
 # 4. Esegui il composer install (crea la cartella vendor)
 RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
 
+
+# Forza la creazione di tutte le sottocartelle di storage che Git potrebbe aver ignorato
+RUN mkdir -p /var/www/storage/framework/cache/data \
+             /var/www/storage/framework/app \
+             /var/www/storage/framework/sessions \
+             /var/www/storage/framework/views \
+             /var/www/storage/logs
+
 # 5. Gestione permessi (Eseguita DOPO il composer install così include anche la cartella vendor)
 RUN chown -R www-data:www-data /var/www && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
