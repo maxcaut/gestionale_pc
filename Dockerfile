@@ -1,43 +1,38 @@
-FROM php:8.3-cli
+FROM php:8.2-fpm
 
-# System deps
+# Installazione dipendenze di sistema e conversioni
 RUN apt-get update && apt-get install -y \
     git \
     curl \
-    unzip \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
     zip \
-    libpq-dev \
-    libzip-dev \
-    nginx \
-    supervisor
+    unzip \
+    nginx
 
-# PHP extensions
-RUN docker-php-ext-install \
-    pdo \
-    pdo_mysql \
-    pdo_pgsql \
-    zip
+# Pulizia cache
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Composer
+# Installazione estensioni PHP richieste da Laravel
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+
+# Installazione di Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Setta la directory di lavoro
 WORKDIR /var/www
 
-# Copia progetto
-COPY . .
+# Copia i file del progetto
+COPY . /var/www
 
-# Installa dipendenze
-RUN composer install --no-dev --optimize-autoloader
+# Installazione dipendenze Laravel
+RUN composer install --no-interaction --optimize-autoloader --no-dev
 
-# Laravel permissions
-RUN chmod -R 775 storage bootstrap/cache
+# Configurazione permessi per Laravel
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
-# Nginx config
-COPY docker/nginx/default.conf /etc/nginx/sites-enabled/default
+# Copia la configurazione di Nginx (crea questo file o usa i comandi di avvio)
+EXPOSE 80
 
-# Supervisor config
-COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-EXPOSE 10000
-
-CMD ["/usr/bin/supervisord"]
+CMD service nginx start && php-fpm
