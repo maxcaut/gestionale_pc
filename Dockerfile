@@ -49,12 +49,8 @@ RUN ln -s /etc/nginx/sites-available/laravel.conf /etc/nginx/sites-enabled/
 # Esponi la porta 80 per Render
 EXPOSE 80
 
-# 7. Avvio e pulizia cache di Laravel a runtime
-# Pulisce le cache, resetta i permessi a runtime, e poi avvia i server
-CMD php artisan config:clear && \
-    php artisan cache:clear && \
-    php artisan view:clear && \
-    chown -R www-data:www-data /var/www && \
-    chmod -R 775 /var/www/storage /var/www/bootstrap/cache && \ 
+# AVVIO: Eseguiamo i comandi come www-data per evitare conflitti di permessi,
+# poi avviamo PHP-FPM e Nginx
+CMD su -s /bin/sh -c "php artisan config:clear && php artisan cache:clear && php artisan view:clear" www-data && \
     php-fpm -D && \
     nginx -g "daemon off;"
