@@ -15,6 +15,10 @@ function showApp(user) {
     appLayout.classList.remove('hidden');
     appLayout.style.display = 'flex';
 
+    // Mostra bottom navigation su mobile
+    const bottomNav = document.getElementById('bottom-nav');
+    if (bottomNav) bottomNav.style.display = '';
+
     // Mostra l'email dell'utente nel badge
     if (user && user.email) {
         const badge = document.getElementById('user-email-badge');
@@ -28,6 +32,10 @@ function showLogin() {
     document.getElementById('login-screen').style.display = '';
     document.getElementById('login-form').reset();
     document.getElementById('login-error').classList.add('hidden');
+
+    // Nascondi bottom navigation
+    const bottomNav = document.getElementById('bottom-nav');
+    if (bottomNav) bottomNav.style.display = 'none';
 }
 
 async function handleLogin(event) {
@@ -216,7 +224,7 @@ function toggleModal(modalId, show) {
 function switchTab(tabId) {
     // Nascondi tutti i contenuti delle tab
     document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
-    // Rimuovi classe attiva da tutti i bottoni nav
+    // Rimuovi classe attiva da tutti i bottoni nav (sidebar)
     document.querySelectorAll(".nav-btn").forEach(el => {
         el.classList.remove("bg-slate-800", "text-amber-500", "shadow-md");
         el.classList.add("text-slate-400", "hover:text-white", "hover:bg-slate-800/50");
@@ -225,10 +233,21 @@ function switchTab(tabId) {
     // Mostra tab selezionata
     document.getElementById(`tab-${tabId}`).classList.remove("hidden");
 
-    // Attiva bottone nav selezionato
+    // Attiva bottone nav selezionato (sidebar)
     const activeBtn = document.getElementById(`nav-${tabId}`);
     activeBtn.classList.remove("text-slate-400", "hover:text-white", "hover:bg-slate-800/50");
     activeBtn.classList.add("bg-slate-800", "text-amber-500", "shadow-md");
+
+    // Sincronizza bottom navigation (mobile)
+    document.querySelectorAll(".bottom-nav-btn").forEach(el => {
+        el.classList.remove("text-amber-500");
+        el.classList.add("text-slate-400");
+    });
+    const activeBottomBtn = document.getElementById(`bottom-nav-${tabId}`);
+    if (activeBottomBtn) {
+        activeBottomBtn.classList.remove("text-slate-400");
+        activeBottomBtn.classList.add("text-amber-500");
+    }
 
     // Aggiorna titolo top bar
     const titleMap = {
@@ -238,6 +257,27 @@ function switchTab(tabId) {
         servizi: "Registro Missioni e Servizi"
     };
     document.getElementById("page-title").innerText = titleMap[tabId];
+}
+
+// --- FUNZIONI SIDEBAR MOBILE ---
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    const isOpen = !sidebar.classList.contains('-translate-x-full');
+    if (isOpen) {
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('hidden');
+    } else {
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.remove('hidden');
+    }
+}
+
+function closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (sidebar) sidebar.classList.add('-translate-x-full');
+    if (overlay) overlay.classList.add('hidden');
 }
 
 // --- CALCOLO STATISTICHE E RENDER DASHBOARD ---
@@ -937,6 +977,8 @@ window.renderServizi = renderServizi;
 window.updateUI = updateUI;
 window.handleLogin = handleLogin;
 window.handleLogout = handleLogout;
+window.toggleSidebar = toggleSidebar;
+window.closeSidebar = closeSidebar;
 
 // --- INIZIALIZZAZIONE ALL'AVVIO ---
 window.addEventListener("DOMContentLoaded", async () => {
