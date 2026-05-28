@@ -33,8 +33,16 @@ COPY . /var/www
 
 RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
 
-# Configurazione permessi per Laravel
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+RUN php artisan config:clear
+RUN php artisan cache:clear
+RUN php artisan view:clear
+
+
+# Assicurati che i file appartengano all'utente del server web
+RUN chown -R www-data:www-data /var/www
+
+# Dai i permessi di scrittura specifici a storage e cache
+RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
 # Rimuovi la configurazione predefinita di Nginx e copia la nostra
 RUN rm /etc/nginx/sites-enabled/default || true
