@@ -1,0 +1,41 @@
+-- Istruzioni SQL per la configurazione delle tabelle su Supabase
+-- Puoi copiare ed eseguire questo codice nel SQL Editor di Supabase.
+
+-- 1. Tabella Volontari
+CREATE TABLE IF NOT EXISTS volontari (
+    id TEXT PRIMARY KEY,
+    nome TEXT NOT NULL,
+    cognome TEXT NOT NULL,
+    cf TEXT NOT NULL UNIQUE,
+    ruolo TEXT NOT NULL,
+    telefono TEXT NOT NULL,
+    stato TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. Tabella Mezzi
+CREATE TABLE IF NOT EXISTS mezzi (
+    id TEXT PRIMARY KEY,
+    modello TEXT NOT NULL,
+    targa TEXT NOT NULL UNIQUE,
+    tipo TEXT NOT NULL,
+    stato TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3. Tabella Servizi
+CREATE TABLE IF NOT EXISTS servizi (
+    id TEXT PRIMARY KEY,
+    tipo TEXT NOT NULL,
+    data TEXT NOT NULL,
+    mezzo_id TEXT REFERENCES mezzi(id) ON DELETE SET NULL,
+    volontari_ids TEXT[] NOT NULL DEFAULT '{}',
+    note TEXT,
+    stato TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 4. Disabilitazione Row Level Security (RLS) per consentire l'accesso diretto e semplice dal frontend
+ALTER TABLE volontari DISABLE ROW LEVEL SECURITY;
+ALTER TABLE mezzi DISABLE ROW LEVEL SECURITY;
+ALTER TABLE servizi DISABLE ROW LEVEL SECURITY;

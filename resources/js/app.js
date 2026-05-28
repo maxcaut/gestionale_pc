@@ -1,3 +1,10 @@
+import { createClient } from '@supabase/supabase-js';
+
+// --- INIZIALIZZAZIONE SUPABASE ---
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 // --- MEMORIA DATI INITIALI (MOCK DATABASE) ---
 const DEFAULT_VOLONTARI = [
     { id: "v1", nome: "Mario", cognome: "Rossi", cf: "RSSMRA80A01H501U", ruolo: "Coordinatore", telefono: "3331234567", stato: "Operativo" },
@@ -19,29 +26,84 @@ const DEFAULT_SERVIZI = [
     { id: "s3", tipo: "Antincendio Boschivo", data: "2026-05-27T08:00", mezzoId: "m3", volontariIds: ["v1", "v3"], note: "Pronto intervento e bonifica area boschiva collinare.", stato: "Completato" }
 ];
 
-// Inizializza i dati in localStorage se vuoti
-function initDatabase() {
-    if (!localStorage.getItem("pc_volontari")) {
-        localStorage.setItem("pc_volontari", JSON.stringify(DEFAULT_VOLONTARI));
-    }
-    if (!localStorage.getItem("pc_mezzi")) {
-        localStorage.setItem("pc_mezzi", JSON.stringify(DEFAULT_MEZZI));
-    }
-    if (!localStorage.getItem("pc_servizi")) {
-        localStorage.setItem("pc_servizi", JSON.stringify(DEFAULT_SERVIZI));
-    }
-}
+// --- STATO IN-MEMORY DELL'APPLICAZIONE ---
+let volontari = [];
+let mezzi = [];
+let servizi = [];
 
-// Funzione helper per caricare dati
+// Funzione helper per caricare dati sincronicamente dallo stato in-memory
 function getDB(table) {
-    return JSON.parse(localStorage.getItem(table)) || [];
+    if (table === "pc_volontari") return volontari;
+    if (table === "pc_mezzi") return mezzi;
+    if (table === "pc_servizi") return servizi;
+    return [];
 }
 
-// Funzione helper per salvare dati
-function saveDB(table, data) {
-    localStorage.setItem(table, JSON.stringify(data));
-    // Aggiorna tutta l'interfaccia dopo il salvataggio
-    updateUI();
+// Funzione helper per caricare dati da Supabase in modo asincrono
+async function fetchDataFromSupabase() {
+    try {
+        const [volResponse, mezResponse, serResponse] = await Promise.all([
+            supabase.from('volontari').select('*').order('created_at', { ascending: true }),
+            supabase.from('mezzi').select('*').order('created_at', { ascending: true }),
+            supabase.from('servizi').select('*').order('created_at', { ascending: true })
+        ]);
+
+        if (volResponse.error) throw volResponse.error;
+        if (mezResponse.error) throw mezResponse.error;
+        if (serResponse.error) throw serResponse.error;
+
+        volontari = volResponse.data || [];
+        mezzi = mezResponse.data || [];
+        servizi = (serResponse.data || []).map(s => ({
+            id: s.id,
+            tipo: s.tipo,
+            data: s.data,
+            mezzoId: s.mezzo_id,
+            volontariIds: s.volontari_ids || [],
+            note: s.note,
+            stato: s.stato
+        }));
+
+        // Se non ci sono dati, inizializza con i dati di mock su Supabase
+        if (volontari.length === 0 && mezzi.length === 0 && servizi.length === 0) {
+            await initializeDefaultData();
+            return;
+        }
+
+        updateUI();
+    } catch (err) {
+        console.error("Errore durante il caricamento da Supabase:", err);
+        showToast("Errore di caricamento", "Impossibile caricare i dati da Supabase.");
+    }
+}
+
+// Funzione helper per inserire i dati di mock su Supabase se vuoto
+async function initializeDefaultData() {
+    try {
+        const { error: volErr } = await supabase.from('volontari').insert(DEFAULT_VOLONTARI);
+        if (volErr) throw volErr;
+
+        const { error: mezErr } = await supabase.from('mezzi').insert(DEFAULT_MEZZI);
+        if (mezErr) throw mezErr;
+
+        const supabaseServizi = DEFAULT_SERVIZI.map(s => ({
+            id: s.id,
+            tipo: s.tipo,
+            data: s.data,
+            mezzo_id: s.mezzoId,
+            volontari_ids: s.volontariIds,
+            note: s.note,
+            stato: s.stato
+        }));
+        const { error: serErr } = await supabase.from('servizi').insert(supabaseServizi);
+        if (serErr) throw serErr;
+
+        console.log("Dati di default inseriti correttamente su Supabase.");
+        await fetchDataFromSupabase();
+    } catch (err) {
+        console.error("Errore durante il popolamento iniziale su Supabase:", err);
+        showToast("Errore inizializzazione", "Impossibile caricare i dati iniziali su Supabase.");
+    }
 }
 
 // --- SISTEMA DI TOAST (NOTIFICHE) ---
@@ -279,7 +341,7 @@ function renderVolontari() {
     });
 }
 
-function saveVolontario(event) {
+async function saveVolontario(event) {
     event.preventDefault();
     const nome = document.getElementById("v-nome").value;
     const cognome = document.getElementById("v-cognome").value;
@@ -288,7 +350,6 @@ function saveVolontario(event) {
     const stato = document.getElementById("v-stato").value;
     const telefono = document.getElementById("v-telefono").value;
 
-    const volontari = getDB("pc_volontari");
     const newVolontario = {
         id: "v_" + Date.now(),
         nome,
@@ -299,32 +360,58 @@ function saveVolontario(event) {
         telefono
     };
 
-    volontari.push(newVolontario);
-    saveDB("pc_volontari", volontari);
+    try {
+        const { error } = await supabase.from('volontari').insert([newVolontario]);
+        if (error) throw error;
 
-    toggleModal('modal-volontario', false);
-    showToast("Volontario Registrato", `${nome} ${cognome} è stato inserito con successo.`);
-}
-
-function toggleVolontarioStato(id) {
-    const volontari = getDB("pc_volontari");
-    const volIndex = volontari.findIndex(v => v.id === id);
-    if (volIndex !== -1) {
-        const stati = ["Operativo", "In riposo", "Sospeso"];
-        const currentIdx = stati.indexOf(volontari[volIndex].stato);
-        const nextIdx = (currentIdx + 1) % stati.length;
-        volontari[volIndex].stato = stati[nextIdx];
-        saveDB("pc_volontari", volontari);
-        showToast("Stato Volontario", `Lo stato di ${volontari[volIndex].nome} è ora: ${stati[nextIdx]}`);
+        toggleModal('modal-volontario', false);
+        showToast("Volontario Registrato", `${nome} ${cognome} è stato inserito con successo.`);
+        await fetchDataFromSupabase();
+    } catch (err) {
+        console.error("Errore durante il salvataggio del volontario:", err);
+        showToast("Errore di Salvataggio", "Impossibile salvare il volontario su Supabase.");
     }
 }
 
-function deleteVolontario(id) {
+async function toggleVolontarioStato(id) {
+    const vol = volontari.find(v => v.id === id);
+    if (vol) {
+        const stati = ["Operativo", "In riposo", "Sospeso"];
+        const currentIdx = stati.indexOf(vol.stato);
+        const nextIdx = (currentIdx + 1) % stati.length;
+        const nuovoStato = stati[nextIdx];
+
+        try {
+            const { error } = await supabase
+                .from('volontari')
+                .update({ stato: nuovoStato })
+                .eq('id', id);
+            if (error) throw error;
+
+            showToast("Stato Volontario", `Lo stato di ${vol.nome} è ora: ${nuovoStato}`);
+            await fetchDataFromSupabase();
+        } catch (err) {
+            console.error("Errore durante la modifica dello stato:", err);
+            showToast("Errore", "Impossibile aggiornare lo stato del volontario.");
+        }
+    }
+}
+
+async function deleteVolontario(id) {
     if (confirm("Sei sicuro di voler eliminare questo volontario? Questa azione è irreversibile.")) {
-        const volontari = getDB("pc_volontari");
-        const filtrati = volontari.filter(v => v.id !== id);
-        saveDB("pc_volontari", filtrati);
-        showToast("Volontario Rimosso", "Il volontario è stato eliminato dal sistema.");
+        try {
+            const { error } = await supabase
+                .from('volontari')
+                .delete()
+                .eq('id', id);
+            if (error) throw error;
+
+            showToast("Volontario Rimosso", "Il volontario è stato eliminato dal sistema.");
+            await fetchDataFromSupabase();
+        } catch (err) {
+            console.error("Errore durante l'eliminazione del volontario:", err);
+            showToast("Errore", "Impossibile eliminare il volontario da Supabase.");
+        }
     }
 }
 
@@ -418,14 +505,13 @@ function renderMezzi() {
     });
 }
 
-function saveMezzo(event) {
+async function saveMezzo(event) {
     event.preventDefault();
     const modello = document.getElementById("m-modello").value;
     const targa = document.getElementById("m-targa").value.toUpperCase();
     const tipo = document.getElementById("m-tipo").value;
     const stato = document.getElementById("m-stato").value;
 
-    const mezzi = getDB("pc_mezzi");
     const newMezzo = {
         id: "m_" + Date.now(),
         modello,
@@ -434,32 +520,58 @@ function saveMezzo(event) {
         stato
     };
 
-    mezzi.push(newMezzo);
-    saveDB("pc_mezzi", mezzi);
+    try {
+        const { error } = await supabase.from('mezzi').insert([newMezzo]);
+        if (error) throw error;
 
-    toggleModal('modal-mezzo', false);
-    showToast("Mezzo Registrato", `${modello} (${targa}) inserito correttamente.`);
-}
-
-function toggleMezzoStato(id) {
-    const mezzi = getDB("pc_mezzi");
-    const mezzoIndex = mezzi.findIndex(m => m.id === id);
-    if (mezzoIndex !== -1) {
-        const stati = ["Disponibile", "In servizio", "In manutenzione"];
-        const currentIdx = stati.indexOf(mezzi[mezzoIndex].stato);
-        const nextIdx = (currentIdx + 1) % stati.length;
-        mezzi[mezzoIndex].stato = stati[nextIdx];
-        saveDB("pc_mezzi", mezzi);
-        showToast("Stato Mezzo", `Stato del mezzo ${mezzi[mezzoIndex].modello} aggiornato a: ${stati[nextIdx]}`);
+        toggleModal('modal-mezzo', false);
+        showToast("Mezzo Registrato", `${modello} (${targa}) inserito correttamente.`);
+        await fetchDataFromSupabase();
+    } catch (err) {
+        console.error("Errore durante il salvataggio del mezzo:", err);
+        showToast("Errore di Salvataggio", "Impossibile registrare il mezzo su Supabase.");
     }
 }
 
-function deleteMezzo(id) {
+async function toggleMezzoStato(id) {
+    const mezzo = mezzi.find(m => m.id === id);
+    if (mezzo) {
+        const stati = ["Disponibile", "In servizio", "In manutenzione"];
+        const currentIdx = stati.indexOf(mezzo.stato);
+        const nextIdx = (currentIdx + 1) % stati.length;
+        const nuovoStato = stati[nextIdx];
+
+        try {
+            const { error } = await supabase
+                .from('mezzi')
+                .update({ stato: nuovoStato })
+                .eq('id', id);
+            if (error) throw error;
+
+            showToast("Stato Mezzo", `Stato del mezzo ${mezzo.modello} aggiornato a: ${nuovoStato}`);
+            await fetchDataFromSupabase();
+        } catch (err) {
+            console.error("Errore durante la modifica dello stato del mezzo:", err);
+            showToast("Errore", "Impossibile aggiornare lo stato del veicolo.");
+        }
+    }
+}
+
+async function deleteMezzo(id) {
     if (confirm("Sei sicuro di voler rimuovere questo mezzo? La rimozione potrebbe invalidare lo storico dei servizi assegnati.")) {
-        const mezzi = getDB("pc_mezzi");
-        const filtrati = mezzi.filter(m => m.id !== id);
-        saveDB("pc_mezzi", filtrati);
-        showToast("Mezzo Rimosso", "Il veicolo è stato disattivato dal registro.");
+        try {
+            const { error } = await supabase
+                .from('mezzi')
+                .delete()
+                .eq('id', id);
+            if (error) throw error;
+
+            showToast("Mezzo Rimosso", "Il veicolo è stato disattivato dal registro.");
+            await fetchDataFromSupabase();
+        } catch (err) {
+            console.error("Errore durante l'eliminazione del mezzo:", err);
+            showToast("Errore", "Impossibile eliminare il mezzo da Supabase.");
+        }
     }
 }
 
@@ -616,7 +728,7 @@ function renderServizi() {
     });
 }
 
-function saveServizio(event) {
+async function saveServizio(event) {
     event.preventDefault();
     const tipo = document.getElementById("s-tipo").value;
     const data = document.getElementById("s-data").value;
@@ -633,59 +745,72 @@ function saveServizio(event) {
         return;
     }
 
-    const servizi = getDB("pc_servizi");
     const newServizio = {
         id: "s_" + Date.now(),
         tipo,
         data,
-        mezzoId,
-        volontariIds,
+        mezzo_id: mezzoId,
+        volontari_ids: volontariIds,
         note,
         stato
     };
 
-    servizi.push(newServizio);
-
-    if (stato === "In corso") {
-        const mezzi = getDB("pc_mezzi");
-        const mIdx = mezzi.findIndex(m => m.id === mezzoId);
-        if (mIdx !== -1 && mezzi[mIdx].stato === "Disponibile") {
-            mezzi[mIdx].stato = "In servizio";
-            localStorage.setItem("pc_mezzi", JSON.stringify(mezzi));
-        }
-    }
-
-    saveDB("pc_servizi", servizi);
-
-    toggleModal('modal-servizio', false);
-    showToast("Servizio Pianificato", "Il servizio è stato inserito con successo nel registro.");
-}
-
-function completaServizio(id) {
-    const servizi = getDB("pc_servizi");
-    const sIdx = servizi.findIndex(s => s.id === id);
-    if (sIdx !== -1) {
-        servizi[sIdx].stato = "Completato";
-
-        const mezzoId = servizi[sIdx].mezzoId;
-        const mezzi = getDB("pc_mezzi");
-        const mIdx = mezzi.findIndex(m => m.id === mezzoId);
-        if (mIdx !== -1 && mezzi[mIdx].stato === "In servizio") {
-            mezzi[mIdx].stato = "Disponibile";
-            localStorage.setItem("pc_mezzi", JSON.stringify(mezzi));
+    try {
+        if (stato === "In corso") {
+            const mezzo = mezzi.find(m => m.id === mezzoId);
+            if (mezzo && mezzo.stato === "Disponibile") {
+                await supabase.from('mezzi').update({ stato: "In servizio" }).eq('id', mezzoId);
+            }
         }
 
-        saveDB("pc_servizi", servizi);
-        showToast("Missione Completata", "Il servizio è stato archiviato come completato.");
+        const { error } = await supabase.from('servizi').insert([newServizio]);
+        if (error) throw error;
+
+        toggleModal('modal-servizio', false);
+        showToast("Servizio Pianificato", "Il servizio è stato inserito con successo nel registro.");
+        await fetchDataFromSupabase();
+    } catch (err) {
+        console.error("Errore durante il salvataggio del servizio:", err);
+        showToast("Errore di Salvataggio", "Impossibile registrare il servizio su Supabase.");
     }
 }
 
-function deleteServizio(id) {
+async function completaServizio(id) {
+    const serv = servizi.find(s => s.id === id);
+    if (serv) {
+        try {
+            const { error: sErr } = await supabase.from('servizi').update({ stato: "Completato" }).eq('id', id);
+            if (sErr) throw sErr;
+
+            const mezzo = mezzi.find(m => m.id === serv.mezzoId);
+            if (mezzo && mezzo.stato === "In servizio") {
+                await supabase.from('mezzi').update({ stato: "Disponibile" }).eq('id', serv.mezzoId);
+            }
+
+            showToast("Missione Completata", "Il servizio è stato archiviato come completato.");
+            await fetchDataFromSupabase();
+        } catch (err) {
+            console.error("Errore durante il completamento del servizio:", err);
+            showToast("Errore", "Impossibile completare il servizio su Supabase.");
+        }
+    }
+}
+
+async function deleteServizio(id) {
     if (confirm("Sei sicuro di voler eliminare questa registrazione di servizio?")) {
-        const servizi = getDB("pc_servizi");
-        const filtrati = servizi.filter(s => s.id !== id);
-        saveDB("pc_servizi", filtrati);
-        showToast("Servizio Eliminato", "La registrazione è stata eliminata.");
+        try {
+            const { error } = await supabase
+                .from('servizi')
+                .delete()
+                .eq('id', id);
+            if (error) throw error;
+
+            showToast("Servizio Eliminato", "La registrazione è stata eliminata.");
+            await fetchDataFromSupabase();
+        } catch (err) {
+            console.error("Errore durante l'eliminazione del servizio:", err);
+            showToast("Errore", "Impossibile eliminare il servizio da Supabase.");
+        }
     }
 }
 
@@ -742,7 +867,6 @@ window.updateUI = updateUI;
 
 // --- INIZIALIZZAZIONE ALL'AVVIO ---
 window.addEventListener("DOMContentLoaded", () => {
-    initDatabase();
-    updateUI();
+    fetchDataFromSupabase();
     startRealtimeClock();
 });
