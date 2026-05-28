@@ -117,7 +117,7 @@
                     <!-- Associazione Badge -->
                     <div class="flex items-center gap-3 bg-slate-800/80 px-4 py-2 rounded-xl border border-slate-700/50">
                         <div class="bg-amber-500 w-2.5 h-2.5 rounded-full"></div>
-                        <span class="text-xs font-bold uppercase tracking-wider text-slate-200">Nucleo S.O.S.</span>
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-200">Nucleo Segreteria</span>
                     </div>
                 </div>
             </header>
