@@ -31,8 +31,7 @@ WORKDIR /var/www
 COPY . /var/www
 
 
-# Forza Composer a non avere limiti di memoria e salta l'audit per risparmiare risorse
-RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-interaction --optimize-autoloader --no-dev --no-audit
+RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
 
 # Configurazione permessi per Laravel
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
