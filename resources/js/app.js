@@ -1,9 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 
 // --- INIZIALIZZAZIONE SUPABASE ---
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Invece di import.meta.env, leggiamo una variabile passata da Laravel nel file HTML
+const supabaseUrl = window.laravelConfig?.supabaseUrl || import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = window.laravelConfig?.supabaseKey || import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 // --- MEMORIA DATI INITIALI (MOCK DATABASE) ---
 const DEFAULT_VOLONTARI = [
