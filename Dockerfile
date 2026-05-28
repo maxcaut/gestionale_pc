@@ -1,6 +1,6 @@
-FROM php:8.2-fpm
+FROM php:8.3-fpm
 
-# Installazione dipendenze di sistema e conversioni
+# Installazione delle dipendenze di sistema necessarie per le estensioni
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -9,7 +9,11 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     zip \
     unzip \
+    libzip-dev \
     nginx
+
+# Installazione delle estensioni PHP (inclusa 'zip' che serve a Composer)
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
 # Pulizia cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -26,8 +30,9 @@ WORKDIR /var/www
 # Copia i file del progetto
 COPY . /var/www
 
-# Installazione dipendenze Laravel
-RUN composer install --no-interaction --optimize-autoloader --no-dev
+
+# Forza Composer a non avere limiti di memoria e salta l'audit per risparmiare risorse
+RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-interaction --optimize-autoloader --no-dev --no-audit
 
 # Configurazione permessi per Laravel
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
