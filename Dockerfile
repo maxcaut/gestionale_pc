@@ -36,7 +36,13 @@ RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-interaction --optimize-autolo
 # Configurazione permessi per Laravel
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
-# Copia la configurazione di Nginx (crea questo file o usa i comandi di avvio)
+# Rimuovi la configurazione predefinita di Nginx e copia la nostra
+RUN rm /etc/nginx/sites-enabled/default || true
+COPY nginx.conf /etc/nginx/sites-available/laravel.conf
+RUN ln -s /etc/nginx/sites-available/laravel.conf /etc/nginx/sites-enabled/
+
+# Esponi la porta 80 per Render
 EXPOSE 80
 
-CMD service nginx start && php-fpm
+# Avvia sia PHP-FPM (in background) che Nginx (in foreground)
+CMD php-fpm -D && nginx -g "daemon off;"
