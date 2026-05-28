@@ -42,8 +42,11 @@ RUN ln -s /etc/nginx/sites-available/laravel.conf /etc/nginx/sites-enabled/
 EXPOSE 80
 
 # 7. Avvio e pulizia cache di Laravel a runtime
+# Pulisce le cache, resetta i permessi a runtime, e poi avvia i server
 CMD php artisan config:clear && \
     php artisan cache:clear && \
     php artisan view:clear && \
+    chown -R www-data:www-data /var/www && \
+    chmod -R 775 /var/www/storage /var/www/bootstrap/cache && \ 
     php-fpm -D && \
     nginx -g "daemon off;"
