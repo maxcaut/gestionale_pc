@@ -34,6 +34,21 @@ COPY . /var/www
 # 4. Esegui il composer install
 RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
 
+# ... (tutto uguale a prima fino al punto 4) ...
+
+# Inserisci queste righe prima di npm run build per catturare le variabili da Render
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+
+# 4b. INSERITO: Compilazione dei file CSS/JS con Vite
+RUN npm install && npm run build
+
+# ... (tutto il resto del Dockerfile rimane invariato) ...
+
+
+
 # 4b. INSERITO: Compilazione dei file CSS/JS con Vite
 RUN npm install && npm run build
 
