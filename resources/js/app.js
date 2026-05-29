@@ -110,6 +110,31 @@ let volontari = [];
 let mezzi = [];
 let servizi = [];
 
+let editingVolontarioId = null;
+let editingMezzoId = null;
+let editingServizioId = null;
+
+const ICON_EDIT = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>`;
+
+function toDatetimeLocalValue(isoString) {
+    const d = new Date(isoString);
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 16);
+}
+
+function resetEditState() {
+    editingVolontarioId = null;
+    editingMezzoId = null;
+    editingServizioId = null;
+}
+
+function setModalFormMode(modalId, { title, submitText }) {
+    const titleEl = document.getElementById(`${modalId}-title`);
+    const submitEl = document.getElementById(`${modalId}-submit`);
+    if (titleEl) titleEl.innerText = title;
+    if (submitEl) submitEl.innerText = submitText;
+}
+
 // Funzione helper per caricare dati sincronicamente dallo stato in-memory
 function getDB(table) {
     if (table === "pc_volontari") return volontari;
@@ -214,9 +239,12 @@ function toggleModal(modalId, show) {
         }
     } else {
         modal.classList.add("hidden");
-        // Resetta il form
         const form = modal.querySelector("form");
         if (form) form.reset();
+        resetEditState();
+        setModalFormMode('modal-volontario', { title: 'Aggiungi Nuovo Volontario', submitText: 'Registra' });
+        setModalFormMode('modal-mezzo', { title: 'Aggiungi Nuovo Mezzo di Soccorso', submitText: 'Registra' });
+        setModalFormMode('modal-servizio', { title: 'Pianifica Servizio / Missione', submitText: 'Pianifica' });
     }
 }
 
@@ -435,6 +463,9 @@ function renderVolontari() {
                 </td>
                 <td class="py-4 px-6 text-right">
                     <div class="inline-flex gap-2">
+                        <button onclick="openEditVolontarioModal('${v.id}')" title="Modifica dati" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-all">
+                            ${ICON_EDIT}
+                        </button>
                         <button onclick="toggleVolontarioStato('${v.id}')" title="Modifica Stato" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-all">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -452,6 +483,29 @@ function renderVolontari() {
     });
 }
 
+function openNuovoVolontarioModal() {
+    resetEditState();
+    setModalFormMode('modal-volontario', { title: 'Aggiungi Nuovo Volontario', submitText: 'Registra' });
+    toggleModal('modal-volontario', true);
+}
+
+function openEditVolontarioModal(id) {
+    const vol = volontari.find(v => v.id === id);
+    if (!vol) return;
+
+    editingVolontarioId = id;
+    setModalFormMode('modal-volontario', { title: 'Modifica Volontario', submitText: 'Salva modifiche' });
+
+    document.getElementById("v-nome").value = vol.nome;
+    document.getElementById("v-cognome").value = vol.cognome;
+    document.getElementById("v-cf").value = vol.cf;
+    document.getElementById("v-ruolo").value = vol.ruolo;
+    document.getElementById("v-stato").value = vol.stato;
+    document.getElementById("v-telefono").value = vol.telefono;
+
+    toggleModal('modal-volontario', true);
+}
+
 async function saveVolontario(event) {
     event.preventDefault();
     const nome = document.getElementById("v-nome").value;
@@ -461,22 +515,21 @@ async function saveVolontario(event) {
     const stato = document.getElementById("v-stato").value;
     const telefono = document.getElementById("v-telefono").value;
 
-    const newVolontario = {
-        id: "v_" + Date.now(),
-        nome,
-        cognome,
-        cf,
-        ruolo,
-        stato,
-        telefono
-    };
+    const payload = { nome, cognome, cf, ruolo, stato, telefono };
 
     try {
-        const { error } = await supabase.from('volontari').insert([newVolontario]);
-        if (error) throw error;
-
-        toggleModal('modal-volontario', false);
-        showToast("Volontario Registrato", `${nome} ${cognome} è stato inserito con successo.`);
+        if (editingVolontarioId) {
+            const { error } = await supabase.from('volontari').update(payload).eq('id', editingVolontarioId);
+            if (error) throw error;
+            toggleModal('modal-volontario', false);
+            showToast("Volontario Aggiornato", `${nome} ${cognome} è stato modificato con successo.`);
+        } else {
+            const newVolontario = { id: "v_" + Date.now(), ...payload };
+            const { error } = await supabase.from('volontari').insert([newVolontario]);
+            if (error) throw error;
+            toggleModal('modal-volontario', false);
+            showToast("Volontario Registrato", `${nome} ${cognome} è stato inserito con successo.`);
+        }
         await fetchDataFromSupabase();
     } catch (err) {
         console.error("Errore durante il salvataggio del volontario:", err);
@@ -599,6 +652,9 @@ function renderMezzi() {
                         <span class="text-xs font-bold text-slate-400">Stato</span>
                     </span>
                     <div class="flex gap-1">
+                        <button onclick="openEditMezzoModal('${m.id}')" title="Modifica dati" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">
+                            ${ICON_EDIT}
+                        </button>
                         <button onclick="toggleMezzoStato('${m.id}')" title="Cambia Stato" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -616,6 +672,27 @@ function renderMezzi() {
     });
 }
 
+function openNuovoMezzoModal() {
+    resetEditState();
+    setModalFormMode('modal-mezzo', { title: 'Aggiungi Nuovo Mezzo di Soccorso', submitText: 'Registra' });
+    toggleModal('modal-mezzo', true);
+}
+
+function openEditMezzoModal(id) {
+    const mezzo = mezzi.find(m => m.id === id);
+    if (!mezzo) return;
+
+    editingMezzoId = id;
+    setModalFormMode('modal-mezzo', { title: 'Modifica Mezzo di Soccorso', submitText: 'Salva modifiche' });
+
+    document.getElementById("m-modello").value = mezzo.modello;
+    document.getElementById("m-targa").value = mezzo.targa;
+    document.getElementById("m-tipo").value = mezzo.tipo;
+    document.getElementById("m-stato").value = mezzo.stato;
+
+    toggleModal('modal-mezzo', true);
+}
+
 async function saveMezzo(event) {
     event.preventDefault();
     const modello = document.getElementById("m-modello").value;
@@ -623,20 +700,21 @@ async function saveMezzo(event) {
     const tipo = document.getElementById("m-tipo").value;
     const stato = document.getElementById("m-stato").value;
 
-    const newMezzo = {
-        id: "m_" + Date.now(),
-        modello,
-        targa,
-        tipo,
-        stato
-    };
+    const payload = { modello, targa, tipo, stato };
 
     try {
-        const { error } = await supabase.from('mezzi').insert([newMezzo]);
-        if (error) throw error;
-
-        toggleModal('modal-mezzo', false);
-        showToast("Mezzo Registrato", `${modello} (${targa}) inserito correttamente.`);
+        if (editingMezzoId) {
+            const { error } = await supabase.from('mezzi').update(payload).eq('id', editingMezzoId);
+            if (error) throw error;
+            toggleModal('modal-mezzo', false);
+            showToast("Mezzo Aggiornato", `${modello} (${targa}) modificato correttamente.`);
+        } else {
+            const newMezzo = { id: "m_" + Date.now(), ...payload };
+            const { error } = await supabase.from('mezzi').insert([newMezzo]);
+            if (error) throw error;
+            toggleModal('modal-mezzo', false);
+            showToast("Mezzo Registrato", `${modello} (${targa}) inserito correttamente.`);
+        }
         await fetchDataFromSupabase();
     } catch (err) {
         console.error("Errore durante il salvataggio del mezzo:", err);
@@ -687,61 +765,88 @@ async function deleteMezzo(id) {
 }
 
 // --- SEZIONE 4: SERVIZI (CRUD & VIEW) ---
-function openNuovoServizioModal() {
-    const mezzi = getDB("pc_mezzi");
-    const volontari = getDB("pc_volontari");
+function populateServizioModalOptions(selectedMezzoId = null, selectedVolontariIds = []) {
+    const mezziList = getDB("pc_mezzi");
+    const volontariList = getDB("pc_volontari");
 
     const selectMezzo = document.getElementById("s-mezzo");
     selectMezzo.innerHTML = "";
 
-    mezzi.forEach(m => {
+    mezziList.forEach(m => {
         const statusTag = m.stato !== "Disponibile" ? ` - (${m.stato})` : '';
+        const selected = selectedMezzoId === m.id ? 'selected' : '';
         selectMezzo.innerHTML += `
-            <option value="${m.id}">${m.modello} [${m.targa}]${statusTag}</option>
+            <option value="${m.id}" ${selected}>${m.modello} [${m.targa}]${statusTag}</option>
         `;
     });
 
-    if (mezzi.length === 0) {
+    if (mezziList.length === 0) {
         selectMezzo.innerHTML = `<option value="">Nessun mezzo registrato! Creane prima uno.</option>`;
     }
 
     const volontariBox = document.getElementById("s-volontari-list");
     volontariBox.innerHTML = "";
 
-    const volontariOperativi = volontari.filter(v => v.stato === "Operativo");
-    const volontariNonOperativi = volontari.filter(v => v.stato !== "Operativo");
+    const volontariOperativi = volontariList.filter(v => v.stato === "Operativo");
+    const volontariNonOperativi = volontariList.filter(v => v.stato !== "Operativo");
+
+    const renderVolontarioCheckbox = (v, muted = false) => {
+        const checked = selectedVolontariIds.includes(v.id) ? 'checked' : '';
+        const textClass = muted ? 'text-slate-400' : 'text-slate-200';
+        const fontClass = muted ? 'font-medium' : 'font-semibold';
+        const extra = muted ? ` - [${v.stato}]` : '';
+        return `
+            <label class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
+                <input type="checkbox" name="s-volontari-check" value="${v.id}" ${checked} class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
+                <span class="text-xs ${fontClass}">${v.nome} ${v.cognome} (${v.ruolo})${extra}</span>
+            </label>
+        `;
+    };
 
     if (volontariOperativi.length > 0) {
         volontariBox.innerHTML += `<p class="text-[10px] text-emerald-500 font-bold uppercase tracking-wider mb-2">Disponibili / Operativi</p>`;
-        volontariOperativi.forEach(v => {
-            volontariBox.innerHTML += `
-                <label class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors text-slate-200">
-                    <input type="checkbox" name="s-volontari-check" value="${v.id}" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
-                    <span class="text-xs font-semibold">${v.nome} ${v.cognome} (${v.ruolo})</span>
-                </label>
-            `;
-        });
+        volontariOperativi.forEach(v => { volontariBox.innerHTML += renderVolontarioCheckbox(v); });
     }
 
     if (volontariNonOperativi.length > 0) {
         volontariBox.innerHTML += `<p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-3 mb-2">In riposo / Sospesi</p>`;
-        volontariNonOperativi.forEach(v => {
-            volontariBox.innerHTML += `
-                <label class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors text-slate-400">
-                    <input type="checkbox" name="s-volontari-check" value="${v.id}" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
-                    <span class="text-xs font-medium">${v.nome} ${v.cognome} (${v.ruolo}) - [${v.stato}]</span>
-                </label>
-            `;
-        });
+        volontariNonOperativi.forEach(v => { volontariBox.innerHTML += renderVolontarioCheckbox(v, true); });
     }
 
-    if (volontari.length === 0) {
+    if (volontariList.length === 0) {
         volontariBox.innerHTML = `<p class="text-xs text-slate-500 p-2 text-center">Nessun volontario registrato!</p>`;
     }
+}
+
+function openNuovoServizioModal() {
+    resetEditState();
+    setModalFormMode('modal-servizio', { title: 'Pianifica Servizio / Missione', submitText: 'Pianifica' });
+
+    populateServizioModalOptions();
 
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     document.getElementById("s-data").value = now.toISOString().slice(0, 16);
+    document.getElementById("s-tipo").value = "Pattugliamento Territorio";
+    document.getElementById("s-note").value = "";
+    document.getElementById("s-stato").value = "Programmato";
+
+    toggleModal('modal-servizio', true);
+}
+
+function openEditServizioModal(id) {
+    const serv = servizi.find(s => s.id === id);
+    if (!serv) return;
+
+    editingServizioId = id;
+    setModalFormMode('modal-servizio', { title: 'Modifica Servizio / Missione', submitText: 'Salva modifiche' });
+
+    populateServizioModalOptions(serv.mezzoId, serv.volontariIds || []);
+
+    document.getElementById("s-tipo").value = serv.tipo;
+    document.getElementById("s-data").value = toDatetimeLocalValue(serv.data);
+    document.getElementById("s-note").value = serv.note || "";
+    document.getElementById("s-stato").value = serv.stato;
 
     toggleModal('modal-servizio', true);
 }
@@ -826,6 +931,9 @@ function renderServizi() {
                 </td>
                 <td class="py-4 px-6 text-right">
                     <div class="inline-flex gap-2">
+                        <button onclick="openEditServizioModal('${s.id}')" title="Modifica dati" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">
+                            ${ICON_EDIT}
+                        </button>
                         ${completaBtn}
                         <button onclick="deleteServizio('${s.id}')" title="Elimina Missione" class="p-2 hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-500 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
@@ -856,8 +964,7 @@ async function saveServizio(event) {
         return;
     }
 
-    const newServizio = {
-        id: "s_" + Date.now(),
+    const payload = {
         tipo,
         data,
         mezzo_id: mezzoId,
@@ -874,11 +981,18 @@ async function saveServizio(event) {
             }
         }
 
-        const { error } = await supabase.from('servizi').insert([newServizio]);
-        if (error) throw error;
-
-        toggleModal('modal-servizio', false);
-        showToast("Servizio Pianificato", "Il servizio è stato inserito con successo nel registro.");
+        if (editingServizioId) {
+            const { error } = await supabase.from('servizi').update(payload).eq('id', editingServizioId);
+            if (error) throw error;
+            toggleModal('modal-servizio', false);
+            showToast("Servizio Aggiornato", "Le modifiche sono state salvate correttamente.");
+        } else {
+            const newServizio = { id: "s_" + Date.now(), ...payload };
+            const { error } = await supabase.from('servizi').insert([newServizio]);
+            if (error) throw error;
+            toggleModal('modal-servizio', false);
+            showToast("Servizio Pianificato", "Il servizio è stato inserito con successo nel registro.");
+        }
         await fetchDataFromSupabase();
     } catch (err) {
         console.error("Errore durante il salvataggio del servizio:", err);
@@ -961,15 +1075,20 @@ function startRealtimeClock() {
 // Esporta le funzioni globalmente affinché gli event handler in HTML (onclick, onsubmit, oninput, onchange) possano trovarle
 window.switchTab = switchTab;
 window.toggleModal = toggleModal;
+window.openNuovoVolontarioModal = openNuovoVolontarioModal;
+window.openEditVolontarioModal = openEditVolontarioModal;
 window.saveVolontario = saveVolontario;
 window.toggleVolontarioStato = toggleVolontarioStato;
 window.deleteVolontario = deleteVolontario;
 window.renderVolontari = renderVolontari;
+window.openNuovoMezzoModal = openNuovoMezzoModal;
+window.openEditMezzoModal = openEditMezzoModal;
 window.saveMezzo = saveMezzo;
 window.toggleMezzoStato = toggleMezzoStato;
 window.deleteMezzo = deleteMezzo;
 window.renderMezzi = renderMezzi;
 window.openNuovoServizioModal = openNuovoServizioModal;
+window.openEditServizioModal = openEditServizioModal;
 window.saveServizio = saveServizio;
 window.completaServizio = completaServizio;
 window.deleteServizio = deleteServizio;

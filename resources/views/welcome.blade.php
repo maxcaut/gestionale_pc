@@ -22,84 +22,7 @@
 </head>
 <body class="h-full overflow-hidden flex flex-col antialiased">
 
-    <!-- ================= SCHERMATA DI LOGIN ================= -->
-    <div id="login-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950">
-        <!-- Sfondo animato con pattern -->
-        <div class="absolute inset-0 overflow-hidden">
-            <div class="absolute -top-40 -left-40 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl"></div>
-            <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl"></div>
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-slate-900/30 rounded-full blur-3xl"></div>
-        </div>
-
-        <div class="relative w-full max-w-md mx-4">
-            <!-- Logo e Titolo -->
-            <div class="text-center mb-8">
-                <div class="inline-flex items-center justify-center ">
-                   <!-- <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-amber-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                    </svg>-->
-                    <img src="/img/logo-regione.png" alt="Logo Regione Campania" class="w-50 h-50 object-contain">
-                </div>
-                <h1 class="text-3xl font-extrabold text-white tracking-tight">Coordinamento Vesuvius</h1>
-                <p class="text-sm text-slate-400 mt-2 font-medium">Protezione Civile — Accesso Operatori</p>
-            </div>
-
-            <!-- Card Login -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl">
-                <h2 class="text-lg font-bold text-white mb-6">Accedi al sistema</h2>
-
-                <!-- Messaggio di errore -->
-                <div id="login-error" class="hidden mb-4 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-rose-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                    </svg>
-                    <p id="login-error-text" class="text-xs text-rose-400 font-medium"></p>
-                </div>
-
-                <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Indirizzo Email</label>
-                        <input
-                            type="email"
-                            id="login-email"
-                            required
-                            autocomplete="email"
-                            placeholder="operatore@protezionecivile.it"
-                            class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors placeholder:text-slate-600"
-                        >
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Password</label>
-                        <div class="relative">
-                            <input
-                                type="password"
-                                id="login-password"
-                                required
-                                autocomplete="current-password"
-                                placeholder="••••••••"
-                                class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors placeholder:text-slate-600"
-                            >
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        id="login-btn"
-                        class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 px-6 rounded-xl text-sm transition-all duration-200 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 flex items-center justify-center gap-2 mt-2"
-                    >
-                        <svg id="login-spinner" class="hidden animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span id="login-btn-text">Accedi</span>
-                    </button>
-                </form>
-            </div>
-
-            <p class="text-center text-xs text-slate-600 mt-6">Accesso riservato al personale autorizzato</p>
-        </div>
-    </div>
+    @include('login')
 
     <!-- Toast Notification (per messaggi di successo) -->
     <div id="toast" class="fixed top-6 right-6 z-50 transform translate-y-[-100px] opacity-0 transition-all duration-300 pointer-events-none">
@@ -402,176 +325,11 @@
                     </div>
                 </section>
 
-                <!-- ================= TAB 2: VOLONTARI ================= -->
-                <section id="tab-volontari" class="tab-content space-y-6 hidden fade-in">
-                    
-                    <!-- Barra Superiore Azioni Volontari -->
-                    <div class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-                        <!-- Ricerca e Filtri -->
-                        <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                            <!-- Input Ricerca -->
-                            <div class="relative w-full sm:w-64">
-                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
-                                </span>
-                                <input type="text" id="search-volontari" oninput="renderVolontari()" placeholder="Cerca volontario..." class="w-full bg-slate-900 border border-slate-800 text-slate-100 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
-                            </div>
-                            
-                            <!-- Filtro Ruolo -->
-                            <select id="filter-ruolo" onchange="renderVolontari()" class="bg-slate-900 border border-slate-800 text-slate-300 py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-colors">
-                                <option value="">Tutti i ruoli</option>
-                                <option value="Coordinatore">Coordinatore</option>
-                                <option value="Soccorritore">Soccorritore</option>
-                                <option value="Autista">Autista</option>
-                                <option value="Logista">Logista</option>
-                            </select>
-                            
-                            <!-- Filtro Stato -->
-                            <select id="filter-stato-volontario" onchange="renderVolontari()" class="bg-slate-900 border border-slate-800 text-slate-300 py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-colors">
-                                <option value="">Tutti gli stati</option>
-                                <option value="Operativo">Operativo</option>
-                                <option value="In riposo">In riposo</option>
-                                <option value="Sospeso">Sospeso</option>
-                            </select>
-                        </div>
+                @include('volontari')
 
-                        <!-- Bottone Inserimento (Apre Modal) -->
-                        <button onclick="toggleModal('modal-volontario', true)" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-slate-950 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20 transition-all">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.3 20c-2.243 0-4.352-.648-6.124-1.773L3.892 19.2c-.417-.234-.67-.679-.69-1.148z" />
-                            </svg>
-                            <span>Nuovo Volontario</span>
-                        </button>
-                    </div>
+                @include('mezzi')
 
-                    <!-- Griglia/Lista Volontari -->
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="bg-slate-900/60 border-b border-slate-800 text-slate-400 text-xs font-bold uppercase tracking-wider">
-                                        <th class="py-4 px-6">Nominativo</th>
-                                        <th class="py-4 px-6">Codice Fiscale</th>
-                                        <th class="py-4 px-6">Ruolo Principale</th>
-                                        <th class="py-4 px-6">Recapito</th>
-                                        <th class="py-4 px-6">Stato Operativo</th>
-                                        <th class="py-4 px-6 text-right">Azioni</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="volontari-table-body" class="text-sm divide-y divide-slate-800/40">
-                                    <!-- Popolato dinamicamente via JS -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- ================= TAB 3: MEZZI ================= -->
-                <section id="tab-mezzi" class="tab-content space-y-6 hidden fade-in">
-                    
-                    <!-- Barra Superiore Azioni Mezzi -->
-                    <div class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-                        <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                            <!-- Input Ricerca -->
-                            <div class="relative w-full sm:w-64">
-                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
-                                </span>
-                                <input type="text" id="search-mezzi" oninput="renderMezzi()" placeholder="Cerca mezzo per marca, targa..." class="w-full bg-slate-900 border border-slate-800 text-slate-100 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
-                            </div>
-                            
-                            <!-- Filtro Tipo -->
-                            <select id="filter-tipo-mezzo" onchange="renderMezzi()" class="bg-slate-900 border border-slate-800 text-slate-300 py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-colors">
-                                <option value="">Tutte le tipologie</option>
-                                <option value="Fuoristrada">Fuoristrada</option>
-                                <option value="Ambulanza">Ambulanza</option>
-                                <option value="Autobotte">Autobotte</option>
-                                <option value="Unità Mobile">Unità Mobile</option>
-                            </select>
-                            
-                            <!-- Filtro Stato -->
-                            <select id="filter-stato-mezzo" onchange="renderMezzi()" class="bg-slate-900 border border-slate-800 text-slate-300 py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-colors">
-                                <option value="">Tutti gli stati</option>
-                                <option value="Disponibile">Disponibile</option>
-                                <option value="In servizio">In servizio</option>
-                                <option value="In manutenzione">In manutenzione</option>
-                            </select>
-                        </div>
-
-                        <!-- Bottone Inserimento (Apre Modal) -->
-                        <button onclick="toggleModal('modal-mezzo', true)" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-slate-950 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20 transition-all">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span>Nuovo Mezzo</span>
-                        </button>
-                    </div>
-
-                    <!-- Griglia a Cards dei Mezzi -->
-                    <div id="mezzi-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        <!-- Popolato dinamicamente via JS -->
-                    </div>
-                </section>
-
-                <!-- ================= TAB 4: SERVIZI ================= -->
-                <section id="tab-servizi" class="tab-content space-y-6 hidden fade-in">
-                    
-                    <!-- Barra Superiore Azioni Servizi -->
-                    <div class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-                        <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                            <!-- Input Ricerca -->
-                            <div class="relative w-full sm:w-64">
-                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
-                                </span>
-                                <input type="text" id="search-servizi" oninput="renderServizi()" placeholder="Cerca servizio o note..." class="w-full bg-slate-900 border border-slate-800 text-slate-100 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
-                            </div>
-                            
-                            <!-- Filtro Stato -->
-                            <select id="filter-stato-servizio" onchange="renderServizi()" class="bg-slate-900 border border-slate-800 text-slate-300 py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-colors">
-                                <option value="">Tutti gli stati</option>
-                                <option value="Programmato">Programmato</option>
-                                <option value="In corso">In corso</option>
-                                <option value="Completato">Completato</option>
-                            </select>
-                        </div>
-
-                        <!-- Bottone Inserimento (Apre Modal) -->
-                        <button onclick="openNuovoServizioModal()" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-slate-950 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20 transition-all">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span>Nuova Missione / Servizio</span>
-                        </button>
-                    </div>
-
-                    <!-- Elenco Tabella Servizi -->
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="bg-slate-900/60 border-b border-slate-800 text-slate-400 text-xs font-bold uppercase tracking-wider">
-                                        <th class="py-4 px-6">Tipologia Servizio / Dettagli</th>
-                                        <th class="py-4 px-6">Data e Ora</th>
-                                        <th class="py-4 px-6">Mezzo Assegnato</th>
-                                        <th class="py-4 px-6">Equipaggio Volontari</th>
-                                        <th class="py-4 px-6">Stato Servizio</th>
-                                        <th class="py-4 px-6 text-right">Azioni</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="servizi-table-body" class="text-sm divide-y divide-slate-800/40">
-                                    <!-- Popolato dinamicamente via JS -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
+                @include('servizi')
 
             </div>
         </main>
@@ -615,7 +373,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-amber-500">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.3 20c-2.243 0-4.352-.648-6.124-1.773L3.892 19.2c-.417-.234-.67-.679-.69-1.148z" />
                     </svg>
-                    Aggiungi Nuovo Volontario
+                    <span id="modal-volontario-title">Aggiungi Nuovo Volontario</span>
                 </h3>
                 <button onclick="toggleModal('modal-volontario', false)" class="text-slate-400 hover:text-white transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -668,7 +426,7 @@
 
                 <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">
                     <button type="button" onclick="toggleModal('modal-volontario', false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">Annulla</button>
-                    <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-amber-500/10">Registra</button>
+                    <button type="submit" id="modal-volontario-submit" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-amber-500/10">Registra</button>
                 </div>
             </form>
         </div>
@@ -683,7 +441,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-amber-500">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Aggiungi Nuovo Mezzo di Soccorso
+                    <span id="modal-mezzo-title">Aggiungi Nuovo Mezzo di Soccorso</span>
                 </h3>
                 <button onclick="toggleModal('modal-mezzo', false)" class="text-slate-400 hover:text-white transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -725,7 +483,7 @@
 
                 <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">
                     <button type="button" onclick="toggleModal('modal-mezzo', false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">Annulla</button>
-                    <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-amber-500/10">Registra</button>
+                    <button type="submit" id="modal-mezzo-submit" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-amber-500/10">Registra</button>
                 </div>
             </form>
         </div>
@@ -740,7 +498,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-amber-500">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Pianifica Servizio / Missione
+                    <span id="modal-servizio-title">Pianifica Servizio / Missione</span>
                 </h3>
                 <button onclick="toggleModal('modal-servizio', false)" class="text-slate-400 hover:text-white transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -798,7 +556,7 @@
 
                 <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">
                     <button type="button" onclick="toggleModal('modal-servizio', false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">Annulla</button>
-                    <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-amber-500/10">Pianifica</button>
+                    <button type="submit" id="modal-servizio-submit" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-amber-500/10">Pianifica</button>
                 </div>
             </form>
         </div>
