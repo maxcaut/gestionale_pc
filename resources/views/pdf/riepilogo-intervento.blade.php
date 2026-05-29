@@ -186,25 +186,29 @@
     </div>
 
     <div class="section">
-        <div class="section-title">Mezzo assegnato</div>
-        @if ($mezzo)
-            <table class="data">
-                <tr>
-                    <th>Modello</th>
-                    <td>{{ $mezzo['modello'] ?? '—' }}</td>
-                </tr>
-                <tr>
-                    <th>Targa</th>
-                    <td>{{ $mezzo['targa'] ?? '—' }}</td>
-                </tr>
-                <tr>
-                    <th>Tipologia mezzo</th>
-                    <td>{{ $mezzo['tipo'] ?? '—' }}</td>
-                </tr>
-                <tr>
-                    <th>Stato mezzo (al momento dell'export)</th>
-                    <td>{{ $mezzo['stato'] ?? '—' }}</td>
-                </tr>
+        <div class="section-title">Mezzi assegnati ({{ count($mezzi) }})</div>
+        @if (count($mezzi) > 0)
+            <table class="equipaggio">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Modello</th>
+                        <th>Targa</th>
+                        <th>Tipologia</th>
+                        <th>Stato</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($mezzi as $index => $mezzo)
+                        <tr>
+                            <td>{{ $index + 1 }}</td>
+                            <td>{{ $mezzo['modello'] ?? '—' }}</td>
+                            <td>{{ $mezzo['targa'] ?? '—' }}</td>
+                            <td>{{ $mezzo['tipo'] ?? '—' }}</td>
+                            <td>{{ $mezzo['stato'] ?? '—' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
             </table>
         @else
             <p>Nessun mezzo associato a questo intervento.</p>
@@ -247,8 +251,8 @@
                 <td>{{ count($equipaggio) }}</td>
             </tr>
             <tr>
-                <th>Mezzo impiegato</th>
-                <td>{{ $mezzo ? ($mezzo['modello'] ?? '—').' ('.($mezzo['targa'] ?? '—').')' : 'Nessuno' }}</td>
+                <th>Mezzi impiegati</th>
+                <td>{{ count($mezzi) > 0 ? collect($mezzi)->map(fn ($m) => ($m['modello'] ?? '—').' ('.($m['targa'] ?? '—').')')->implode('; ') : 'Nessuno' }}</td>
             </tr>
         </table>
     </div>

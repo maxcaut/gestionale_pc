@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS servizi (
     id TEXT PRIMARY KEY,
     tipo TEXT NOT NULL,
     data TEXT NOT NULL,
-    mezzo_id TEXT REFERENCES mezzi(id) ON DELETE SET NULL,
+    mezzi_ids TEXT[] NOT NULL DEFAULT '{}',
     volontari_ids TEXT[] NOT NULL DEFAULT '{}',
     note TEXT,
     stato TEXT NOT NULL,
@@ -39,3 +39,8 @@ CREATE TABLE IF NOT EXISTS servizi (
 ALTER TABLE volontari DISABLE ROW LEVEL SECURITY;
 ALTER TABLE mezzi DISABLE ROW LEVEL SECURITY;
 ALTER TABLE servizi DISABLE ROW LEVEL SECURITY;
+
+-- Migrazione da mezzo_id singolo a mezzi_ids (eseguire solo se la tabella esiste già con mezzo_id):
+-- ALTER TABLE servizi ADD COLUMN IF NOT EXISTS mezzi_ids TEXT[] NOT NULL DEFAULT '{}';
+-- UPDATE servizi SET mezzi_ids = ARRAY[mezzo_id] WHERE mezzo_id IS NOT NULL AND cardinality(mezzi_ids) = 0;
+-- ALTER TABLE servizi DROP COLUMN IF EXISTS mezzo_id;

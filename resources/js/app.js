@@ -100,9 +100,9 @@ const DEFAULT_MEZZI = [
 ];
 
 const DEFAULT_SERVIZI = [
-    { id: "s1", tipo: "Pattugliamento Territorio", data: "2026-05-29T09:00", mezzoId: "m1", volontariIds: ["v1", "v4"], note: "Monitoraggio idrogeologico fiumi post allerta meteo gialla.", stato: "Programmato" },
-    { id: "s2", tipo: "Supporto Sanitario", data: "2026-05-28T14:30", mezzoId: "m2", volontariIds: ["v2"], note: "Assistenza sanitaria per la gara podistica cittadina.", stato: "In corso" },
-    { id: "s3", tipo: "Antincendio Boschivo", data: "2026-05-27T08:00", mezzoId: "m3", volontariIds: ["v1", "v3"], note: "Pronto intervento e bonifica area boschiva collinare.", stato: "Completato" }
+    { id: "s1", tipo: "Pattugliamento Territorio", data: "2026-05-29T09:00", mezziIds: ["m1"], volontariIds: ["v1", "v4"], note: "Monitoraggio idrogeologico fiumi post allerta meteo gialla.", stato: "Programmato" },
+    { id: "s2", tipo: "Supporto Sanitario", data: "2026-05-28T14:30", mezziIds: ["m2"], volontariIds: ["v2"], note: "Assistenza sanitaria per la gara podistica cittadina.", stato: "In corso" },
+    { id: "s3", tipo: "Antincendio Boschivo", data: "2026-05-27T08:00", mezziIds: ["m3"], volontariIds: ["v1", "v3"], note: "Pronto intervento e bonifica area boschiva collinare.", stato: "Completato" }
 ];
 
 // --- STATO IN-MEMORY DELL'APPLICAZIONE ---
@@ -162,7 +162,9 @@ async function fetchDataFromSupabase() {
             id: s.id,
             tipo: s.tipo,
             data: s.data,
-            mezzoId: s.mezzo_id,
+            mezziIds: Array.isArray(s.mezzi_ids) && s.mezzi_ids.length > 0
+                ? s.mezzi_ids
+                : (s.mezzo_id ? [s.mezzo_id] : []),
             volontariIds: s.volontari_ids || [],
             note: s.note,
             stato: s.stato
@@ -194,7 +196,7 @@ async function initializeDefaultData() {
             id: s.id,
             tipo: s.tipo,
             data: s.data,
-            mezzo_id: s.mezzoId,
+            mezzi_ids: s.mezziIds,
             volontari_ids: s.volontariIds,
             note: s.note,
             stato: s.stato
@@ -369,7 +371,9 @@ function updateDashboardStats() {
     }
 
     recentServizi.forEach(serv => {
-        const mezzo = mezzi.find(m => m.id === serv.mezzoId) || { modello: "Nessuno", targa: "" };
+        const mezziAssegnati = (serv.mezziIds || [])
+            .map(mId => mezzi.find(m => m.id === mId))
+            .filter(Boolean);
         let badgeClass = "";
         if (serv.stato === "Programmato") badgeClass = "bg-blue-500/10 text-blue-400 border-blue-500/20";
         else if (serv.stato === "In corso") badgeClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
@@ -391,8 +395,9 @@ function updateDashboardStats() {
                 </td>
                 <td class="py-4 px-4 text-slate-300 font-medium">${formattedDate}</td>
                 <td class="py-4 px-4">
-                    <span class="text-xs font-semibold text-slate-300">${mezzo.modello}</span>
-                    <span class="text-[10px] text-slate-500 block font-mono">${mezzo.targa}</span>
+                    ${mezziAssegnati.length > 0
+                        ? mezziAssegnati.map(m => `<span class="text-xs font-semibold text-slate-300 block">${m.modello}</span><span class="text-[10px] text-slate-500 block font-mono mb-1">${m.targa}</span>`).join('')
+                        : `<span class="text-xs text-slate-500">Nessun mezzo</span>`}
                 </td>
                 <td class="py-4 px-0">
                     <span class="px-2.5 py-1 text-[10px] font-bold border rounded-full ${badgeClass}">${serv.stato}</span>
@@ -765,23 +770,41 @@ async function deleteMezzo(id) {
 }
 
 // --- SEZIONE 4: SERVIZI (CRUD & VIEW) ---
-function populateServizioModalOptions(selectedMezzoId = null, selectedVolontariIds = []) {
+function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariIds = []) {
     const mezziList = getDB("pc_mezzi");
     const volontariList = getDB("pc_volontari");
 
-    const selectMezzo = document.getElementById("s-mezzo");
-    selectMezzo.innerHTML = "";
+    const mezziBox = document.getElementById("s-mezzi-list");
+    mezziBox.innerHTML = "";
 
-    mezziList.forEach(m => {
-        const statusTag = m.stato !== "Disponibile" ? ` - (${m.stato})` : '';
-        const selected = selectedMezzoId === m.id ? 'selected' : '';
-        selectMezzo.innerHTML += `
-            <option value="${m.id}" ${selected}>${m.modello} [${m.targa}]${statusTag}</option>
+    const mezziDisponibili = mezziList.filter(m => m.stato === "Disponibile");
+    const mezziNonDisponibili = mezziList.filter(m => m.stato !== "Disponibile");
+
+    const renderMezzoCheckbox = (m, muted = false) => {
+        const checked = selectedMezziIds.includes(m.id) ? 'checked' : '';
+        const textClass = muted ? 'text-slate-400' : 'text-slate-200';
+        const fontClass = muted ? 'font-medium' : 'font-semibold';
+        const extra = muted ? ` - [${m.stato}]` : '';
+        return `
+            <label class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
+                <input type="checkbox" name="s-mezzi-check" value="${m.id}" ${checked} class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
+                <span class="text-xs ${fontClass}">${m.modello} [${m.targa}] (${m.tipo})${extra}</span>
+            </label>
         `;
-    });
+    };
+
+    if (mezziDisponibili.length > 0) {
+        mezziBox.innerHTML += `<p class="text-[10px] text-emerald-500 font-bold uppercase tracking-wider mb-2">Disponibili</p>`;
+        mezziDisponibili.forEach(m => { mezziBox.innerHTML += renderMezzoCheckbox(m); });
+    }
+
+    if (mezziNonDisponibili.length > 0) {
+        mezziBox.innerHTML += `<p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-3 mb-2">In servizio / Manutenzione</p>`;
+        mezziNonDisponibili.forEach(m => { mezziBox.innerHTML += renderMezzoCheckbox(m, true); });
+    }
 
     if (mezziList.length === 0) {
-        selectMezzo.innerHTML = `<option value="">Nessun mezzo registrato! Creane prima uno.</option>`;
+        mezziBox.innerHTML = `<p class="text-xs text-slate-500 p-2 text-center">Nessun mezzo registrato!</p>`;
     }
 
     const volontariBox = document.getElementById("s-volontari-list");
@@ -841,7 +864,7 @@ function openEditServizioModal(id) {
     editingServizioId = id;
     setModalFormMode('modal-servizio', { title: 'Modifica Servizio / Missione', submitText: 'Salva modifiche' });
 
-    populateServizioModalOptions(serv.mezzoId, serv.volontariIds || []);
+    populateServizioModalOptions(serv.mezziIds || [], serv.volontariIds || []);
 
     document.getElementById("s-tipo").value = serv.tipo;
     document.getElementById("s-data").value = toDatetimeLocalValue(serv.data);
@@ -878,7 +901,9 @@ function renderServizi() {
     }
 
     [...filtered].reverse().forEach(s => {
-        const mezzo = mezzi.find(m => m.id === s.mezzoId) || { modello: "Nessun mezzo", targa: "N/D", tipo: "N/D" };
+        const mezziAssegnati = (s.mezziIds || [])
+            .map(mId => mezzi.find(m => m.id === mId))
+            .filter(Boolean);
 
         const equipaggio = s.volontariIds.map(vId => {
             const vol = volontari.find(v => v.id === vId);
@@ -897,6 +922,10 @@ function renderServizi() {
             hour: '2-digit',
             minute: '2-digit'
         });
+
+        const mezziPills = mezziAssegnati.length > 0
+            ? mezziAssegnati.map(m => `<span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">${m.modello}<span class="text-[10px] text-slate-400 font-mono ml-1">${m.targa}</span></span>`).join('')
+            : `<span class="text-xs text-rose-400 font-semibold">Nessun mezzo assegnato!</span>`;
 
         const volontariPills = equipaggio.length > 0
             ? equipaggio.map(nome => `<span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">${nome}</span>`).join('')
@@ -925,9 +954,10 @@ function renderServizi() {
                     <p class="text-xs text-slate-500 mt-1 font-medium italic break-words">${s.note || "Nessuna nota operativa aggiuntiva"}</p>
                 </td>
                 <td class="py-4 px-6 text-slate-300 font-bold">${formattedDate}</td>
-                <td class="py-4 px-6">
-                    <p class="font-bold text-slate-200 text-sm">${mezzo.modello}</p>
-                    <span class="inline-block text-[10px] text-slate-400 font-mono bg-slate-950 px-2 py-0.5 rounded border border-slate-850 mt-1">${mezzo.targa}</span>
+                <td class="py-4 px-6 max-w-[280px]">
+                    <div class="flex flex-wrap">
+                        ${mezziPills}
+                    </div>
                 </td>
                 <td class="py-4 px-6 max-w-[280px]">
                     <div class="flex flex-wrap">
@@ -960,13 +990,21 @@ async function saveServizio(event) {
     event.preventDefault();
     const tipo = document.getElementById("s-tipo").value;
     const data = document.getElementById("s-data").value;
-    const mezzoId = document.getElementById("s-mezzo").value;
     const note = document.getElementById("s-note").value;
     const stato = document.getElementById("s-stato").value;
 
-    const checkboxes = document.querySelectorAll('input[name="s-volontari-check"]:checked');
+    const mezziCheckboxes = document.querySelectorAll('input[name="s-mezzi-check"]:checked');
+    const mezziIds = [];
+    mezziCheckboxes.forEach(cb => mezziIds.push(cb.value));
+
+    const volontariCheckboxes = document.querySelectorAll('input[name="s-volontari-check"]:checked');
     const volontariIds = [];
-    checkboxes.forEach(cb => volontariIds.push(cb.value));
+    volontariCheckboxes.forEach(cb => volontariIds.push(cb.value));
+
+    if (mezziIds.length === 0) {
+        alert("Attenzione: devi assegnare almeno un mezzo al servizio!");
+        return;
+    }
 
     if (volontariIds.length === 0) {
         alert("Attenzione: devi assegnare almeno un volontario all'equipaggio del servizio!");
@@ -976,7 +1014,7 @@ async function saveServizio(event) {
     const payload = {
         tipo,
         data,
-        mezzo_id: mezzoId,
+        mezzi_ids: mezziIds,
         volontari_ids: volontariIds,
         note,
         stato
@@ -984,9 +1022,11 @@ async function saveServizio(event) {
 
     try {
         if (stato === "In corso") {
-            const mezzo = mezzi.find(m => m.id === mezzoId);
-            if (mezzo && mezzo.stato === "Disponibile") {
-                await supabase.from('mezzi').update({ stato: "In servizio" }).eq('id', mezzoId);
+            for (const mId of mezziIds) {
+                const mezzo = mezzi.find(m => m.id === mId);
+                if (mezzo && mezzo.stato === "Disponibile") {
+                    await supabase.from('mezzi').update({ stato: "In servizio" }).eq('id', mId);
+                }
             }
         }
 
@@ -1016,9 +1056,11 @@ async function completaServizio(id) {
             const { error: sErr } = await supabase.from('servizi').update({ stato: "Completato" }).eq('id', id);
             if (sErr) throw sErr;
 
-            const mezzo = mezzi.find(m => m.id === serv.mezzoId);
-            if (mezzo && mezzo.stato === "In servizio") {
-                await supabase.from('mezzi').update({ stato: "Disponibile" }).eq('id', serv.mezzoId);
+            for (const mId of (serv.mezziIds || [])) {
+                const mezzo = mezzi.find(m => m.id === mId);
+                if (mezzo && mezzo.stato === "In servizio") {
+                    await supabase.from('mezzi').update({ stato: "Disponibile" }).eq('id', mId);
+                }
             }
 
             showToast("Missione Completata", "Il servizio è stato archiviato come completato.");
@@ -1039,7 +1081,9 @@ async function exportServizioPdf(id) {
         return;
     }
 
-    const mezzo = mezzi.find(m => m.id === serv.mezzoId) || null;
+    const mezziExport = (serv.mezziIds || [])
+        .map(mId => mezzi.find(m => m.id === mId))
+        .filter(Boolean);
     const equipaggio = (serv.volontariIds || [])
         .map(vId => volontari.find(v => v.id === vId))
         .filter(Boolean);
@@ -1069,12 +1113,12 @@ async function exportServizioPdf(id) {
                     stato: serv.stato,
                     volontariIds: serv.volontariIds || [],
                 },
-                mezzo: mezzo ? {
-                    modello: mezzo.modello,
-                    targa: mezzo.targa,
-                    tipo: mezzo.tipo,
-                    stato: mezzo.stato,
-                } : null,
+                mezzi: mezziExport.map(m => ({
+                    modello: m.modello,
+                    targa: m.targa,
+                    tipo: m.tipo,
+                    stato: m.stato,
+                })),
                 equipaggio: equipaggio.map(v => ({
                     nome: v.nome,
                     cognome: v.cognome,

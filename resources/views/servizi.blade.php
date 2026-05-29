@@ -40,7 +40,7 @@
                                     <tr class="bg-slate-900/60 border-b border-slate-800 text-slate-400 text-xs font-bold uppercase tracking-wider">
                                         <th class="py-4 px-6">Tipologia Servizio / Dettagli</th>
                                         <th class="py-4 px-6">Data e Ora</th>
-                                        <th class="py-4 px-6">Mezzo Assegnato</th>
+                                        <th class="py-4 px-6">Mezzi Assegnati</th>
                                         <th class="py-4 px-6">Equipaggio Volontari</th>
                                         <th class="py-4 px-6">Stato Servizio</th>
                                         <th class="py-4 px-6 text-right">Azioni</th>

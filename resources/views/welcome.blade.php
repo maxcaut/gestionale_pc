@@ -526,10 +526,11 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Mezzo di Soccorso Assegnato <span class="text-amber-500">*</span></label>
-                    <select id="s-mezzo" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Seleziona Mezzi di Soccorso <span class="text-amber-500">*</span></label>
+                    <div id="s-mezzi-list" class="bg-slate-950 border border-slate-800 rounded-xl p-4 max-h-40 overflow-y-auto space-y-2">
                         <!-- Popolato dinamicamente con i mezzi registrati -->
-                    </select>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-1 font-medium">Seleziona uno o più mezzi disponibili da assegnare al servizio.</p>
                 </div>
 
                 <!-- Lista Checkbox Volontari (Equipaggio) -->
