@@ -114,7 +114,7 @@
         <main class="flex-1 flex flex-col min-w-0 bg-slate-950 overflow-hidden w-full">
             
             <!-- TOP BAR: su mobile titolo su riga dedicata (no overlap con email) -->
-            <header class="shrink-0 bg-slate-900 border-b border-slate-800 px-4 py-3 lg:px-8 lg:py-0 lg:h-20 grid grid-cols-[auto_1fr] grid-rows-[auto_auto] gap-x-3 gap-y-2.5 lg:flex lg:items-center lg:justify-between lg:gap-6">
+            <header class="h-16 lg:h-20 bg-slate-900 border-b border-slate-800 px-4 lg:px-8 flex items-center justify-between shrink-0">
                 <!-- Hamburger (solo mobile) -->
                 <button onclick="toggleSidebar()" class="lg:hidden row-start-1 col-start-1 p-2 -ml-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors self-center" aria-label="Apri menu">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
