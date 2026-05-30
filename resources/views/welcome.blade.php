@@ -91,7 +91,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z" />
                     </svg>
-                    <span>Registro Servizi</span>
+                    <span>Sala Operativa</span>
                 </button>
             </nav>
 
@@ -103,8 +103,8 @@
                         <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
                     </span>
                     <div>
-                        <p class="text-xs font-semibold text-slate-200">Sala Radio</p>
-                        <p class="text-[10px] text-emerald-500 font-medium uppercase">Operativo H24</p>
+                        <p class="text-xs font-semibold text-slate-200">System Status</p>
+                        <p class="text-[10px] text-emerald-500 font-medium uppercase">Healthly</p>
                     </div>
                 </div>
             </div>
@@ -425,6 +425,18 @@
                     <input type="tel" id="v-telefono" required placeholder="Es. 3331234567" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
                 </div>
 
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Associazione di appartenenza <span class="text-amber-500">*</span></label>
+                    <select id="v-associazione" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                        <option value="G.C. Massa di Somma">G.C. Massa di Somma</option>
+                        <option value="G.C. Cercola">G.C. Cercola</option>
+                        <option value="Cobra 2">Cobra 2</option>
+                        <option value="G.C. Sant'Anastasia">G.C. Sant'Anastasia</option>
+                        <option value="Save Me">Save Me</option>
+                        <option value="NVPC Pomigliano">NVPC Pomigliano</option>
+                    </select>
+                </div>
+
                 <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">
                     <button type="button" onclick="toggleModal('modal-volontario', false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">Annulla</button>
                     <button type="submit" id="modal-volontario-submit" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-amber-500/10">Registra</button>
@@ -510,6 +522,15 @@
             <!-- Modal Form -->
             <form id="form-servizio" onsubmit="saveServizio(event)" class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
                 <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Richiedente <span class="text-amber-500">*</span></label>
+                    <select id="s-richiedente" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                        <option value="SORU">SORU</option>
+                        <option value="SOPI">SOPI</option>
+                        <option value="Altro">Altro</option>
+                    </select>
+                </div>
+
+                <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Tipologia Servizio / Intervento <span class="text-amber-500">*</span></label>
                     <select id="s-tipo" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
                         <option value="Pattugliamento Territorio">Pattugliamento Territorio</option>
@@ -523,6 +544,27 @@
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Data e Ora Pianificazione <span class="text-amber-500">*</span></label>
                     <input type="datetime-local" id="s-data" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Coordinate Geografiche</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="number" id="s-lat" step="any" placeholder="Latitudine" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                        <input type="number" id="s-lng" step="any" placeholder="Longitudine" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                    </div>
+                    <button type="button" onclick="fillCoordinateFromGps()" class="mt-2 w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold px-4 py-2.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                        </svg>
+                        Usa posizione GPS attuale
+                    </button>
+                    <p class="text-[10px] text-slate-500 mt-1 font-medium">In alternativa, compila l'indirizzo sotto.</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Indirizzo Intervento</label>
+                    <input type="text" id="s-indirizzo" placeholder="Via, civico, comune..." class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
                 </div>
 
                 <div>
@@ -545,6 +587,11 @@
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Note / Dettagli Operativi</label>
                     <textarea id="s-note" rows="3" placeholder="Es. Controllo del livello dei fiumi o coordinamento con la sala radio..." class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Altri Enti Coinvolti</label>
+                    <input type="text" id="s-altri-enti" placeholder="Es. Vigili del Fuoco, 118, Polizia..." class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
                 </div>
 
                 <div>

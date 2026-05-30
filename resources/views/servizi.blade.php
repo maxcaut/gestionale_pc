@@ -32,6 +32,23 @@
                         </button>
                     </div>
 
+                    <!-- Mappa servizi sul territorio -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                        <div class="px-6 py-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div>
+                                <h3 class="text-sm font-bold text-white uppercase tracking-wider">Mappa interventi</h3>
+                                <p class="text-xs text-slate-500 mt-0.5">Posizioni da coordinate inserite in fase di pianificazione missione</p>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-400"></span> Programmato</span>
+                                <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> In corso</span>
+                                <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Completato</span>
+                            </div>
+                        </div>
+                        <div id="servizi-map" class="servizi-map w-full" role="region" aria-label="Mappa dei servizi sul territorio di Massa di Somma"></div>
+                        <p id="servizi-map-hint" class="px-6 py-2 text-[10px] text-slate-500 border-t border-slate-800/80 hidden"></p>
+                    </div>
+
                     <!-- Elenco Tabella Servizi -->
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
                         <div class="overflow-x-auto">

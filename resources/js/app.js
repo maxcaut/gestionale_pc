@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 // --- INIZIALIZZAZIONE SUPABASE ---
 // Invece di import.meta.env, leggiamo una variabile passata da Laravel nel file HTML
@@ -114,6 +116,12 @@ let editingVolontarioId = null;
 let editingMezzoId = null;
 let editingServizioId = null;
 
+// Mappa servizi — default: comune di Massa di Somma (NA)
+const MASSA_DI_SOMMA_CENTER = [40.850, 14.342];
+const MASSA_DI_SOMMA_ZOOM = 11;
+let serviziMap = null;
+let serviziMapMarkersLayer = null;
+
 const ICON_EDIT = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>`;
 
 function toDatetimeLocalValue(isoString) {
@@ -160,13 +168,18 @@ async function fetchDataFromSupabase() {
         mezzi = mezResponse.data || [];
         servizi = (serResponse.data || []).map(s => ({
             id: s.id,
+            richiedente: s.richiedente,
             tipo: s.tipo,
             data: s.data,
+            latitudine: s.latitudine,
+            longitudine: s.longitudine,
+            indirizzo: s.indirizzo_intervento,
             mezziIds: Array.isArray(s.mezzi_ids) && s.mezzi_ids.length > 0
                 ? s.mezzi_ids
                 : (s.mezzo_id ? [s.mezzo_id] : []),
             volontariIds: s.volontari_ids || [],
             note: s.note,
+            altriEnti: s.altri_enti_coinvolti,
             stato: s.stato
         }));
 
@@ -194,11 +207,16 @@ async function initializeDefaultData() {
 
         const supabaseServizi = DEFAULT_SERVIZI.map(s => ({
             id: s.id,
+            richiedente: s.richiedente,
             tipo: s.tipo,
             data: s.data,
+            latitudine: s.latitudine,
+            longitudine: s.longitudine,
+            indirizzo_intervento: s.indirizzo,
             mezzi_ids: s.mezziIds,
             volontari_ids: s.volontariIds,
             note: s.note,
+            altri_enti_coinvolti: s.altriEnti,
             stato: s.stato
         }));
         const { error: serErr } = await supabase.from('servizi').insert(supabaseServizi);
@@ -287,6 +305,13 @@ function switchTab(tabId) {
         servizi: "Registro Missioni e Servizi"
     };
     document.getElementById("page-title").innerText = titleMap[tabId];
+
+    if (tabId === "servizi") {
+        setTimeout(() => {
+            ensureServiziMap();
+            renderServizi();
+        }, 100);
+    }
 }
 
 // --- FUNZIONI SIDEBAR MOBILE ---
@@ -507,6 +532,7 @@ function openEditVolontarioModal(id) {
     document.getElementById("v-ruolo").value = vol.ruolo;
     document.getElementById("v-stato").value = vol.stato;
     document.getElementById("v-telefono").value = vol.telefono;
+    document.getElementById("v-associazione").value = vol.associazione_appartenenza || "G.C. Massa di Somma";
 
     toggleModal('modal-volontario', true);
 }
@@ -519,8 +545,9 @@ async function saveVolontario(event) {
     const ruolo = document.getElementById("v-ruolo").value;
     const stato = document.getElementById("v-stato").value;
     const telefono = document.getElementById("v-telefono").value;
+    const associazione_appartenenza = document.getElementById("v-associazione").value;
 
-    const payload = { nome, cognome, cf, ruolo, stato, telefono };
+    const payload = { nome, cognome, cf, ruolo, stato, telefono, associazione_appartenenza };
 
     try {
         if (editingVolontarioId) {
@@ -841,6 +868,32 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
     }
 }
 
+function resetServizioLocationFields() {
+    document.getElementById("s-richiedente").value = "SORU";
+    document.getElementById("s-lat").value = "";
+    document.getElementById("s-lng").value = "";
+    document.getElementById("s-indirizzo").value = "";
+    document.getElementById("s-altri-enti").value = "";
+}
+
+function fillCoordinateFromGps() {
+    if (!navigator.geolocation) {
+        alert("Geolocalizzazione non supportata da questo browser.");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            document.getElementById("s-lat").value = position.coords.latitude.toFixed(6);
+            document.getElementById("s-lng").value = position.coords.longitude.toFixed(6);
+        },
+        (error) => {
+            alert("Impossibile ottenere la posizione GPS: " + error.message);
+        },
+        { enableHighAccuracy: true, timeout: 15000 }
+    );
+}
+
 function openNuovoServizioModal() {
     resetEditState();
     setModalFormMode('modal-servizio', { title: 'Pianifica Servizio / Missione', submitText: 'Pianifica' });
@@ -853,6 +906,7 @@ function openNuovoServizioModal() {
     document.getElementById("s-tipo").value = "Pattugliamento Territorio";
     document.getElementById("s-note").value = "";
     document.getElementById("s-stato").value = "Programmato";
+    resetServizioLocationFields();
 
     toggleModal('modal-servizio', true);
 }
@@ -866,12 +920,132 @@ function openEditServizioModal(id) {
 
     populateServizioModalOptions(serv.mezziIds || [], serv.volontariIds || []);
 
+    document.getElementById("s-richiedente").value = serv.richiedente || "SORU";
     document.getElementById("s-tipo").value = serv.tipo;
     document.getElementById("s-data").value = toDatetimeLocalValue(serv.data);
+    document.getElementById("s-lat").value = serv.latitudine ?? "";
+    document.getElementById("s-lng").value = serv.longitudine ?? "";
+    document.getElementById("s-indirizzo").value = serv.indirizzo || "";
     document.getElementById("s-note").value = serv.note || "";
+    document.getElementById("s-altri-enti").value = serv.altriEnti || "";
     document.getElementById("s-stato").value = serv.stato;
 
     toggleModal('modal-servizio', true);
+}
+
+function getFilteredServizi() {
+    const allServizi = getDB("pc_servizi");
+    const searchEl = document.getElementById("search-servizi");
+    const filterEl = document.getElementById("filter-stato-servizio");
+    const search = searchEl ? searchEl.value.toLowerCase() : "";
+    const filterStato = filterEl ? filterEl.value : "";
+
+    return allServizi.filter(s => {
+        const matchSearch = `${s.tipo} ${s.note || ""}`.toLowerCase().includes(search);
+        const matchStato = filterStato === "" || s.stato === filterStato;
+        return matchSearch && matchStato;
+    });
+}
+
+function hasValidServizioCoordinates(servizio) {
+    const lat = parseFloat(servizio.latitudine);
+    const lng = parseFloat(servizio.longitudine);
+    return Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+}
+
+function getServizioMarkerColor(stato) {
+    if (stato === "Programmato") return "#3b82f6";
+    if (stato === "In corso") return "#f59e0b";
+    return "#10b981";
+}
+
+function buildServizioMapPopup(servizio) {
+    const formattedDate = new Date(servizio.data).toLocaleDateString("it-IT", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+    const indirizzo = servizio.indirizzo
+        ? `<p class="text-slate-400 mt-1"><strong class="text-slate-300">Indirizzo:</strong> ${servizio.indirizzo}</p>`
+        : "";
+    return `
+        <div class="font-sans">
+            <p class="font-bold text-amber-400">${servizio.tipo}</p>
+            <p class="text-slate-300 mt-1"><strong>Stato:</strong> ${servizio.stato}</p>
+            <p class="text-slate-300"><strong>Data:</strong> ${formattedDate}</p>
+            ${indirizzo}
+        </div>
+    `;
+}
+
+function isServiziTabVisible() {
+    const tab = document.getElementById("tab-servizi");
+    return tab && !tab.classList.contains("hidden");
+}
+
+function ensureServiziMap() {
+    const mapEl = document.getElementById("servizi-map");
+    if (!mapEl || serviziMap || !isServiziTabVisible()) return;
+
+    serviziMap = L.map(mapEl, {
+        scrollWheelZoom: true,
+        zoomControl: true
+    }).setView(MASSA_DI_SOMMA_CENTER, MASSA_DI_SOMMA_ZOOM);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(serviziMap);
+
+    serviziMapMarkersLayer = L.layerGroup().addTo(serviziMap);
+}
+
+function updateServiziMap(filteredServizi) {
+    if (!isServiziTabVisible()) return;
+
+    const mapHint = document.getElementById("servizi-map-hint");
+    ensureServiziMap();
+    if (!serviziMap || !serviziMapMarkersLayer) return;
+
+    serviziMapMarkersLayer.clearLayers();
+
+    const withCoords = filteredServizi.filter(hasValidServizioCoordinates);
+    const withoutCoords = filteredServizi.length - withCoords.length;
+
+    if (mapHint) {
+        if (withoutCoords > 0 && filteredServizi.length > 0) {
+            mapHint.textContent = `${withoutCoords} missione/i senza coordinate non mostrate sulla mappa. Inseriscile dal modulo «Nuova Missione / Servizio».`;
+            mapHint.classList.remove("hidden");
+        } else {
+            mapHint.classList.add("hidden");
+            mapHint.textContent = "";
+        }
+    }
+
+    withCoords.forEach(s => {
+        const lat = parseFloat(s.latitudine);
+        const lng = parseFloat(s.longitudine);
+        L.circleMarker([lat, lng], {
+            radius: 9,
+            fillColor: getServizioMarkerColor(s.stato),
+            color: "#f8fafc",
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.92
+        })
+            .bindPopup(buildServizioMapPopup(s), { maxWidth: 280 })
+            .addTo(serviziMapMarkersLayer);
+    });
+
+    if (withCoords.length > 0) {
+        const bounds = L.latLngBounds(withCoords.map(s => [parseFloat(s.latitudine), parseFloat(s.longitudine)]));
+        serviziMap.fitBounds(bounds.pad(0.15), { maxZoom: 15 });
+    } else {
+        serviziMap.setView(MASSA_DI_SOMMA_CENTER, MASSA_DI_SOMMA_ZOOM);
+    }
+
+    setTimeout(() => serviziMap?.invalidateSize(), 50);
 }
 
 function renderServizi() {
@@ -880,16 +1054,11 @@ function renderServizi() {
     const volontari = getDB("pc_volontari");
 
     const tbody = document.getElementById("servizi-table-body");
-    const search = document.getElementById("search-servizi").value.toLowerCase();
-    const filterStato = document.getElementById("filter-stato-servizio").value;
+    const filtered = getFilteredServizi();
+
+    updateServiziMap(filtered);
 
     tbody.innerHTML = "";
-
-    const filtered = servizi.filter(s => {
-        const matchSearch = `${s.tipo} ${s.note}`.toLowerCase().includes(search);
-        const matchStato = filterStato === "" || s.stato === filterStato;
-        return matchSearch && matchStato;
-    });
 
     if (filtered.length === 0) {
         tbody.innerHTML = `
@@ -988,9 +1157,14 @@ function renderServizi() {
 
 async function saveServizio(event) {
     event.preventDefault();
+    const richiedente = document.getElementById("s-richiedente").value;
     const tipo = document.getElementById("s-tipo").value;
     const data = document.getElementById("s-data").value;
+    const latValue = document.getElementById("s-lat").value.trim();
+    const lngValue = document.getElementById("s-lng").value.trim();
+    const indirizzo = document.getElementById("s-indirizzo").value.trim();
     const note = document.getElementById("s-note").value;
+    const altriEnti = document.getElementById("s-altri-enti").value.trim();
     const stato = document.getElementById("s-stato").value;
 
     const mezziCheckboxes = document.querySelectorAll('input[name="s-mezzi-check"]:checked');
@@ -1012,11 +1186,16 @@ async function saveServizio(event) {
     }
 
     const payload = {
+        richiedente,
         tipo,
         data,
+        latitudine: latValue !== "" ? parseFloat(latValue) : null,
+        longitudine: lngValue !== "" ? parseFloat(lngValue) : null,
+        indirizzo_intervento: indirizzo || null,
         mezzi_ids: mezziIds,
         volontari_ids: volontariIds,
         note,
+        altri_enti_coinvolti: altriEnti || null,
         stato
     };
 
@@ -1227,6 +1406,7 @@ window.deleteMezzo = deleteMezzo;
 window.renderMezzi = renderMezzi;
 window.openNuovoServizioModal = openNuovoServizioModal;
 window.openEditServizioModal = openEditServizioModal;
+window.fillCoordinateFromGps = fillCoordinateFromGps;
 window.saveServizio = saveServizio;
 window.completaServizio = completaServizio;
 window.exportServizioPdf = exportServizioPdf;
