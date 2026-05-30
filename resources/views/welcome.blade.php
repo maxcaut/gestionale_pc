@@ -113,37 +113,36 @@
         <!-- AREA DI CONTENUTO -->
         <main class="flex-1 flex flex-col min-w-0 bg-slate-950 overflow-hidden w-full">
             
-            <!-- TOP BAR -->
-            <header class="h-16 lg:h-20 bg-slate-900 border-b border-slate-800 px-4 lg:px-8 flex items-center justify-between shrink-0">
-                <div class="flex items-center gap-3">
-                    <!-- Hamburger (solo mobile) -->
-                    <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors" aria-label="Apri menu">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                        </svg>
-                    </button>
-                    <h1 id="page-title" class="text-lg lg:text-2xl font-bold text-white tracking-tight">Dashboard</h1>
-                </div>
-                
-                <div class="flex items-center gap-6">
+            <!-- TOP BAR: su mobile titolo su riga dedicata (no overlap con email) -->
+            <header class="shrink-0 bg-slate-900 border-b border-slate-800 px-4 py-3 lg:px-8 lg:py-0 lg:h-20 grid grid-cols-[auto_1fr] grid-rows-[auto_auto] gap-x-3 gap-y-2.5 lg:flex lg:items-center lg:justify-between lg:gap-6">
+                <!-- Hamburger (solo mobile) -->
+                <button onclick="toggleSidebar()" class="lg:hidden row-start-1 col-start-1 p-2 -ml-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors self-center" aria-label="Apri menu">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
+                </button>
+
+                <h1 id="page-title" class="row-start-2 col-span-2 pl-11 text-base font-bold text-white tracking-tight leading-tight min-w-0 lg:row-start-1 lg:col-span-1 lg:col-start-1 lg:pl-0 lg:text-2xl lg:flex-1 lg:truncate">Dashboard</h1>
+
+                <div class="row-start-1 col-start-2 flex items-center justify-end gap-2 min-w-0 shrink-0 lg:gap-6">
                     <!-- Data/Ora Reale in tempo reale -->
                     <div class="text-right hidden sm:block">
                         <p class="text-sm font-semibold text-slate-200" id="current-date">Caricamento data...</p>
                         <p class="text-xs text-slate-400 font-mono" id="current-time">Caricamento ora...</p>
                     </div>
-                    
+
                     <div class="h-8 w-px bg-slate-800 hidden sm:block"></div>
-                    
+
                     <!-- Associazione Badge -->
-                    <div class="flex items-center gap-3 bg-slate-800/80 px-4 py-2 rounded-xl border border-slate-700/50">
-                        <div class="bg-amber-500 w-2.5 h-2.5 rounded-full"></div>
-                        <span id="user-email-badge" class="text-xs font-bold uppercase tracking-wider text-slate-200">Nucleo Segreteria</span>
+                    <div class="flex items-center gap-2 min-w-0 max-w-[min(100%,11rem)] sm:max-w-[14rem] lg:max-w-none bg-slate-800/80 px-2.5 py-1.5 lg:gap-3 lg:px-4 lg:py-2 rounded-xl border border-slate-700/50">
+                        <div class="bg-amber-500 w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full shrink-0"></div>
+                        <span id="user-email-badge" class="text-[10px] sm:text-xs font-bold uppercase tracking-wide text-slate-200 truncate">Nucleo Segreteria</span>
                     </div>
 
                     <div class="h-8 w-px bg-slate-800 hidden sm:block"></div>
 
                     <!-- Pulsante Logout -->
-                    <button onclick="handleLogout()" id="logout-btn" title="Esci dal sistema" class="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all duration-200 text-xs font-semibold border border-transparent hover:border-rose-500/20">
+                    <button onclick="handleLogout()" id="logout-btn" title="Esci dal sistema" class="flex items-center gap-2 p-2 lg:px-3 lg:py-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all duration-200 text-xs font-semibold border border-transparent hover:border-rose-500/20 shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
                         </svg>
