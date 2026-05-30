@@ -302,7 +302,7 @@ function switchTab(tabId) {
         dashboard: "Dashboard",
         volontari: "Gestione Volontari",
         mezzi: "Gestione Flotta Mezzi",
-        servizi: "Registro Missioni e Servizi"
+        servizi: "Sala Opeerativa"
     };
     document.getElementById("page-title").innerText = titleMap[tabId];
 
