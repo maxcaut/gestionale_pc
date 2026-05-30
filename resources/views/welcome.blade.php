@@ -114,17 +114,17 @@
         <main class="flex-1 flex flex-col min-w-0 bg-slate-950 overflow-hidden w-full">
             
             <!-- TOP BAR: su mobile titolo su riga dedicata (no overlap con email) -->
-            <header class="h-16 lg:h-20 bg-slate-900 border-b border-slate-800 px-4 lg:px-8 flex items-center justify-between shrink-0">
+            <header class="h-16 lg:h-20 bg-slate-900 border-b border-slate-800 px-4 lg:px-8 flex items-center gap-2 shrink-0">
                 <!-- Hamburger (solo mobile) -->
-                <button onclick="toggleSidebar()" class="lg:hidden row-start-1 col-start-1 p-2 -ml-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors self-center" aria-label="Apri menu">
+                <button onclick="toggleSidebar()" class="lg:hidden p-2 -ml-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0" aria-label="Apri menu">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                     </svg>
                 </button>
 
-                <h1 id="page-title" class="row-start-2 col-span-2 pl-11 text-base font-bold text-white tracking-tight leading-tight min-w-0 lg:row-start-1 lg:col-span-1 lg:col-start-1 lg:pl-0 lg:text-2xl lg:flex-1 lg:truncate">Dashboard</h1>
+                <h1 id="page-title" class="text-base font-bold text-white tracking-tight leading-tight min-w-0 shrink-0 lg:text-2xl lg:flex-1 lg:truncate">Dashboard</h1>
 
-                <div class="row-start-1 col-start-2 flex items-center justify-end gap-2 min-w-0 shrink-0 lg:gap-6">
+                <div class="ml-auto flex items-center justify-end gap-2 min-w-0 shrink-0 lg:gap-6">
                     <!-- Data/Ora Reale in tempo reale -->
                     <div class="text-right hidden sm:block">
                         <p class="text-sm font-semibold text-slate-200" id="current-date">Caricamento data...</p>
@@ -359,7 +359,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z" />
             </svg>
-            <span class="text-[10px] font-bold">Servizi</span>
+            <span class="text-[10px] font-bold">Sala Operativa</span>
         </button>
     </nav>
 
