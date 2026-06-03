@@ -1993,6 +1993,12 @@ function renderServizi() {
                </button>`
             : '';
 
+        const editBtn = (isMaster() || s.stato !== "Completato")
+            ? `<button onclick="openEditServizioModal('${s.id}')" title="Modifica dati" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">
+                    ${ICON_EDIT}
+               </button>`
+            : '';
+
         tbody.innerHTML += `
             <tr class="hover:bg-slate-800/10 transition-colors">
                 <td class="py-4 px-6 max-w-[280px]">
@@ -2015,9 +2021,7 @@ function renderServizi() {
                 </td>
                 <td class="py-4 px-6 text-right">
                     <div class="inline-flex gap-2">
-                        <button onclick="openEditServizioModal('${s.id}')" title="Modifica dati" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">
-                            ${ICON_EDIT}
-                        </button>
+                        ${editBtn}
                         ${completaBtn}
                         ${exportPdfBtn}
                         ${isCapoSquadra() ? '' : `<button onclick="deleteServizio('${s.id}')" title="Elimina Missione" class="p-2 hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-500 transition-colors">
