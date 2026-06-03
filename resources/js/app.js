@@ -53,6 +53,17 @@ function getUserAssociazione() {
     return currentUserProfile?.associazione || null;
 }
 
+function canSeeAllVolontari() {
+    return isMaster();
+}
+
+function applyVolontariScope(list) {
+    if (canSeeAllVolontari()) return list;
+    const assoc = getUserAssociazione();
+    if (!assoc) return [];
+    return list.filter(v => v.associazione_appartenenza === assoc);
+}
+
 async function loadUserProfile(user) {
     if (!user?.id) {
         currentUserProfile = null;
@@ -228,6 +239,9 @@ async function handleLogin(event) {
 async function handleLogout() {
     await supabase.auth.signOut();
     currentUserProfile = null;
+    volontari = [];
+    mezzi = [];
+    servizi = [];
     showLogin();
 }
 
@@ -322,13 +336,26 @@ function mapServizioRow(s) {
 
 async function fetchDataFromSupabase() {
     try {
-        const volResponse = await supabase
+        let volQuery = supabase
             .from('volontari')
             .select('*')
             .order('created_at', { ascending: true });
 
-        if (volResponse.error) throw volResponse.error;
-        volontari = volResponse.data || [];
+        if (!canSeeAllVolontari()) {
+            const assoc = getUserAssociazione();
+            if (!assoc) {
+                volontari = [];
+            } else {
+                volQuery = volQuery.eq('associazione_appartenenza', assoc);
+            }
+        }
+
+        if (canSeeAllVolontari() || getUserAssociazione()) {
+            const volResponse = await volQuery;
+
+            if (volResponse.error) throw volResponse.error;
+            volontari = applyVolontariScope(volResponse.data || []);
+        }
 
         if (canAccessServizi()) {
             const [mezResponse, serResponse] = await Promise.all([
