@@ -13,7 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Dice a Laravel di fidarsi dei proxy di Render per l'HTTPS
-    $middleware->trustProxies(at: '*');
+        $middleware->trustProxies(at: '*');
+        $middleware->alias([
+            'supabase.master' => \App\Http\Middleware\EnsureSupabaseMaster::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

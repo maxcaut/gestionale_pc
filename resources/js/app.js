@@ -9,6 +9,119 @@ const supabaseKey = window.laravelConfig?.supabaseKey || import.meta.env.VITE_SU
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+// --- PROFILO UTENTE (ruolo + associazione) ---
+let currentUserProfile = null;
+
+function isMaster() {
+    return currentUserProfile?.ruolo === 'master';
+}
+
+function isSegreteria() {
+    return currentUserProfile?.ruolo === 'segreteria';
+}
+
+function getUserAssociazione() {
+    return currentUserProfile?.associazione || null;
+}
+
+async function loadUserProfile(user) {
+    if (!user?.id) {
+        currentUserProfile = null;
+        return null;
+    }
+
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, ruolo, associazione')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    if (error) {
+        console.error('Errore caricamento profilo:', error);
+        throw error;
+    }
+
+    currentUserProfile = data;
+    return data;
+}
+
+function applyRoleBasedUI() {
+    const masterOnly = document.querySelectorAll('[data-master-only]');
+    masterOnly.forEach(el => {
+        el.classList.toggle('hidden', !isMaster());
+    });
+
+    const badge = document.getElementById('user-email-badge');
+    if (badge && currentUserProfile) {
+        if (isMaster()) {
+            badge.innerText = 'Master';
+        } else if (isSegreteria()) {
+            badge.innerText = getUserAssociazione() || 'Segreteria';
+        }
+    }
+
+    setupVolontarioAssociazioneField();
+
+    if (isSegreteria()) {
+        switchTab('volontari');
+    }
+}
+
+function setupVolontarioAssociazioneField() {
+    const selectWrap = document.getElementById('v-associazione-select-wrap');
+    const fissaWrap = document.getElementById('v-associazione-fissa-wrap');
+    const select = document.getElementById('v-associazione');
+    const fissaInput = document.getElementById('v-associazione-fissa');
+    const fissaLabel = document.getElementById('v-associazione-fissa-label');
+
+    if (!selectWrap || !fissaWrap) return;
+
+    if (isSegreteria()) {
+        const assoc = getUserAssociazione() || '';
+        selectWrap.classList.add('hidden');
+        fissaWrap.classList.remove('hidden');
+        if (fissaInput) fissaInput.value = assoc;
+        if (fissaLabel) fissaLabel.innerText = assoc;
+        if (select) {
+            select.required = false;
+            select.value = assoc;
+        }
+    } else {
+        selectWrap.classList.remove('hidden');
+        fissaWrap.classList.add('hidden');
+        if (select) select.required = true;
+    }
+}
+
+function getVolontarioAssociazioneValue() {
+    if (isSegreteria()) {
+        return getUserAssociazione();
+    }
+    return document.getElementById('v-associazione')?.value || null;
+}
+
+async function bootstrapApp(user) {
+    await loadUserProfile(user);
+
+    if (!currentUserProfile) {
+        await supabase.auth.signOut();
+        showLogin();
+        const errorDiv = document.getElementById('login-error');
+        const errorText = document.getElementById('login-error-text');
+        if (errorDiv && errorText) {
+            errorText.innerText = 'Profilo non configurato. Contatta l\'amministratore (vedi docs/SUPABASE_SETUP.md).';
+            errorDiv.classList.remove('hidden');
+        }
+        return false;
+    }
+
+    showApp(user);
+    applyRoleBasedUI();
+    await fetchDataFromSupabase();
+    startRealtimeClock();
+    return true;
+}
+
 // --- AUTENTICAZIONE SUPABASE ---
 
 function showApp(user) {
@@ -20,12 +133,6 @@ function showApp(user) {
     // Mostra bottom navigation su mobile
     const bottomNav = document.getElementById('bottom-nav');
     if (bottomNav) bottomNav.style.display = '';
-
-    // Mostra l'email dell'utente nel badge
-    if (user && user.email) {
-        const badge = document.getElementById('user-email-badge');
-        if (badge) badge.innerText = user.email;
-    }
 }
 
 function showLogin() {
@@ -62,9 +169,8 @@ async function handleLogin(event) {
 
         if (error) throw error;
 
-        showApp(data.user);
-        fetchDataFromSupabase();
-        startRealtimeClock();
+        const ok = await bootstrapApp(data.user);
+        if (!ok) return;
     } catch (err) {
         let msg = 'Credenziali non valide. Riprova.';
         if (err.message && err.message.toLowerCase().includes('email not confirmed')) {
@@ -83,15 +189,16 @@ async function handleLogin(event) {
 
 async function handleLogout() {
     await supabase.auth.signOut();
+    currentUserProfile = null;
     showLogin();
 }
 
 // --- MEMORIA DATI INITIALI (MOCK DATABASE) ---
 const DEFAULT_VOLONTARI = [
-    { id: "v1", nome: "Mario", cognome: "Rossi", cf: "RSSMRA80A01H501U", ruolo: "Coordinatore", telefono: "3331234567", stato: "Operativo" },
-    { id: "v2", nome: "Laura", cognome: "Bianchi", cf: "BNCLRA85B41H501X", ruolo: "Soccorritore", telefono: "3459876543", stato: "Operativo" },
-    { id: "v3", nome: "Giuseppe", cognome: "Verdi", cf: "VRDGPP78C12H501Z", ruolo: "Logista", telefono: "3287654321", stato: "In riposo" },
-    { id: "v4", nome: "Anna", cognome: "Neri", cf: "NRANNA90D50H501W", ruolo: "Autista", telefono: "3394567890", stato: "Operativo" }
+    { id: "v1", nome: "Mario", cognome: "Rossi", cf: "RSSMRA80A01H501U", ruolo: "Coordinatore", telefono: "3331234567", stato: "Operativo", associazione_appartenenza: "G.C. Massa di Somma" },
+    { id: "v2", nome: "Laura", cognome: "Bianchi", cf: "BNCLRA85B41H501X", ruolo: "Soccorritore", telefono: "3459876543", stato: "Operativo", associazione_appartenenza: "G.C. Cercola" },
+    { id: "v3", nome: "Giuseppe", cognome: "Verdi", cf: "VRDGPP78C12H501Z", ruolo: "Logista", telefono: "3287654321", stato: "In riposo", associazione_appartenenza: "G.C. Massa di Somma" },
+    { id: "v4", nome: "Anna", cognome: "Neri", cf: "NRANNA90D50H501W", ruolo: "Autista", telefono: "3394567890", stato: "Operativo", associazione_appartenenza: "Save Me" }
 ];
 
 const DEFAULT_MEZZI = [
@@ -115,6 +222,7 @@ let servizi = [];
 let editingVolontarioId = null;
 let editingMezzoId = null;
 let editingServizioId = null;
+let editingProfileId = null;
 
 // Mappa servizi — default: comune di Massa di Somma (NA)
 const MASSA_DI_SOMMA_CENTER = [40.850, 14.342];
@@ -155,39 +263,52 @@ function getDB(table) {
 }
 
 // Funzione helper per caricare dati da Supabase in modo asincrono
+function mapServizioRow(s) {
+    return {
+        id: s.id,
+        richiedente: s.richiedente,
+        tipo: s.tipo,
+        data: s.data,
+        latitudine: s.latitudine,
+        longitudine: s.longitudine,
+        indirizzo: s.indirizzo_intervento,
+        mezziIds: Array.isArray(s.mezzi_ids) && s.mezzi_ids.length > 0
+            ? s.mezzi_ids
+            : (s.mezzo_id ? [s.mezzo_id] : []),
+        volontariIds: s.volontari_ids || [],
+        note: s.note,
+        altriEnti: s.altri_enti_coinvolti,
+        stato: s.stato
+    };
+}
+
 async function fetchDataFromSupabase() {
     try {
-        const [volResponse, mezResponse, serResponse] = await Promise.all([
-            supabase.from('volontari').select('*').order('created_at', { ascending: true }),
-            supabase.from('mezzi').select('*').order('created_at', { ascending: true }),
-            supabase.from('servizi').select('*').order('created_at', { ascending: true })
-        ]);
+        const volResponse = await supabase
+            .from('volontari')
+            .select('*')
+            .order('created_at', { ascending: true });
 
         if (volResponse.error) throw volResponse.error;
-        if (mezResponse.error) throw mezResponse.error;
-        if (serResponse.error) throw serResponse.error;
-
         volontari = volResponse.data || [];
-        mezzi = mezResponse.data || [];
-        servizi = (serResponse.data || []).map(s => ({
-            id: s.id,
-            richiedente: s.richiedente,
-            tipo: s.tipo,
-            data: s.data,
-            latitudine: s.latitudine,
-            longitudine: s.longitudine,
-            indirizzo: s.indirizzo_intervento,
-            mezziIds: Array.isArray(s.mezzi_ids) && s.mezzi_ids.length > 0
-                ? s.mezzi_ids
-                : (s.mezzo_id ? [s.mezzo_id] : []),
-            volontariIds: s.volontari_ids || [],
-            note: s.note,
-            altriEnti: s.altri_enti_coinvolti,
-            stato: s.stato
-        }));
 
-        // Se non ci sono dati, inizializza con i dati di mock su Supabase
-        if (volontari.length === 0 && mezzi.length === 0 && servizi.length === 0) {
+        if (isMaster()) {
+            const [mezResponse, serResponse] = await Promise.all([
+                supabase.from('mezzi').select('*').order('created_at', { ascending: true }),
+                supabase.from('servizi').select('*').order('created_at', { ascending: true })
+            ]);
+
+            if (mezResponse.error) throw mezResponse.error;
+            if (serResponse.error) throw serResponse.error;
+
+            mezzi = mezResponse.data || [];
+            servizi = (serResponse.data || []).map(mapServizioRow);
+        } else {
+            mezzi = [];
+            servizi = [];
+        }
+
+        if (isMaster() && volontari.length === 0 && mezzi.length === 0 && servizi.length === 0) {
             await initializeDefaultData();
             return;
         }
@@ -201,6 +322,8 @@ async function fetchDataFromSupabase() {
 
 // Funzione helper per inserire i dati di mock su Supabase se vuoto
 async function initializeDefaultData() {
+    if (!isMaster()) return;
+
     try {
         const { error: volErr } = await supabase.from('volontari').insert(DEFAULT_VOLONTARI);
         if (volErr) throw volErr;
@@ -273,6 +396,10 @@ function toggleModal(modalId, show) {
 
 // --- CAMBIO TAB (NAVIGAZIONE) ---
 function switchTab(tabId) {
+    if (!isMaster() && (tabId === 'mezzi' || tabId === 'servizi' || tabId === 'admin')) {
+        tabId = 'volontari';
+    }
+
     // Nascondi tutti i contenuti delle tab
     document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
     // Rimuovi classe attiva da tutti i bottoni nav (sidebar)
@@ -286,8 +413,10 @@ function switchTab(tabId) {
 
     // Attiva bottone nav selezionato (sidebar)
     const activeBtn = document.getElementById(`nav-${tabId}`);
-    activeBtn.classList.remove("text-slate-400", "hover:text-white", "hover:bg-slate-800/50");
-    activeBtn.classList.add("bg-slate-800", "text-amber-500", "shadow-md");
+    if (activeBtn) {
+        activeBtn.classList.remove("text-slate-400", "hover:text-white", "hover:bg-slate-800/50");
+        activeBtn.classList.add("bg-slate-800", "text-amber-500", "shadow-md");
+    }
 
     // Sincronizza bottom navigation (mobile)
     document.querySelectorAll(".bottom-nav-btn").forEach(el => {
@@ -305,9 +434,14 @@ function switchTab(tabId) {
         dashboard: "Dashboard",
         volontari: "Gestione Volontari",
         mezzi: "Gestione Flotta Mezzi",
-        servizi: "Sala Opeerativa"
+        servizi: "Sala Opeerativa",
+        admin: "Gestione Utenti"
     };
-    document.getElementById("page-title").innerText = titleMap[tabId];
+    document.getElementById("page-title").innerText = titleMap[tabId] || tabId;
+
+    if (tabId === "admin") {
+        renderAdminProfiles();
+    }
 
     if (tabId === "servizi") {
         setTimeout(() => {
@@ -348,6 +482,15 @@ function updateDashboardStats() {
     document.getElementById("stat-volontari-totali").innerText = volontari.length;
     const volontariOperativi = volontari.filter(v => v.stato === "Operativo").length;
     document.getElementById("stat-volontari-attivi").innerText = volontariOperativi;
+
+    if (!isMaster()) {
+        const totalVolontari = volontari.length || 1;
+        const percentOperativi = Math.round((volontariOperativi / totalVolontari) * 100);
+        document.getElementById("widget-volontari-percent").innerText = `${percentOperativi}%`;
+        document.getElementById("widget-volontari-operativi-label").innerText = `${volontariOperativi} Operativi`;
+        document.getElementById("svg-circle-progress").setAttribute("stroke-dasharray", `${percentOperativi}, 100`);
+        return;
+    }
 
     document.getElementById("stat-mezzi-totali").innerText = mezzi.length;
     const mezziDisponibili = mezzi.filter(m => m.stato === "Disponibile").length;
@@ -519,6 +662,7 @@ function renderVolontari() {
 function openNuovoVolontarioModal() {
     resetEditState();
     setModalFormMode('modal-volontario', { title: 'Aggiungi Nuovo Volontario', submitText: 'Registra' });
+    setupVolontarioAssociazioneField();
     toggleModal('modal-volontario', true);
 }
 
@@ -535,7 +679,10 @@ function openEditVolontarioModal(id) {
     document.getElementById("v-ruolo").value = vol.ruolo;
     document.getElementById("v-stato").value = vol.stato;
     document.getElementById("v-telefono").value = vol.telefono;
-    document.getElementById("v-associazione").value = vol.associazione_appartenenza || "G.C. Massa di Somma";
+    setupVolontarioAssociazioneField();
+    if (isMaster()) {
+        document.getElementById("v-associazione").value = vol.associazione_appartenenza || "G.C. Massa di Somma";
+    }
 
     toggleModal('modal-volontario', true);
 }
@@ -548,7 +695,11 @@ async function saveVolontario(event) {
     const ruolo = document.getElementById("v-ruolo").value;
     const stato = document.getElementById("v-stato").value;
     const telefono = document.getElementById("v-telefono").value;
-    const associazione_appartenenza = document.getElementById("v-associazione").value;
+    const associazione_appartenenza = getVolontarioAssociazioneValue();
+    if (!associazione_appartenenza) {
+        showToast("Errore", "Associazione non configurata per questo account.");
+        return;
+    }
 
     const payload = { nome, cognome, cf, ruolo, stato, telefono, associazione_appartenenza };
 
@@ -1519,6 +1670,228 @@ function startRealtimeClock() {
     setInterval(updateTime, 1000);
 }
 
+// --- ADMIN: GESTIONE PROFILI UTENTE (solo master) ---
+async function adminApiFetch(path, options = {}) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+        throw new Error('Sessione scaduta. Effettua di nuovo l\'accesso.');
+    }
+
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+    const headers = {
+        Accept: 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
+        ...options.headers,
+    };
+
+    const response = await fetch(path, { ...options, headers });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        throw new Error(data.message || 'Operazione non riuscita.');
+    }
+
+    return data;
+}
+
+function toggleProfiloAssociazioneField() {
+    const wrap = document.getElementById('p-associazione-wrap');
+    const select = document.getElementById('p-associazione');
+    const ruolo = document.getElementById('p-ruolo')?.value;
+    if (!wrap || !select) return;
+
+    if (ruolo === 'master') {
+        wrap.classList.add('hidden');
+        select.required = false;
+    } else {
+        wrap.classList.remove('hidden');
+        select.required = true;
+    }
+}
+
+async function renderAdminProfiles() {
+    if (!isMaster()) return;
+
+    const tbody = document.getElementById('admin-profiles-table-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="4" class="py-8 text-center text-slate-500 font-medium">Caricamento...</td>
+        </tr>
+    `;
+
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, ruolo, associazione, created_at')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Errore caricamento profili:', error);
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="py-8 text-center text-rose-400 font-medium">Impossibile caricare gli utenti. Esegui la migration 002 su Supabase.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    const profiles = data || [];
+    if (profiles.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="py-8 text-center text-slate-500 font-medium">Nessun utente configurato.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = '';
+    profiles.forEach(p => {
+        const ruoloBadge = p.ruolo === 'master'
+            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+            : 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+        const isSelf = p.id === currentUserProfile?.id;
+
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-800/20 transition-all">
+                <td class="py-4 px-6 text-slate-200 font-medium">${p.email || '—'}</td>
+                <td class="py-4 px-6">
+                    <span class="px-2.5 py-1 text-xs font-bold border rounded-full ${ruoloBadge}">${p.ruolo}</span>
+                </td>
+                <td class="py-4 px-6 text-slate-400">${p.associazione || '—'}</td>
+                <td class="py-4 px-6 text-right">
+                    <div class="inline-flex gap-2">
+                        <button type="button" onclick="openEditProfiloModal('${p.id}')" title="Modifica" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-all">
+                            ${ICON_EDIT}
+                        </button>
+                        ${isSelf ? '' : `<button type="button" onclick="deleteProfilo('${p.id}')" title="Elimina" class="p-2 hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-500 transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                            </svg>
+                        </button>`}
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+function openNuovoProfiloModal() {
+    editingProfileId = null;
+    document.getElementById('modal-profilo-title').innerText = 'Nuovo utente';
+    document.getElementById('modal-profilo-submit').innerText = 'Crea utente';
+    document.getElementById('p-email').disabled = false;
+    document.getElementById('p-email').value = '';
+    document.getElementById('p-password').value = '';
+    document.getElementById('p-password').required = true;
+    document.getElementById('p-password-required').classList.remove('hidden');
+    document.getElementById('p-password-hint').classList.add('hidden');
+    document.getElementById('p-ruolo').value = 'segreteria';
+    document.getElementById('p-associazione').value = 'G.C. Massa di Somma';
+    toggleProfiloAssociazioneField();
+    toggleModal('modal-profilo', true);
+}
+
+async function openEditProfiloModal(id) {
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, ruolo, associazione')
+        .eq('id', id)
+        .maybeSingle();
+
+    if (error || !data) {
+        showToast('Errore', 'Profilo non trovato.');
+        return;
+    }
+
+    editingProfileId = id;
+    document.getElementById('modal-profilo-title').innerText = 'Modifica utente';
+    document.getElementById('modal-profilo-submit').innerText = 'Salva modifiche';
+    document.getElementById('p-email').value = data.email || '';
+    document.getElementById('p-email').disabled = true;
+    document.getElementById('p-password').value = '';
+    document.getElementById('p-password').required = false;
+    document.getElementById('p-password-required').classList.add('hidden');
+    document.getElementById('p-password-hint').classList.remove('hidden');
+    document.getElementById('p-ruolo').value = data.ruolo;
+    document.getElementById('p-associazione').value = data.associazione || 'G.C. Massa di Somma';
+    toggleProfiloAssociazioneField();
+    toggleModal('modal-profilo', true);
+}
+
+async function saveProfilo(event) {
+    event.preventDefault();
+    if (!isMaster()) return;
+
+    const email = document.getElementById('p-email').value.trim();
+    const password = document.getElementById('p-password').value;
+    const ruolo = document.getElementById('p-ruolo').value;
+    const associazione = document.getElementById('p-associazione').value;
+
+    try {
+        if (editingProfileId) {
+            const payload = { ruolo, associazione: ruolo === 'master' ? null : associazione };
+            if (password) payload.password = password;
+
+            await adminApiFetch(`/api/admin/profiles/${editingProfileId}`, {
+                method: 'PATCH',
+                body: JSON.stringify(payload),
+            });
+
+            toggleModal('modal-profilo', false);
+            showToast('Utente aggiornato', 'Profilo modificato con successo.');
+        } else {
+            if (!password || password.length < 6) {
+                showToast('Errore', 'Password obbligatoria (minimo 6 caratteri).');
+                return;
+            }
+
+            await adminApiFetch('/api/admin/profiles', {
+                method: 'POST',
+                body: JSON.stringify({
+                    email,
+                    password,
+                    ruolo,
+                    associazione: ruolo === 'master' ? null : associazione,
+                }),
+            });
+
+            toggleModal('modal-profilo', false);
+            showToast('Utente creato', `${email} può accedere all'app.`);
+        }
+
+        editingProfileId = null;
+        await renderAdminProfiles();
+    } catch (err) {
+        console.error('Errore salvataggio profilo:', err);
+        showToast('Errore', err.message || 'Impossibile salvare l\'utente.');
+    }
+}
+
+async function deleteProfilo(id) {
+    if (!isMaster()) return;
+    if (id === currentUserProfile?.id) {
+        showToast('Errore', 'Non puoi eliminare il tuo account.');
+        return;
+    }
+
+    if (!confirm('Eliminare questo utente? L\'accesso verrà revocato definitivamente.')) {
+        return;
+    }
+
+    try {
+        await adminApiFetch(`/api/admin/profiles/${id}`, { method: 'DELETE' });
+        showToast('Utente eliminato', 'Account rimosso dal sistema.');
+        await renderAdminProfiles();
+    } catch (err) {
+        console.error('Errore eliminazione profilo:', err);
+        showToast('Errore', err.message || 'Impossibile eliminare l\'utente.');
+    }
+}
+
 // Esporta le funzioni globalmente affinché gli event handler in HTML (onclick, onsubmit, oninput, onchange) possano trovarle
 window.switchTab = switchTab;
 window.toggleModal = toggleModal;
@@ -1547,6 +1920,12 @@ window.handleLogin = handleLogin;
 window.handleLogout = handleLogout;
 window.toggleSidebar = toggleSidebar;
 window.closeSidebar = closeSidebar;
+window.openNuovoProfiloModal = openNuovoProfiloModal;
+window.openEditProfiloModal = openEditProfiloModal;
+window.saveProfilo = saveProfilo;
+window.deleteProfilo = deleteProfilo;
+window.toggleProfiloAssociazioneField = toggleProfiloAssociazioneField;
+window.renderAdminProfiles = renderAdminProfiles;
 
 // --- INIZIALIZZAZIONE ALL'AVVIO ---
 window.addEventListener("DOMContentLoaded", async () => {
@@ -1554,9 +1933,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (session && session.user) {
-        showApp(session.user);
-        fetchDataFromSupabase();
-        startRealtimeClock();
+        await bootstrapApp(session.user);
     } else {
         // Mostra la schermata di login
         showLogin();
@@ -1565,6 +1942,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     // Ascolta i cambiamenti di stato auth
     supabase.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_OUT') {
+            currentUserProfile = null;
             showLogin();
         }
     });

@@ -35,10 +35,11 @@ CREATE TABLE IF NOT EXISTS servizi (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 4. Disabilitazione Row Level Security (RLS) per consentire l'accesso diretto e semplice dal frontend
-ALTER TABLE volontari DISABLE ROW LEVEL SECURITY;
-ALTER TABLE mezzi DISABLE ROW LEVEL SECURITY;
-ALTER TABLE servizi DISABLE ROW LEVEL SECURITY;
+-- 4. Colonna associazione volontari
+ALTER TABLE volontari ADD COLUMN IF NOT EXISTS associazione_appartenenza TEXT;
+
+-- 5. Profili utente + RLS: eseguire supabase/migrations/001_profiles_rls_volontari.sql
+--    Guida completa: docs/SUPABASE_SETUP.md
 
 -- Migrazione da mezzo_id singolo a mezzi_ids (eseguire solo se la tabella esiste già con mezzo_id):
 -- ALTER TABLE servizi ADD COLUMN IF NOT EXISTS mezzi_ids TEXT[] NOT NULL DEFAULT '{}';

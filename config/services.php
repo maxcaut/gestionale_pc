@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'supabase' => [
+        'url' => env('VITE_SUPABASE_URL'),
+        'anon_key' => env('VITE_SUPABASE_PUBLISHABLE_KEY'),
+        'service_role_key' => env('SUPABASE_SERVICE_ROLE_KEY'),
+    ],
+
 ];
