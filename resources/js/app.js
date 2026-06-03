@@ -24,12 +24,16 @@ function isCapoSquadra() {
     return currentUserProfile?.ruolo === 'capo_squadra';
 }
 
+function isSalaOperativa() {
+    return currentUserProfile?.ruolo === 'sala_operativa';
+}
+
 function canAccessVolontari() {
     return isMaster() || isSegreteria();
 }
 
 function canAccessServizi() {
-    return isMaster() || isCapoSquadra();
+    return isMaster() || isCapoSquadra() || isSalaOperativa();
 }
 
 function canAccessMezzi() {
@@ -45,6 +49,7 @@ function formatRuoloLabel(ruolo) {
         master: 'Master',
         segreteria: 'Segreteria',
         capo_squadra: 'Capo Squadra',
+        sala_operativa: 'Sala Operativa',
     };
     return labels[ruolo] || ruolo;
 }
@@ -54,7 +59,7 @@ function getUserAssociazione() {
 }
 
 function canSeeAllVolontari() {
-    return isMaster();
+    return isMaster() || isSalaOperativa();
 }
 
 function applyVolontariScope(list) {
@@ -100,6 +105,8 @@ function applyRoleBasedUI() {
     if (badge && currentUserProfile) {
         if (isMaster()) {
             badge.innerText = 'Master';
+        } else if (isSalaOperativa()) {
+            badge.innerText = 'Sala Operativa';
         } else if (isCapoSquadra()) {
             badge.innerText = `Capo · ${getUserAssociazione() || 'Squadra'}`;
         } else if (isSegreteria()) {
@@ -111,7 +118,7 @@ function applyRoleBasedUI() {
 
     if (isSegreteria()) {
         switchTab('volontari');
-    } else if (isCapoSquadra()) {
+    } else if (isCapoSquadra() || isSalaOperativa()) {
         switchTab('servizi');
     }
 }
@@ -1114,7 +1121,7 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
         return `
             <label class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
                 <input type="checkbox" name="s-volontari-check" value="${v.id}" ${checked} class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
-                <span class="text-xs ${fontClass}">${v.nome} ${v.cognome} (${v.ruolo})${extra}</span>
+                <span class="text-xs ${fontClass}">${v.nome} ${v.cognome} (${v.ruolo})${v.associazione_appartenenza ? ` · ${v.associazione_appartenenza}` : ''}${extra}</span>
             </label>
         `;
     };
@@ -1864,6 +1871,7 @@ async function renderAdminProfiles() {
     profiles.forEach(p => {
         let ruoloBadge = 'bg-blue-500/10 text-blue-400 border-blue-500/20';
         if (p.ruolo === 'master') ruoloBadge = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+        else if (p.ruolo === 'sala_operativa') ruoloBadge = 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20';
         else if (p.ruolo === 'capo_squadra') ruoloBadge = 'bg-violet-500/10 text-violet-400 border-violet-500/20';
         const isSelf = p.id === currentUserProfile?.id;
 
@@ -1871,7 +1879,7 @@ async function renderAdminProfiles() {
             <tr class="hover:bg-slate-800/20 transition-all">
                 <td class="py-4 px-6 text-slate-200 font-medium">${p.email || '—'}</td>
                 <td class="py-4 px-6">
-                    <span class="px-2.5 py-1 text-xs font-bold border rounded-full ${ruoloBadge}">${p.ruolo}</span>
+                    <span class="px-2.5 py-1 text-xs font-bold border rounded-full ${ruoloBadge}">${formatRuoloLabel(p.ruolo)}</span>
                 </td>
                 <td class="py-4 px-6 text-slate-400">${p.associazione || '—'}</td>
                 <td class="py-4 px-6 text-right">

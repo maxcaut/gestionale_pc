@@ -694,6 +694,7 @@
                     <select id="p-ruolo" required onchange="toggleProfiloAssociazioneField()" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
                         <option value="segreteria">Segreteria</option>
                         <option value="capo_squadra">Capo Squadra</option>
+                        <option value="sala_operativa">Sala Operativa</option>
                         <option value="master">Master</option>
                     </select>
                 </div>
