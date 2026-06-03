@@ -44,11 +44,31 @@ function canSeeAllMezzi() {
     return isMaster() || isSalaOperativa();
 }
 
+function shouldFilterMezziQueryByAssociazione() {
+    return isSegreteria();
+}
+
 function applyMezziScope(list) {
-    if (canSeeAllMezzi()) return list;
+    if (canSeeAllMezzi() || isCapoSquadra()) return list;
     const assoc = getUserAssociazione();
     if (!assoc) return [];
     return list.filter(m => m.associazione_appartenenza === assoc);
+}
+
+async function enrichMezziFromServizi(serviziList) {
+    if (!canAccessServizi() || !serviziList?.length) return;
+
+    const knownIds = new Set(mezzi.map(m => m.id));
+    const missingIds = [...new Set(
+        serviziList.flatMap(s => s.mezziIds || []).filter(id => id && !knownIds.has(id))
+    )];
+    if (missingIds.length === 0) return;
+
+    const { data, error } = await supabase.from('mezzi').select('*').in('id', missingIds);
+    if (error) throw error;
+    if (data?.length) {
+        mezzi = applyMezziScope([...mezzi, ...data]);
+    }
 }
 
 function getMezzoAssociazioneValue() {
@@ -537,7 +557,7 @@ async function fetchDataFromSupabase() {
         if (canAccessMezzi() || canAccessServizi()) {
             let mezQuery = supabase.from('mezzi').select('*').order('created_at', { ascending: true });
 
-            if (!canSeeAllMezzi()) {
+            if (shouldFilterMezziQueryByAssociazione()) {
                 const assoc = getUserAssociazione();
                 if (!assoc) {
                     mezzi = [];
@@ -546,7 +566,7 @@ async function fetchDataFromSupabase() {
                 }
             }
 
-            const loadMezzi = canSeeAllMezzi() || getUserAssociazione()
+            const loadMezzi = canSeeAllMezzi() || getUserAssociazione() || isCapoSquadra()
                 ? mezQuery
                 : Promise.resolve({ data: [], error: null });
 
@@ -561,6 +581,7 @@ async function fetchDataFromSupabase() {
 
                 mezzi = applyMezziScope(mezResponse.data || []);
                 servizi = (serResponse.data || []).map(mapServizioRow);
+                await enrichMezziFromServizi(servizi);
             } else if (canAccessMezzi()) {
                 const mezResponse = await loadMezzi;
 
