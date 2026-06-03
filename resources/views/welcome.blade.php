@@ -40,6 +40,17 @@
         </div>
     </div>
 
+    <!-- Overlay generazione PDF -->
+    <div id="pdf-export-overlay" class="fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden" aria-live="polite" aria-busy="true">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <p class="text-sm font-semibold text-white mb-1">Generazione PDF in corso</p>
+            <p class="text-xs text-slate-500 mb-4">Attendere il completamento del download...</p>
+            <div class="h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div id="pdf-export-progress-bar" class="h-full bg-amber-500 rounded-full transition-[width] duration-300 ease-out" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Overlay per chiudere la sidebar su mobile -->
     <div id="sidebar-overlay" class="fixed inset-0 z-30 bg-slate-950/70 backdrop-blur-sm hidden lg:hidden" onclick="closeSidebar()"></div>
 

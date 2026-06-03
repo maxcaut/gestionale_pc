@@ -121,6 +121,9 @@ const MASSA_DI_SOMMA_CENTER = [40.850, 14.342];
 const MASSA_DI_SOMMA_ZOOM = 11;
 let serviziMap = null;
 let serviziMapMarkersLayer = null;
+const geocodeCache = new Map();
+let serviziMapUpdateToken = 0;
+let pdfExportProgressTimer = null;
 
 const ICON_EDIT = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>`;
 
@@ -953,6 +956,105 @@ function hasValidServizioCoordinates(servizio) {
     return Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
 }
 
+function hasServizioIndirizzo(servizio) {
+    return !!(servizio.indirizzo && String(servizio.indirizzo).trim());
+}
+
+async function geocodeIndirizzo(indirizzo) {
+    const query = String(indirizzo).trim();
+    if (!query) return null;
+
+    const cacheKey = query.toLowerCase();
+    if (geocodeCache.has(cacheKey)) {
+        return geocodeCache.get(cacheKey);
+    }
+
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=it&q=${encodeURIComponent(query)}`;
+    try {
+        const response = await fetch(url, {
+            headers: {
+                Accept: "application/json",
+                "Accept-Language": "it",
+            },
+        });
+        if (!response.ok) return null;
+
+        const results = await response.json();
+        if (!Array.isArray(results) || results.length === 0) {
+            geocodeCache.set(cacheKey, null);
+            return null;
+        }
+
+        const lat = parseFloat(results[0].lat);
+        const lng = parseFloat(results[0].lon);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+            geocodeCache.set(cacheKey, null);
+            return null;
+        }
+
+        const coords = { lat, lng };
+        geocodeCache.set(cacheKey, coords);
+        return coords;
+    } catch (err) {
+        console.warn("Geocoding indirizzo non riuscito:", err);
+        return null;
+    }
+}
+
+function addServizioMapMarker(servizio, lat, lng) {
+    L.circleMarker([lat, lng], {
+        radius: 9,
+        fillColor: getServizioMarkerColor(servizio.stato),
+        color: "#f8fafc",
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.92
+    })
+        .bindPopup(buildServizioMapPopup(servizio), { maxWidth: 280 })
+        .addTo(serviziMapMarkersLayer);
+}
+
+function showPdfExportProgress() {
+    const overlay = document.getElementById("pdf-export-overlay");
+    const bar = document.getElementById("pdf-export-progress-bar");
+    if (!overlay || !bar) return;
+
+    if (pdfExportProgressTimer) {
+        clearInterval(pdfExportProgressTimer);
+        pdfExportProgressTimer = null;
+    }
+
+    overlay.classList.remove("hidden");
+    bar.style.width = "0%";
+
+    let progress = 0;
+    pdfExportProgressTimer = setInterval(() => {
+        progress = Math.min(progress + 6, 90);
+        bar.style.width = `${progress}%`;
+    }, 200);
+}
+
+function hidePdfExportProgress(success) {
+    const overlay = document.getElementById("pdf-export-overlay");
+    const bar = document.getElementById("pdf-export-progress-bar");
+    if (!overlay || !bar) return;
+
+    if (pdfExportProgressTimer) {
+        clearInterval(pdfExportProgressTimer);
+        pdfExportProgressTimer = null;
+    }
+
+    if (success) {
+        bar.style.width = "100%";
+    }
+
+    const delay = success ? 350 : 0;
+    setTimeout(() => {
+        overlay.classList.add("hidden");
+        bar.style.width = "0%";
+    }, delay);
+}
+
 function getServizioMarkerColor(stato) {
     if (stato === "Programmato") return "#3b82f6";
     if (stato === "In corso") return "#f59e0b";
@@ -1001,21 +1103,23 @@ function ensureServiziMap() {
     serviziMapMarkersLayer = L.layerGroup().addTo(serviziMap);
 }
 
-function updateServiziMap(filteredServizi) {
+async function updateServiziMap(filteredServizi) {
     if (!isServiziTabVisible()) return;
 
     const mapHint = document.getElementById("servizi-map-hint");
     ensureServiziMap();
     if (!serviziMap || !serviziMapMarkersLayer) return;
 
+    const updateToken = ++serviziMapUpdateToken;
     serviziMapMarkersLayer.clearLayers();
 
     const withCoords = filteredServizi.filter(hasValidServizioCoordinates);
-    const withoutCoords = filteredServizi.length - withCoords.length;
+    const withIndirizzoOnly = filteredServizi.filter(s => !hasValidServizioCoordinates(s) && hasServizioIndirizzo(s));
+    const withoutLocation = filteredServizi.filter(s => !hasValidServizioCoordinates(s) && !hasServizioIndirizzo(s));
 
     if (mapHint) {
-        if (withoutCoords > 0 && filteredServizi.length > 0) {
-            mapHint.textContent = `${withoutCoords} missione/i senza coordinate non mostrate sulla mappa. Inseriscile dal modulo «Nuova Missione / Servizio».`;
+        if (withoutLocation.length > 0 && filteredServizi.length > 0) {
+            mapHint.textContent = `${withoutLocation.length} missione/i senza coordinate né indirizzo non mostrate sulla mappa. Inserisci almeno uno dei due dal modulo «Nuova Missione / Servizio».`;
             mapHint.classList.remove("hidden");
         } else {
             mapHint.classList.add("hidden");
@@ -1023,23 +1127,34 @@ function updateServiziMap(filteredServizi) {
         }
     }
 
+    const boundsPoints = [];
+
     withCoords.forEach(s => {
         const lat = parseFloat(s.latitudine);
         const lng = parseFloat(s.longitudine);
-        L.circleMarker([lat, lng], {
-            radius: 9,
-            fillColor: getServizioMarkerColor(s.stato),
-            color: "#f8fafc",
-            weight: 2,
-            opacity: 1,
-            fillOpacity: 0.92
-        })
-            .bindPopup(buildServizioMapPopup(s), { maxWidth: 280 })
-            .addTo(serviziMapMarkersLayer);
+        addServizioMapMarker(s, lat, lng);
+        boundsPoints.push([lat, lng]);
     });
 
-    if (withCoords.length > 0) {
-        const bounds = L.latLngBounds(withCoords.map(s => [parseFloat(s.latitudine), parseFloat(s.longitudine)]));
+    for (const s of withIndirizzoOnly) {
+        if (updateToken !== serviziMapUpdateToken) return;
+
+        const coords = await geocodeIndirizzo(s.indirizzo);
+        if (updateToken !== serviziMapUpdateToken) return;
+        if (!coords) continue;
+
+        addServizioMapMarker(s, coords.lat, coords.lng);
+        boundsPoints.push([coords.lat, coords.lng]);
+
+        if (withIndirizzoOnly.indexOf(s) < withIndirizzoOnly.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1100));
+        }
+    }
+
+    if (updateToken !== serviziMapUpdateToken) return;
+
+    if (boundsPoints.length > 0) {
+        const bounds = L.latLngBounds(boundsPoints);
         serviziMap.fitBounds(bounds.pad(0.15), { maxZoom: 15 });
     } else {
         serviziMap.setView(MASSA_DI_SOMMA_CENTER, MASSA_DI_SOMMA_ZOOM);
@@ -1133,8 +1248,8 @@ function renderServizi() {
                         ${volontariPills}
                     </div>
                 </td>
-                <td class="py-4 px-6">
-                    <span class="px-2.5 py-1 text-xs font-bold border rounded-full ${badgeClass}">${s.stato}</span>
+                <td class="py-4 px-0">
+                    <span class="px-2.5 py-1 text-[10px] font-bold border rounded-full ${badgeClass}">${s.stato}</span>
                 </td>
                 <td class="py-4 px-6 text-right">
                     <div class="inline-flex gap-2">
@@ -1185,12 +1300,23 @@ async function saveServizio(event) {
         return;
     }
 
+    let latitudine = latValue !== "" ? parseFloat(latValue) : null;
+    let longitudine = lngValue !== "" ? parseFloat(lngValue) : null;
+
+    if (!hasValidServizioCoordinates({ latitudine, longitudine }) && indirizzo) {
+        const coords = await geocodeIndirizzo(indirizzo);
+        if (coords) {
+            latitudine = coords.lat;
+            longitudine = coords.lng;
+        }
+    }
+
     const payload = {
         richiedente,
         tipo,
         data,
-        latitudine: latValue !== "" ? parseFloat(latValue) : null,
-        longitudine: lngValue !== "" ? parseFloat(lngValue) : null,
+        latitudine,
+        longitudine,
         indirizzo_intervento: indirizzo || null,
         mezzi_ids: mezziIds,
         volontari_ids: volontariIds,
@@ -1274,6 +1400,8 @@ async function exportServizioPdf(id) {
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
+    showPdfExportProgress();
+
     try {
         const response = await fetch('/servizi/pdf', {
             method: 'POST',
@@ -1332,9 +1460,11 @@ async function exportServizioPdf(id) {
         URL.revokeObjectURL(url);
 
         showToast("PDF generato", "Il riepilogo dell'intervento è stato scaricato.");
+        hidePdfExportProgress(true);
     } catch (err) {
         console.error("Errore export PDF:", err);
         showToast("Errore export PDF", err.message || "Impossibile generare il file PDF.");
+        hidePdfExportProgress(false);
     }
 }
 
