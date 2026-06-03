@@ -101,10 +101,26 @@ function canSeeAllVolontari() {
 }
 
 function applyVolontariScope(list) {
-    if (canSeeAllVolontari()) return list;
+    if (canSeeAllVolontari() || isCapoSquadra()) return list;
     const assoc = getUserAssociazione();
     if (!assoc) return [];
     return list.filter(v => v.associazione_appartenenza === assoc);
+}
+
+async function enrichVolontariFromServizi(serviziList) {
+    if (!canAccessServizi() || !serviziList?.length) return;
+
+    const knownIds = new Set(volontari.map(v => v.id));
+    const missingIds = [...new Set(
+        serviziList.flatMap(s => s.volontariIds || []).filter(id => id && !knownIds.has(id))
+    )];
+    if (missingIds.length === 0) return;
+
+    const { data, error } = await supabase.from('volontari').select('*').in('id', missingIds);
+    if (error) throw error;
+    if (data?.length) {
+        volontari = applyVolontariScope([...volontari, ...data]);
+    }
 }
 
 async function loadUserProfile(user) {
@@ -750,6 +766,7 @@ async function fetchDataFromSupabase() {
                 mezzi = applyMezziScope(mezResponse.data || []);
                 servizi = (serResponse.data || []).map(mapServizioRow);
                 await enrichMezziFromServizi(servizi);
+                await enrichVolontariFromServizi(servizi);
             } else if (canAccessMezzi()) {
                 const mezResponse = await loadMezzi;
 
