@@ -1,5 +1,5 @@
     <!-- ================= SCHERMATA DI LOGIN ================= -->
-    <div id="login-screen" class="fixed inset-0 z-[100] pb-20 flex items-center justify-center bg-slate-950">
+    <div id="login-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950">
         <!-- Sfondo animato con pattern -->
         <div class="absolute inset-0 overflow-hidden">
             <div class="absolute -top-40 -left-40 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl"></div>
