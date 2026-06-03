@@ -1948,6 +1948,12 @@ async function exportServizioPdf(id, template = 'riepilogo-intervento') {
                     altriEnti: serv.altriEnti || '',
                     stato: serv.stato,
                     volontariIds: serv.volontariIds || [],
+                    oraArrivoIncendio: serv.oraArrivoIncendio || '',
+                    oraFineIntervento: serv.oraFineIntervento || '',
+                    oraRientroSede: serv.oraRientroSede || '',
+                    superficieCeduo: serv.superficieCeduo || {},
+                    superficieAltoFusto: serv.superficieAltoFusto || {},
+                    superficieNonBoscato: serv.superficieNonBoscato || {},
                 },
                 mezzi: mezziExport.map(m => ({
                     modello: m.modello,

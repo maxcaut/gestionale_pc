@@ -21,6 +21,12 @@ class ServizioPdfController extends Controller
             'servizio.richiedente' => 'nullable|string',
             'servizio.indirizzo' => 'nullable|string',
             'servizio.altriEnti' => 'nullable|string',
+            'servizio.oraArrivoIncendio' => 'nullable|string',
+            'servizio.oraFineIntervento' => 'nullable|string',
+            'servizio.oraRientroSede' => 'nullable|string',
+            'servizio.superficieCeduo' => 'nullable|array',
+            'servizio.superficieAltoFusto' => 'nullable|array',
+            'servizio.superficieNonBoscato' => 'nullable|array',
             'servizio.volontariIds' => 'nullable|array',
             'mezzi' => 'nullable|array',
             'mezzi.*.modello' => 'nullable|string',
@@ -88,10 +94,21 @@ class ServizioPdfController extends Controller
         );
 
         $dt = $this->parseDateTime($servizio['data']);
-        $oraInizio = $dt?->format('H:i') ?? '';
-        $oraFine = $dt?->modify('+30 minutes')->format('H:i') ?? '';
+        $oraInizio = $this->formatOraPianificazione($servizio['data']);
+        $oraArrivoIncendio = trim((string) ($servizio['oraArrivoIncendio'] ?? ''));
+        $oraFineIntervento = trim((string) ($servizio['oraFineIntervento'] ?? ''));
+        $oraRientro = trim((string) ($servizio['oraRientroSede'] ?? ''));
         $oraPartenza = $this->parseDateTime($servizio['data'])?->modify('+2 hours')->format('H:i') ?? '';
-        $oraRientro = $this->parseDateTime($servizio['data'])?->modify('+2 hours 23 minutes')->format('H:i') ?? '';
+
+        if ($oraArrivoIncendio === '' && $dt) {
+            $oraArrivoIncendio = $dt->modify('+30 minutes')->format('H:i');
+        }
+        if ($oraFineIntervento === '' && $dt) {
+            $oraFineIntervento = $dt->modify('+30 minutes')->format('H:i');
+        }
+        if ($oraRientro === '' && $dt) {
+            $oraRientro = $this->parseDateTime($servizio['data'])?->modify('+2 hours 23 minutes')->format('H:i') ?? '';
+        }
 
         $noteParts = array_filter([
             $servizio['altriEnti'] ?? null,
@@ -115,10 +132,13 @@ class ServizioPdfController extends Controller
             'via' => $via,
             'richiedenteLabel' => strtoupper($richiedente).' NA',
             'oraInizio' => $oraInizio,
-            'oraFine' => $oraFine,
+            'oraArrivoIncendio' => $oraArrivoIncendio,
+            'oraFineIntervento' => $oraFineIntervento,
             'oraPartenza' => $oraPartenza,
             'oraRientro' => $oraRientro,
-            'superficie' => '',
+            'superficieCeduo' => $servizio['superficieCeduo'] ?? [],
+            'superficieAltoFusto' => $servizio['superficieAltoFusto'] ?? [],
+            'superficieNonBoscato' => $servizio['superficieNonBoscato'] ?? [],
             'noteOperative' => $noteOperative,
             'firma' => $firma,
         ])->setPaper('a4', 'portrait');
@@ -165,6 +185,25 @@ class ServizioPdfController extends Controller
         } catch (\Exception) {
             return null;
         }
+    }
+
+    /** Orario da "Data e Ora Pianificazione" (datetime-local), senza shift di fuso. */
+    private function formatOraPianificazione(string $raw): string
+    {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return '';
+        }
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/i', $raw)) {
+            return $this->parseDateTime($raw)?->format('H:i') ?? '';
+        }
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}T(\d{2}):(\d{2})/', $raw, $matches)) {
+            return $matches[1].':'.$matches[2];
+        }
+
+        return $this->parseDateTime($raw)?->format('H:i') ?? '';
     }
 
     /**

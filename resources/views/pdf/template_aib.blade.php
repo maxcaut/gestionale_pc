@@ -42,8 +42,10 @@
         }
 
         .header-logo-left { width: 15%; }
+        .header-logo-sx { width: 120px; }
         .header-text { width: 70%; }
         .header-logo-right { width: 15%; }
+        .header-logo-dx { width: 120px; }
 
         .header-text h1 {
             font-size: 14px;
@@ -137,30 +139,29 @@
 </head>
 <body>
 @php
-        $dateParts = explode('/', $dataIntervento['data'] ?? '');
-        $giorno = $dateParts[0] ?? '________';
-        $mese = $dateParts[1] ?? '________';
-        $anno = $dateParts[2] ?? '____________';
-        $volontari = array_values($equipaggio);
+        $giorno = $dataIntervento['giorno'] ?? '________';
+        $mese = $dataIntervento['mese'] ?? '________';
+        $anno = $dataIntervento['anno'] ?? '____________';
+        $volontari = array_values($equipaggio ?? []);
         $veicoli = array_values($mezzi ?? []);
+        $ceduo = $superficieCeduo ?? [];
+        $altoFusto = $superficieAltoFusto ?? [];
+        $nonBoscato = $superficieNonBoscato ?? [];
 
         $logoSx = public_path('img/modello-logo-0.png');
         $logoDx = public_path('img/modello-logo-1.png');
 
-        $maxPrimaPagina = 7;  
-        $maxAltrePagine = 11; 
-        
-        $pagineVolontari = [];
-        if (count($volontari) === 0) {
-            $pagineVolontari = [[]];
-        } else {
-            $pagineVolontari[] = array_slice($volontari, 0, $maxPrimaPagina);
-            $resto = array_slice($volontari, $maxPrimaPagina);
-            foreach (array_chunk($resto, $maxAltrePagine) as $chunk) {
-                $pagineVolontari[] = $chunk;
+        $aibVal = static function (array $group, string $key): string {
+            $value = trim((string) ($group[$key] ?? ''));
+            return $value !== '' ? $value : '............';
+        };
+
+        $nomeVolontario = static function (?array $volontario): string {
+            if (!$volontario) {
+                return '';
             }
-        }
-        $offsetNumerazione = 0;
+            return trim(($volontario['cognome'] ?? '').' '.($volontario['nome'] ?? ''));
+        };
     @endphp
 
 <div class="container">
@@ -168,7 +169,9 @@
     <table class="header-table">
         <tr>
             <td class="header-logo-left">
-                <img src="$logoSx" alt="">
+            @if (is_file($logoSx))
+                    <img src="{{ $logoSx }}" alt="" class="header-logo-sx">
+                @endif
             </td>
             <td class="header-text">
                 <h1>Giunta Regionale della Campania</h1>
@@ -176,7 +179,9 @@
                 <h3>STAFF Emergenza e post-emergenza</h3>
             </td>
             <td class="header-logo-right">
-                <img src="$logoDx" alt="">
+                @if (is_file($logoDx))
+                    <img src="{{ $logoDx }}" alt="" class="header-logo-dx">
+                @endif
             </td>
         </tr>
     </table>
@@ -186,10 +191,10 @@
     </div>
 
     <div class="info-line">
-        OdV: ______________________________________________________________________________________
+        OdV: {{ $gruppo ?? '' }}
     </div>
     <div class="info-line">
-        Coordinamento: <span style="font-size: 10px;">COORDINAMENTO TERRITORIALE AREA VESUVIANA "VESUVIUS"</span> Convenzione prot ............del..........
+        Coordinamento: <span style="font-size: 10px;">COORDINAMENTO TERRITORIALE AREA VESUVIANA "VESUVIUS"</span> {{ $protocollo ?? '' }}
     </div>
 
     <table class="form-table">
@@ -204,11 +209,11 @@
         </thead>
         <tbody>
             <tr>
-                <td class="input-space-sm"></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
+                <td class="input-space-sm">{{ $giorno }}</td>
+                <td>{{ $mese }}</td>
+                <td>{{ $anno }}</td>
+                <td>{{ $comune ?? '' }}</td>
+                <td>{{ $via ?? '' }}</td>
             </tr>
         </tbody>
     </table>
@@ -217,11 +222,11 @@
         <tbody>
             <tr>
                 <th style="width: 35%;">Intervento richiesto da<br>(specificare se SOPI o SORU)</th>
-                <td style="width: 20%;" class="input-space-md"></td>
+                <td style="width: 20%;" class="input-space-md">{{ $richiedenteLabel ?? '' }}</td>
                 <th style="width: 10%;">Alle ore</th>
-                <td style="width: 12%;"></td>
+                <td style="width: 12%;">{{ $oraInizio ?? '' }}</td>
                 <th style="width: 13%;">Ora arrivo<br>sull'incendio</th>
-                <td style="width: 10%;"></td>
+                <td style="width: 10%;">{{ $oraArrivoIncendio ?? '' }}</td>
             </tr>
         </tbody>
     </table>
@@ -240,8 +245,8 @@
         <tbody>
             <tr>
                 <td class="col-center">1</td>
-                <td class="input-space-sm"></td>
-                <td></td>
+                <td class="input-space-sm">{{ $nomeVolontario($volontari[0] ?? null) }}</td>
+                <td>{{ $volontari[0]['telefono'] ?? '' }}</td>
             </tr>
             <tr>
                 <th class="col-center"></th>
@@ -250,23 +255,23 @@
             </tr>
             <tr>
                 <td class="col-center">2</td>
-                <td class="input-space-sm"></td>
-                <td></td>
+                <td class="input-space-sm">{{ $nomeVolontario($volontari[1] ?? null) }}</td>
+                <td>{{ $volontari[1]['telefono'] ?? '' }}</td>
             </tr>
             <tr>
                 <td class="col-center">3</td>
-                <td class="input-space-sm"></td>
-                <td></td>
+                <td class="input-space-sm">{{ $nomeVolontario($volontari[2] ?? null) }}</td>
+                <td>{{ $volontari[2]['telefono'] ?? '' }}</td>
             </tr>
             <tr>
                 <td class="col-center">4</td>
-                <td class="input-space-sm"></td>
-                <td></td>
+                <td class="input-space-sm">{{ $nomeVolontario($volontari[3] ?? null) }}</td>
+                <td>{{ $volontari[3]['telefono'] ?? '' }}</td>
             </tr>
             <tr>
                 <td class="col-center">5</td>
-                <td class="input-space-sm"></td>
-                <td></td>
+                <td class="input-space-sm">{{ $nomeVolontario($volontari[4] ?? null) }}</td>
+                <td>{{ $volontari[4]['telefono'] ?? '' }}</td>
             </tr>
         </tbody>
     </table>
@@ -286,22 +291,22 @@
         <tbody>
             <tr>
                 <td style="line-height: 1.5; padding: 6px 4px;">
-                    Matricinato <span class="dotted-line">............</span><br>
-                    Composto <span class="dotted-line">.............</span><br>
-                    Degradato <span class="dotted-line">............</span><br>
-                    Macchia <span class="dotted-line">..............</span>
+                    Matricinato <span class="dotted-line">{{ $aibVal($ceduo, 'matricianato') }}</span><br>
+                    Composto <span class="dotted-line">{{ $aibVal($ceduo, 'compostato') }}</span><br>
+                    Degradato <span class="dotted-line">{{ $aibVal($ceduo, 'degradato') }}</span><br>
+                    Macchia <span class="dotted-line">{{ $aibVal($ceduo, 'macchia') }}</span>
                 </td>
                 <td style="line-height: 1.5; padding: 6px 4px;">
-                    Resinoso <span class="dotted-line">.............</span><br>
-                    Latifoglie <span class="dotted-line">............</span><br>
-                    Misto <span class="dotted-line">................</span><br>
-                    Rimboschimento <span class="dotted-line">....</span>
+                    Resinoso <span class="dotted-line">{{ $aibVal($altoFusto, 'resinoso') }}</span><br>
+                    Latifoglie <span class="dotted-line">{{ $aibVal($altoFusto, 'latifoglie') }}</span><br>
+                    Misto <span class="dotted-line">{{ $aibVal($altoFusto, 'misto') }}</span><br>
+                    Rimboschimento <span class="dotted-line">{{ $aibVal($altoFusto, 'rimboschimento') }}</span>
                 </td>
                 <td style="line-height: 1.5; padding: 6px 4px;">
-                    Cespugliato <span class="dotted-line">...........</span><br>
-                    Pascolo <span class="dotted-line">...............</span><br>
-                    Seminativo <span class="dotted-line">............</span><br>
-                    Incolto <span class="dotted-line">...............</span>
+                    Cespugliato <span class="dotted-line">{{ $aibVal($nonBoscato, 'cespugliato') }}</span><br>
+                    Pascolo <span class="dotted-line">{{ $aibVal($nonBoscato, 'pascolo') }}</span><br>
+                    Seminativo <span class="dotted-line">{{ $aibVal($nonBoscato, 'seminativo') }}</span><br>
+                    Incolto <span class="dotted-line">{{ $aibVal($nonBoscato, 'incolto') }}</span>
                 </td>
                 <td></td>
             </tr>
@@ -317,12 +322,12 @@
         </thead>
         <tbody>
             <tr>
-                <td class="input-space-sm"><span style="margin-left: 5px;">1</span></td>
-                <td></td>
+                <td class="input-space-sm"><span style="margin-left: 5px;">1</span> {{ $veicoli[0]['modello'] ?? '' }}</td>
+                <td>{{ $veicoli[0]['targa'] ?? '' }}</td>
             </tr>
             <tr>
-                <td class="input-space-sm"><span style="margin-left: 5px;">2</span></td>
-                <td></td>
+                <td class="input-space-sm"><span style="margin-left: 5px;">2</span> {{ $veicoli[1]['modello'] ?? '' }}</td>
+                <td>{{ $veicoli[1]['targa'] ?? '' }}</td>
             </tr>
         </tbody>
     </table>
@@ -336,8 +341,28 @@
         </thead>
         <tbody>
             <tr>
-                <td style="height: 30px;"></td>
-                <td style="height: 30px;"></td>
+                <td rowspan="2" style="vertical-align: top; min-height: 50px;">{{ $noteOperative ?? '' }}</td>
+                <td style="height: 30px;" class="col-center">{{ $oraFineIntervento ?? '' }}</td>
             </tr>
+            
+        </tbody>
+    </table>
+
+    <table class="form-table footer-section">
+        <thead>
             <tr>
-                <td rowspan="2
+                <th style="width: 50%;" class="section-title">Orario Di Rientro in Sede ODV</th>
+                <th style="width: 50%;" class="section-title">Firma Capo Squadra</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="col-center input-space-sm">{{ $oraRientro ?? '' }}</td>
+                <td class="col-center input-space-sm">{{ $firma ?? '' }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+</div>
+</body>
+</html>
