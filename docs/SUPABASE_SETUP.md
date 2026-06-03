@@ -5,6 +5,7 @@
 1. Apri il progetto su [Supabase](https://supabase.com) → **SQL** → **New query**.
 2. Incolla ed esegui `supabase/migrations/001_profiles_rls_volontari.sql`.
 3. Incolla ed esegui `supabase/migrations/002_profiles_admin_rls.sql` (schermata **Utenti** nell’app).
+4. Incolla ed esegui `supabase/migrations/003_capo_squadra.sql` (ruolo **Capo Squadra** / Sala operativa).
 
 Aggiungi nel `.env` Laravel la chiave **service_role** (Settings → API → `service_role`, solo server):
 

@@ -77,14 +77,14 @@
 
             <!-- Navigazione Sidebar -->
             <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 bg-slate-800 text-amber-500 shadow-md">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" data-master-only class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 bg-slate-800 text-amber-500 shadow-md">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
                     </svg>
                     <span>Dashboard</span>
                 </button>
 
-                <button onclick="switchTab('volontari')" id="nav-volontari" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800/50">
+                <button onclick="switchTab('volontari')" id="nav-volontari" data-volontari-access class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800/50">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.109A11.386 11.386 0 0110.089 21c-2.243 0-4.352-.648-6.124-1.773L3.892 19.2c-.417-.234-.67-.679-.69-1.148a6.478 6.478 0 011.002-3.85 4.12 4.12 0 017.332-2.18c.633.796 1.439 1.379 2.36 1.7L15 19.128zm0-10.874a3 3 0 11-6 0 3 3 0 016 0zM19.5 7.125a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
                     </svg>
@@ -98,7 +98,7 @@
                     <span>Mezzi di Soccorso</span>
                 </button>
 
-                <button onclick="switchTab('servizi')" id="nav-servizi" data-master-only class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800/50">
+                <button onclick="switchTab('servizi')" id="nav-servizi" data-servizi-access class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800/50">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z" />
                     </svg>
@@ -174,7 +174,7 @@
             <div class="flex-1 overflow-y-auto p-4 lg:p-8 pb-20 lg:pb-8">
 
                 <!-- ================= TAB 1: DASHBOARD ================= -->
-                <section id="tab-dashboard" class="tab-content space-y-8 fade-in">
+                <section id="tab-dashboard" data-master-only class="tab-content space-y-8 fade-in">
                     
                     <!-- Contatori Statistici -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -358,13 +358,13 @@
 
     <!-- BOTTOM NAVIGATION BAR (solo mobile) -->
     <nav id="bottom-nav" class="lg:hidden fixed bottom-0 left-0 right-0 z-20 bg-slate-900 border-t border-slate-800 flex items-center justify-around px-2 py-2" style="display: none;">
-        <button onclick="switchTab('dashboard')" id="bottom-nav-dashboard" class="bottom-nav-btn flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-amber-500 transition-all">
+        <button onclick="switchTab('dashboard')" id="bottom-nav-dashboard" data-master-only class="bottom-nav-btn flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-amber-500 transition-all">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
             </svg>
             <span class="text-[10px] font-bold">Dashboard</span>
         </button>
-        <button onclick="switchTab('volontari')" id="bottom-nav-volontari" class="bottom-nav-btn flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-slate-400 transition-all">
+        <button onclick="switchTab('volontari')" id="bottom-nav-volontari" data-volontari-access class="bottom-nav-btn flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-slate-400 transition-all">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.109A11.386 11.386 0 0110.089 21c-2.243 0-4.352-.648-6.124-1.773L3.892 19.2c-.417-.234-.67-.679-.69-1.148a6.478 6.478 0 011.002-3.85 4.12 4.12 0 017.332-2.18c.633.796 1.439 1.379 2.36 1.7L15 19.128zm0-10.874a3 3 0 11-6 0 3 3 0 016 0zM19.5 7.125a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
             </svg>
@@ -376,7 +376,7 @@
             </svg>
             <span class="text-[10px] font-bold">Mezzi</span>
         </button>
-        <button onclick="switchTab('servizi')" id="bottom-nav-servizi" data-master-only class="bottom-nav-btn flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-slate-400 transition-all">
+        <button onclick="switchTab('servizi')" id="bottom-nav-servizi" data-servizi-access class="bottom-nav-btn flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-slate-400 transition-all">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z" />
             </svg>
@@ -667,6 +667,7 @@
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Ruolo <span class="text-amber-500">*</span></label>
                     <select id="p-ruolo" required onchange="toggleProfiloAssociazioneField()" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
                         <option value="segreteria">Segreteria</option>
+                        <option value="capo_squadra">Capo Squadra</option>
                         <option value="master">Master</option>
                     </select>
                 </div>

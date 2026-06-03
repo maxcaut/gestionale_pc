@@ -20,6 +20,35 @@ function isSegreteria() {
     return currentUserProfile?.ruolo === 'segreteria';
 }
 
+function isCapoSquadra() {
+    return currentUserProfile?.ruolo === 'capo_squadra';
+}
+
+function canAccessVolontari() {
+    return isMaster() || isSegreteria();
+}
+
+function canAccessServizi() {
+    return isMaster() || isCapoSquadra();
+}
+
+function canAccessMezzi() {
+    return isMaster();
+}
+
+function roleRequiresAssociazione(ruolo) {
+    return ruolo === 'segreteria' || ruolo === 'capo_squadra';
+}
+
+function formatRuoloLabel(ruolo) {
+    const labels = {
+        master: 'Master',
+        segreteria: 'Segreteria',
+        capo_squadra: 'Capo Squadra',
+    };
+    return labels[ruolo] || ruolo;
+}
+
 function getUserAssociazione() {
     return currentUserProfile?.associazione || null;
 }
@@ -46,15 +75,22 @@ async function loadUserProfile(user) {
 }
 
 function applyRoleBasedUI() {
-    const masterOnly = document.querySelectorAll('[data-master-only]');
-    masterOnly.forEach(el => {
+    document.querySelectorAll('[data-master-only]').forEach(el => {
         el.classList.toggle('hidden', !isMaster());
+    });
+    document.querySelectorAll('[data-volontari-access]').forEach(el => {
+        el.classList.toggle('hidden', !canAccessVolontari());
+    });
+    document.querySelectorAll('[data-servizi-access]').forEach(el => {
+        el.classList.toggle('hidden', !canAccessServizi());
     });
 
     const badge = document.getElementById('user-email-badge');
     if (badge && currentUserProfile) {
         if (isMaster()) {
             badge.innerText = 'Master';
+        } else if (isCapoSquadra()) {
+            badge.innerText = `Capo · ${getUserAssociazione() || 'Squadra'}`;
         } else if (isSegreteria()) {
             badge.innerText = getUserAssociazione() || 'Segreteria';
         }
@@ -64,6 +100,8 @@ function applyRoleBasedUI() {
 
     if (isSegreteria()) {
         switchTab('volontari');
+    } else if (isCapoSquadra()) {
+        switchTab('servizi');
     }
 }
 
@@ -292,7 +330,7 @@ async function fetchDataFromSupabase() {
         if (volResponse.error) throw volResponse.error;
         volontari = volResponse.data || [];
 
-        if (isMaster()) {
+        if (canAccessServizi()) {
             const [mezResponse, serResponse] = await Promise.all([
                 supabase.from('mezzi').select('*').order('created_at', { ascending: true }),
                 supabase.from('servizi').select('*').order('created_at', { ascending: true })
@@ -396,8 +434,14 @@ function toggleModal(modalId, show) {
 
 // --- CAMBIO TAB (NAVIGAZIONE) ---
 function switchTab(tabId) {
-    if (!isMaster() && (tabId === 'mezzi' || tabId === 'servizi' || tabId === 'admin')) {
-        tabId = 'volontari';
+    if (!canAccessVolontari() && tabId === 'volontari') {
+        tabId = canAccessServizi() ? 'servizi' : 'dashboard';
+    }
+    if (!canAccessServizi() && tabId === 'servizi') {
+        tabId = canAccessVolontari() ? 'volontari' : 'dashboard';
+    }
+    if (!isMaster() && (tabId === 'mezzi' || tabId === 'admin' || tabId === 'dashboard')) {
+        tabId = canAccessServizi() ? 'servizi' : 'volontari';
     }
 
     // Nascondi tutti i contenuti delle tab
@@ -1702,12 +1746,12 @@ function toggleProfiloAssociazioneField() {
     const ruolo = document.getElementById('p-ruolo')?.value;
     if (!wrap || !select) return;
 
-    if (ruolo === 'master') {
-        wrap.classList.add('hidden');
-        select.required = false;
-    } else {
+    if (roleRequiresAssociazione(ruolo)) {
         wrap.classList.remove('hidden');
         select.required = true;
+    } else {
+        wrap.classList.add('hidden');
+        select.required = false;
     }
 }
 
@@ -1750,9 +1794,9 @@ async function renderAdminProfiles() {
 
     tbody.innerHTML = '';
     profiles.forEach(p => {
-        const ruoloBadge = p.ruolo === 'master'
-            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-            : 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+        let ruoloBadge = 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+        if (p.ruolo === 'master') ruoloBadge = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+        else if (p.ruolo === 'capo_squadra') ruoloBadge = 'bg-violet-500/10 text-violet-400 border-violet-500/20';
         const isSelf = p.id === currentUserProfile?.id;
 
         tbody.innerHTML += `
@@ -1833,7 +1877,10 @@ async function saveProfilo(event) {
 
     try {
         if (editingProfileId) {
-            const payload = { ruolo, associazione: ruolo === 'master' ? null : associazione };
+            const payload = {
+                ruolo,
+                associazione: roleRequiresAssociazione(ruolo) ? associazione : null,
+            };
             if (password) payload.password = password;
 
             await adminApiFetch(`/api/admin/profiles/${editingProfileId}`, {
@@ -1855,7 +1902,7 @@ async function saveProfilo(event) {
                     email,
                     password,
                     ruolo,
-                    associazione: ruolo === 'master' ? null : associazione,
+                    associazione: roleRequiresAssociazione(ruolo) ? associazione : null,
                 }),
             });
 

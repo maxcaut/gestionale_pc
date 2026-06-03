@@ -1,5 +1,5 @@
                 <!-- ================= TAB 4: SERVIZI ================= -->
-                <section id="tab-servizi" class="tab-content space-y-6 hidden fade-in">
+                <section id="tab-servizi" data-servizi-access class="tab-content space-y-6 hidden fade-in">
                     
                     <!-- Barra Superiore Azioni Servizi -->
                     <div class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">

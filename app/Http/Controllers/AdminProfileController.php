@@ -15,15 +15,11 @@ class AdminProfileController extends Controller
         $validated = $request->validate([
             'email' => 'required|email',
             'password' => 'required|string|min:6',
-            'ruolo' => ['required', Rule::in(['segreteria', 'master'])],
+            'ruolo' => ['required', Rule::in(['segreteria', 'master', 'capo_squadra'])],
             'associazione' => 'nullable|string|max:255',
         ]);
 
-        if ($validated['ruolo'] === 'segreteria' && empty(trim((string) ($validated['associazione'] ?? '')))) {
-            throw ValidationException::withMessages([
-                'associazione' => 'Associazione obbligatoria per utenti segreteria.',
-            ]);
-        }
+        $this->validateAssociazioneForRuolo($validated['ruolo'], $validated['associazione'] ?? null);
 
         $associazione = $validated['ruolo'] === 'master'
             ? null
@@ -89,7 +85,7 @@ class AdminProfileController extends Controller
     public function update(Request $request, string $id): JsonResponse
     {
         $validated = $request->validate([
-            'ruolo' => ['sometimes', Rule::in(['segreteria', 'master'])],
+            'ruolo' => ['sometimes', Rule::in(['segreteria', 'master', 'capo_squadra'])],
             'associazione' => 'nullable|string|max:255',
             'password' => 'nullable|string|min:6',
         ]);
@@ -185,5 +181,14 @@ class AdminProfileController extends Controller
         }
 
         return response()->json(['message' => 'Utente eliminato.']);
+    }
+
+    private function validateAssociazioneForRuolo(string $ruolo, ?string $associazione): void
+    {
+        if (in_array($ruolo, ['segreteria', 'capo_squadra'], true) && empty(trim((string) $associazione))) {
+            throw ValidationException::withMessages([
+                'associazione' => 'Associazione obbligatoria per segreteria e capo squadra.',
+            ]);
+        }
     }
 }
