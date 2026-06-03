@@ -128,9 +128,68 @@ async function loadUserProfile(user) {
     return data;
 }
 
+const CAPO_SQUADRA_SERVIZIO_READONLY_IDS = ['s-richiedente', 's-tipo', 's-data'];
+const CAPO_SQUADRA_SERVIZIO_REQUIRED_IDS = ['s-richiedente', 's-tipo', 's-data', 's-stato'];
+
+function applyCapoSquadraServizioFormRestrictions() {
+    if (!isCapoSquadra()) return;
+
+    CAPO_SQUADRA_SERVIZIO_READONLY_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.disabled = true;
+        el.required = false;
+    });
+
+    document.querySelectorAll('#s-mezzi-list input[type="checkbox"], #s-volontari-list input[type="checkbox"]').forEach(cb => {
+        cb.disabled = true;
+    });
+}
+
+function resetCapoSquadraServizioFormRestrictions() {
+    CAPO_SQUADRA_SERVIZIO_READONLY_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.disabled = false;
+    });
+
+    CAPO_SQUADRA_SERVIZIO_REQUIRED_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.required = true;
+    });
+
+    document.querySelectorAll('#s-mezzi-list input[type="checkbox"], #s-volontari-list input[type="checkbox"]').forEach(cb => {
+        cb.disabled = false;
+    });
+}
+
+function buildCapoSquadraServizioUpdatePayload(existing, stato) {
+    const latValue = document.getElementById('s-lat')?.value.trim() ?? '';
+    const lngValue = document.getElementById('s-lng')?.value.trim() ?? '';
+    const indirizzo = document.getElementById('s-indirizzo')?.value.trim() ?? '';
+    const note = document.getElementById('s-note')?.value ?? '';
+    const altriEnti = document.getElementById('s-altri-enti')?.value.trim() ?? '';
+
+    let latitudine = latValue !== '' ? parseFloat(latValue) : null;
+    let longitudine = lngValue !== '' ? parseFloat(lngValue) : null;
+
+    return {
+        latitudine,
+        longitudine,
+        indirizzo_intervento: indirizzo || null,
+        note,
+        altri_enti_coinvolti: altriEnti || null,
+        stato,
+        ...buildServizioAibPayload(existing.tipo),
+    };
+}
+
 function applyRoleBasedUI() {
     document.querySelectorAll('[data-master-only]').forEach(el => {
         el.classList.toggle('hidden', !isMaster());
+    });
+    document.querySelectorAll('[data-hide-for-capo-squadra]').forEach(el => {
+        el.classList.toggle('hidden', isCapoSquadra());
     });
     document.querySelectorAll('[data-volontari-access]').forEach(el => {
         el.classList.toggle('hidden', !canAccessVolontari());
@@ -678,6 +737,7 @@ function toggleModal(modalId, show) {
         const form = modal.querySelector("form");
         if (form) form.reset();
         resetEditState();
+        resetCapoSquadraServizioFormRestrictions();
         setModalFormMode('modal-volontario', { title: 'Aggiungi Nuovo Volontario', submitText: 'Registra' });
         setModalFormMode('modal-mezzo', { title: 'Aggiungi Nuovo Mezzo di Soccorso', submitText: 'Registra' });
         setModalFormMode('modal-servizio', { title: 'Pianifica Servizio / Missione', submitText: 'Pianifica' });
@@ -1404,6 +1464,8 @@ function fillCoordinateFromGps() {
 }
 
 function openNuovoServizioModal() {
+    if (isCapoSquadra()) return;
+
     resetEditState();
     setModalFormMode('modal-servizio', { title: 'Pianifica Servizio / Missione', submitText: 'Pianifica' });
 
@@ -1442,6 +1504,12 @@ function openEditServizioModal(id) {
     document.getElementById("s-stato").value = serv.stato;
     setServizioAibFormData(serv);
     toggleServizioAibFields();
+
+    if (isCapoSquadra()) {
+        applyCapoSquadraServizioFormRestrictions();
+    } else {
+        resetCapoSquadraServizioFormRestrictions();
+    }
 
     toggleModal('modal-servizio', true);
 }
@@ -1768,11 +1836,11 @@ function renderServizi() {
                         </button>
                         ${completaBtn}
                         ${exportPdfBtn}
-                        <button onclick="deleteServizio('${s.id}')" title="Elimina Missione" class="p-2 hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-500 transition-colors">
+                        ${isCapoSquadra() ? '' : `<button onclick="deleteServizio('${s.id}')" title="Elimina Missione" class="p-2 hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-500 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                             </svg>
-                        </button>
+                        </button>`}
                     </div>
                 </td>
             </tr>
@@ -1782,6 +1850,49 @@ function renderServizi() {
 
 async function saveServizio(event) {
     event.preventDefault();
+
+    if (isCapoSquadra() && !editingServizioId) {
+        showToast("Operazione non consentita", "Non puoi creare nuove missioni o servizi.");
+        return;
+    }
+
+    const stato = document.getElementById("s-stato").value;
+
+    if (isCapoSquadra() && editingServizioId) {
+        const existing = servizi.find(s => s.id === editingServizioId);
+        if (!existing) return;
+
+        let payload = buildCapoSquadraServizioUpdatePayload(existing, stato);
+
+        if (!hasValidServizioCoordinates(payload) && payload.indirizzo_intervento) {
+            const coords = await geocodeIndirizzo(payload.indirizzo_intervento);
+            if (coords) {
+                payload = { ...payload, latitudine: coords.lat, longitudine: coords.lng };
+            }
+        }
+
+        try {
+            if (stato === "In corso") {
+                for (const mId of (existing.mezziIds || [])) {
+                    const mezzo = mezzi.find(m => m.id === mId);
+                    if (mezzo && mezzo.stato === "Disponibile") {
+                        await supabase.from('mezzi').update({ stato: "In servizio" }).eq('id', mId);
+                    }
+                }
+            }
+
+            const { error } = await supabase.from('servizi').update(payload).eq('id', editingServizioId);
+            if (error) throw error;
+            toggleModal('modal-servizio', false);
+            showToast("Servizio Aggiornato", "Le modifiche sono state salvate correttamente.");
+            await fetchDataFromSupabase();
+        } catch (err) {
+            console.error("Errore durante il salvataggio del servizio:", err);
+            showToast("Errore di Salvataggio", "Impossibile registrare il servizio su Supabase.");
+        }
+        return;
+    }
+
     const richiedente = document.getElementById("s-richiedente").value;
     const tipo = document.getElementById("s-tipo").value;
     const data = document.getElementById("s-data").value;
@@ -1790,7 +1901,6 @@ async function saveServizio(event) {
     const indirizzo = document.getElementById("s-indirizzo").value.trim();
     const note = document.getElementById("s-note").value;
     const altriEnti = document.getElementById("s-altri-enti").value.trim();
-    const stato = document.getElementById("s-stato").value;
 
     const mezziCheckboxes = document.querySelectorAll('input[name="s-mezzi-check"]:checked');
     const mezziIds = [];
@@ -2025,6 +2135,8 @@ async function exportServizioPdf(id, template = 'riepilogo-intervento') {
 }
 
 async function deleteServizio(id) {
+    if (isCapoSquadra()) return;
+
     if (confirm("Sei sicuro di voler eliminare questa registrazione di servizio?")) {
         try {
             const { error } = await supabase
