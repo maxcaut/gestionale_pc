@@ -45,7 +45,7 @@ class ServizioPdfController extends Controller
             'equipaggio' => $validated['equipaggio'],
             'dataIntervento' => $dataIntervento,
             'exportatoIl' => $exportatoIl,
-        ])->setPaper('a4', 'portrait');
+        ])->setPaper('a4', 'landscape');
 
         $filename = 'riepilogo-intervento-'.Str::slug($validated['servizio']['tipo']).'-'.$dataIntervento['file'].'.pdf';
 

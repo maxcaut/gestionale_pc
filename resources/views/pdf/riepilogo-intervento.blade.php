@@ -2,264 +2,309 @@
 <html lang="it">
 <head>
     <meta charset="utf-8">
-    <title>Riepilogo intervento — {{ $servizio['tipo'] }}</title>
+    <title>Modello A — Presenze ODV</title>
     <style>
-        /* Template PDF: personalizza loghi, colori e testi qui */
-        @page { margin: 28mm 22mm 24mm 22mm; }
-        * { box-sizing: border-box; }
+        @page {
+            size: A4 landscape;
+            margin: 0; 
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
         body {
             font-family: DejaVu Sans, sans-serif;
-            font-size: 10pt;
-            color: #1e293b;
-            line-height: 1.45;
-        }
-        .header {
-            border-bottom: 2px solid #d97706;
-            padding-bottom: 12px;
-            margin-bottom: 20px;
-        }
-        .logo-placeholder {
-            width: 80px;
-            height: 50px;
-            border: 1px dashed #94a3b8;
-            text-align: center;
-            font-size: 7pt;
-            color: #64748b;
-            line-height: 50px;
-            float: left;
-            margin-right: 16px;
-        }
-        .org-name {
             font-size: 11pt;
-            font-weight: bold;
-            color: #0f172a;
-            margin: 0 0 2px 0;
-        }
-        .org-sub {
-            font-size: 8pt;
-            color: #64748b;
-            margin: 0;
-        }
-        h1 {
-            clear: both;
-            font-size: 16pt;
-            color: #0f172a;
-            margin: 18px 0 4px 0;
-            letter-spacing: 0.02em;
-        }
-        .doc-meta {
-            font-size: 8pt;
-            color: #64748b;
-            margin-bottom: 18px;
-        }
-        .section {
-            margin-bottom: 16px;
-        }
-        .section-title {
-            font-size: 9pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: #b45309;
-            border-bottom: 1px solid #e2e8f0;
-            padding-bottom: 4px;
-            margin-bottom: 8px;
-        }
-        table.data {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        table.data th,
-        table.data td {
-            text-align: left;
-            padding: 6px 8px;
-            vertical-align: top;
-            border: 1px solid #e2e8f0;
-        }
-        table.data th {
-            width: 32%;
-            background: #f8fafc;
-            font-weight: bold;
-            font-size: 9pt;
-            color: #475569;
-        }
-        table.data td {
-            font-size: 10pt;
-        }
-        table.equipaggio {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 9pt;
-        }
-        table.equipaggio th {
-            background: #0f172a;
-            color: #fff;
-            padding: 7px 8px;
-            text-align: left;
-            font-size: 8pt;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
-        table.equipaggio td {
-            padding: 6px 8px;
-            border: 1px solid #e2e8f0;
-        }
-        table.equipaggio tr:nth-child(even) td {
-            background: #f8fafc;
-        }
-        .note-box {
-            border: 1px solid #e2e8f0;
-            background: #f8fafc;
-            padding: 10px 12px;
-            min-height: 48px;
-            white-space: pre-wrap;
-        }
-        .footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            font-size: 7pt;
-            color: #94a3b8;
-            border-top: 1px solid #e2e8f0;
-            padding-top: 6px;
-        }
-        .badge-completato {
-            display: inline-block;
-            background: #ecfdf5;
-            color: #047857;
-            border: 1px solid #a7f3d0;
-            padding: 2px 8px;
-            font-size: 8pt;
-            font-weight: bold;
-            border-radius: 4px;
+            color: #000;
+            line-height: 1.2;
+            background: #fff;
         }
 
-        .logo-ente{
-            height: 100px;
-            width: 100px;
+        table, .mezzi-wrap {
+            width: 92% !important;
+            margin-left: 4% !important;
+            margin-right: 4% !important;
+            border-collapse: collapse;
+            table-layout: fixed;
         }
+
+        .spacer-top {
+            height: 12mm;
+            width: 100%;
+        }
+
+        td, th {
+            border: 1px solid #000;
+            vertical-align: middle;
+            padding: 3px 4px;
+        }
+
+        .header-box td {
+            height: 23mm;
+            padding: 4px 6px;
+        }
+
+        .header-box .logo-slot-sx {
+            width: 18%;
+            text-align: center;
+            border-right: none !important; 
+        }
+
+        .header-box .logo-slot-dx {
+            width: 18%;
+            text-align: center;
+            border-left: none !important; 
+        }
+
+        .header-box .header-text {
+            width: 64%;
+            text-align: center; /* SPAZIO INSERITO QUI: Garantisce la centratura di tutte le righe di testo */
+            font-size: 12pt;
+            line-height: 1.35;
+            border-left: none !important;
+            border-right: none !important;
+        }
+
+        .header-box .logo-slot-sx img,
+        .header-box .logo-slot-dx img {
+            max-height: 20mm;
+            max-width: 100%;
+        }
+
+        .header-box .header-text .staff {
+            font-weight: bold;
+            display: inline-block; /* Aiuta la resa grafica della centratura su motori PDF datati */
+        }
+
+        .header-box {
+            margin-bottom: 4mm !important; 
+        }
+
+        .giorno-row td {
+            height: 9mm;
+            text-align: right;
+            font-size: 13pt;
+            padding-right: 8px;
+        }
+
+        .giorno-row {
+            margin-bottom: 5mm !important; 
+        }
+
+        .section-title td {
+            text-align: center;
+            font-size: 13pt;
+            padding: 4px 6px;
+            height: 8mm;
+        }
+        .col-header th {
+            background: #d9d9d9;
+            text-align: center;
+            font-weight: normal;
+            font-size: 11pt;
+            height: 8mm;
+            padding: 3px 2px;
+        }
+        .col-header .art39 {
+            font-size: 9pt;
+            line-height: 1.1;
+        }
+
+        .data-row td {
+            text-align: center;
+            font-size: 11pt;
+            height: 7.3mm;
+        }
+        .data-row .col-n {
+            width: 4%;
+        }
+
+        .blocco-tabella { 
+            page-break-inside: auto; 
+            margin-bottom: 6mm; 
+        }
+
+        .mezzi-wrap {
+            margin-top: 0;
+            margin-bottom: 6mm; 
+        }
+
+        .firme-table {
+            margin-top: 6mm; 
+            page-break-inside: avoid;
+        }
+        .firme-table td {
+            vertical-align: top;
+            text-align: center;
+            font-size: 11pt;
+            padding: 6px 8px;
+            height: 28mm;
+        }
+        .firme-table .firma-sx {
+            width: 42%;
+        }
+        .firme-table .firma-dx {
+            width: 58%;
+        }
+        .firme-table .firma-linea {
+            margin-top: 14mm;
+            font-size: 11pt;
+            letter-spacing: 0.5px;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+        .blocco-continuazione {
+            page-break-inside: avoid;
+        }
+        thead { display: table-header-group; }
+        tr { page-break-inside: avoid; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <img src="data:image/png;base64,{{ base64_encode(file_get_contents(public_path('img/logo-regione.png'))) }}" alt="Logo" class="logo-ente">
-        <p class="org-name">Protezione Civile — Coordinamento Vesuvius</p>
-        <p class="org-sub">Registro missioni e servizi di protezione civile</p>
-    </div>
+    @php
+        $dateParts = explode('/', $dataIntervento['data'] ?? '');
+        $giorno = $dateParts[0] ?? '________';
+        $mese = $dateParts[1] ?? '________';
+        $anno = $dateParts[2] ?? '____________';
+        $volontari = array_values($equipaggio);
+        $veicoli = array_values($mezzi ?? []);
 
-    <h1>Riepilogo intervento</h1>
-    <p class="doc-meta">
-        Documento generato il {{ $exportatoIl }} &nbsp;|&nbsp;
-        ID registrazione: <strong>{{ $servizio['id'] }}</strong>
-    </p>
+        $logoSx = public_path('img/modello-logo-0.png');
+        $logoDx = public_path('img/modello-logo-1.png');
 
-    <div class="section">
-        <div class="section-title">Dati dell'intervento</div>
-        <table class="data">
-            <tr>
-                <th>Tipologia servizio / intervento</th>
-                <td><strong>{{ $servizio['tipo'] }}</strong></td>
-            </tr>
-            <tr>
-                <th>Data intervento</th>
-                <td>{{ $dataIntervento['data'] }}</td>
-            </tr>
-            <tr>
-                <th>Ora intervento</th>
-                <td>{{ $dataIntervento['ora'] }}</td>
-            </tr>
-            <tr>
-                <th>Data e ora (completa)</th>
-                <td>{{ $dataIntervento['completa'] }}</td>
-            </tr>
-            <tr>
-                <th>Stato servizio</th>
-                <td><span class="badge-completato">{{ $servizio['stato'] }}</span></td>
-            </tr>
-        </table>
-    </div>
+        $maxPrimaPagina = 7;  
+        $maxAltrePagine = 11; 
+        
+        $pagineVolontari = [];
+        if (count($volontari) === 0) {
+            $pagineVolontari = [[]];
+        } else {
+            $pagineVolontari[] = array_slice($volontari, 0, $maxPrimaPagina);
+            $resto = array_slice($volontari, $maxPrimaPagina);
+            foreach (array_chunk($resto, $maxAltrePagine) as $chunk) {
+                $pagineVolontari[] = $chunk;
+            }
+        }
+        $offsetNumerazione = 0;
+    @endphp
 
-    <div class="section">
-        <div class="section-title">Note operative</div>
-        <div class="note-box">{{ $servizio['note'] ?? 'Nessuna nota operativa aggiuntiva.' }}</div>
-    </div>
+    @foreach ($pagineVolontari as $paginaIndex => $volontariPagina)
+        @if ($paginaIndex > 0)
+            <div class="page-break"></div>
+        @endif
 
-    <div class="section">
-        <div class="section-title">Mezzi assegnati ({{ count($mezzi) }})</div>
-        @if (count($mezzi) > 0)
-            <table class="equipaggio">
+        <div class="spacer-top"></div>
+
+        @if ($paginaIndex === 0)
+            <table class="header-box">
+                <tr>
+                    <td class="logo-slot-sx">
+                        @if (is_file($logoSx))
+                            <img src="{{ $logoSx }}" alt="">
+                        @endif
+                    </td>
+                    <td class="header-text">
+                        Giunta Regionale della Campania<br>
+                        Direzione Generale 18 - Lavori Pubblici e Protezione Civile<br>
+                        <span class="staff">STAFF Protezione Civile Emergenza e Post-Emergenza</span>
+                    </td>
+                    <td class="logo-slot-dx">
+                        @if (is_file($logoDx))
+                            <img src="{{ $logoDx }}" alt="">
+                        @endif
+                    </td>
+                </tr>
+            </table>
+
+            <table class="giorno-row">
+                <tr>
+                    <td>GIORNO DI IMPIEGO {{ $giorno }}/{{ $mese }}/{{ $anno }}</td>
+                </tr>
+            </table>
+        @endif
+
+        <div class="blocco-tabella {{ $paginaIndex > 0 ? 'blocco-continuazione' : '' }}">
+            <table class="volontari">
+                @if ($paginaIndex === 0)
+                    <tr class="section-title">
+                        <td colspan="6">ELENCO DEI VOLONTARI IMPIEGATI</td>
+                    </tr>
+                @else
+                    <tr class="section-title">
+                        <td colspan="6">ELENCO DEI VOLONTARI IMPIEGATI (continua)</td>
+                    </tr>
+                @endif
                 <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Modello</th>
-                        <th>Targa</th>
-                        <th>Tipologia</th>
-                        <th>Stato</th>
+                    <tr class="col-header">
+                        <th class="col-n">N.</th>
+                        <th style="width:19%">COGNOME</th>
+                        <th style="width:20%">NOME</th>
+                        <th style="width:27%">CODICE FISCALE</th>
+                        <th style="width:23%">FIRMA AUTOGRAFA</th>
+                        <th class="art39" style="width:7%">ART.39<br>SI /NO</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($mezzi as $index => $mezzo)
-                        <tr>
-                            <td>{{ $index + 1 }}</td>
-                            <td>{{ $mezzo['modello'] ?? '—' }}</td>
-                            <td>{{ $mezzo['targa'] ?? '—' }}</td>
-                            <td>{{ $mezzo['tipo'] ?? '—' }}</td>
-                            <td>{{ $mezzo['stato'] ?? '—' }}</td>
+                    @foreach ($volontariPagina as $volontario)
+                        @php $numeroRiga = $offsetNumerazione + $loop->iteration; @endphp
+                        <tr class="data-row">
+                            <td class="col-n">{{ $numeroRiga }}</td>
+                            <td>{{ $volontario['cognome'] ?? '' }}</td>
+                            <td>{{ $volontario['nome'] ?? '' }}</td>
+                            <td>{{ $volontario['cf'] ?? '' }}</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
-        @else
-            <p>Nessun mezzo associato a questo intervento.</p>
-        @endif
-    </div>
+        </div>
 
-    <div class="section">
-        <div class="section-title">Equipaggio volontari ({{ count($equipaggio) }})</div>
-        <table class="equipaggio">
+        @php $offsetNumerazione += count($volontariPagina); @endphp
+    @endforeach
+
+    <div class="mezzi-wrap">
+        <table class="mezzi" style="width:100% !important; margin:0 !important;">
+            <tr class="section-title">
+                <td colspan="3">ELENCO DEI VEICOLI ASSOCIATIVI UTILIZZATI</td>
+            </tr>
             <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Cognome e nome</th>
-                    <th>Codice fiscale</th>
-                    <th>Ruolo</th>
-                    <th>Telefono</th>
-                    <th>Stato</th>
+                <tr class="col-header">
+                    <th style="width:31%">TIPO</th>
+                    <th style="width:41%">MODELLO</th>
+                    <th style="width:28%">TARGA</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach ($equipaggio as $index => $volontario)
-                    <tr>
-                        <td>{{ $index + 1 }}</td>
-                        <td>{{ $volontario['cognome'] }} {{ $volontario['nome'] }}</td>
-                        <td>{{ $volontario['cf'] ?? '—' }}</td>
-                        <td>{{ $volontario['ruolo'] ?? '—' }}</td>
-                        <td>{{ $volontario['telefono'] ?? '—' }}</td>
-                        <td>{{ $volontario['stato'] ?? '—' }}</td>
+                @forelse ($veicoli as $veicolo)
+                    <tr class="data-row">
+                        <td>{{ $veicolo['tipo'] ?? '' }}</td>
+                        <td>{{ $veicolo['modello'] ?? '' }}</td>
+                        <td>{{ $veicolo['targa'] ?? '' }}</td>
                     </tr>
-                @endforeach
+                @empty
+                    <tr class="data-row">
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                    </tr>
+                @endforelse
             </tbody>
         </table>
     </div>
 
-    <div class="section">
-        <div class="section-title">Riepilogo numerico</div>
-        <table class="data">
-            <tr>
-                <th>Volontari in equipaggio</th>
-                <td>{{ count($equipaggio) }}</td>
-            </tr>
-            <tr>
-                <th>Mezzi impiegati</th>
-                <td>{{ count($mezzi) > 0 ? collect($mezzi)->map(fn ($m) => ($m['modello'] ?? '—').' ('.($m['targa'] ?? '—').')')->implode('; ') : 'Nessuno' }}</td>
-            </tr>
-        </table>
-    </div>
-
-    <div class="footer">
-        Riepilogo intervento — {{ $servizio['tipo'] }} — {{ $dataIntervento['completa'] }}
-        &nbsp;|&nbsp; Pagina generata automaticamente dal gestionale PC
-    </div>
+    <table class="firme-table">
+        <tr>
+            <td class="firma-sx">
+                FIRMA LEGALE RAPPRESENTANTE ODV
+                <div class="firma-linea">__________________________________</div>
+            </td>
+            <td class="firma-dx">
+                TIMBRO E FIRMA REFERENTE AUTORITÀ DI PROTEZIONE CIVILE (o dal<br>
+                soggetto a ciò incaricato) individuato nella nota di Attivazione
+                <div class="firma-linea">___________________________________</div>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
