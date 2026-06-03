@@ -40,6 +40,39 @@
         </div>
     </div>
 
+    <!-- Modal scelta modello PDF -->
+    <div id="modal-pdf-template" class="fixed inset-0 z-[55] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl slide-in">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-amber-500">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+                    Scegli modello PDF
+                </h3>
+                <button type="button" onclick="closePdfTemplateModal()" class="text-slate-400 hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-3">
+                <p class="text-sm text-slate-400 mb-4">Seleziona il modello da generare per questo servizio completato.</p>
+                <button type="button" onclick="confirmPdfTemplate('riepilogo-intervento')" class="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 rounded-xl p-4 transition-all group">
+                    <p class="font-bold text-white group-hover:text-amber-500 transition-colors">Modello A — Presenze ODV</p>
+                    <p class="text-xs text-slate-500 mt-1">Elenco volontari impiegati e veicoli associativi (formato regionale).</p>
+                </button>
+                <button type="button" onclick="confirmPdfTemplate('template_aib')" class="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 rounded-xl p-4 transition-all group">
+                    <p class="font-bold text-white group-hover:text-amber-500 transition-colors">Modello AIB — Antincendio Boschivo</p>
+                    <p class="text-xs text-slate-500 mt-1">Rapporto intervento AIB con dati operativi e equipaggio.</p>
+                </button>
+            </div>
+            <div class="px-6 pb-6">
+                <button type="button" onclick="closePdfTemplateModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">Annulla</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Overlay generazione PDF -->
     <div id="pdf-export-overlay" class="fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden" aria-live="polite" aria-busy="true">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
@@ -602,7 +635,7 @@
 
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Tipologia Servizio / Intervento <span class="text-amber-500">*</span></label>
-                    <select id="s-tipo" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                    <select id="s-tipo" required onchange="toggleServizioAibFields()" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
                         <option value="Pattugliamento Territorio">Pattugliamento Territorio</option>
                         <option value="Emergenza Alluvione">Emergenza Alluvione</option>
                         <option value="Antincendio Boschivo">Antincendio Boschivo</option>
@@ -614,6 +647,86 @@
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Data e Ora Pianificazione <span class="text-amber-500">*</span></label>
                     <input type="datetime-local" id="s-data" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                </div>
+
+                <div id="s-aib-section" class="hidden space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Orario di arrivo sull'incendio</label>
+                        <input type="time" id="s-aib-ora-arrivo" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Superficie percorsa dal fuoco (ha)</label>
+                        <p class="text-[10px] text-slate-500 mb-3 font-medium">Compila i valori per tipologia (es. 0,45 ha, 1 ha).</p>
+
+                        <div class="space-y-3">
+                            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+                                <p class="text-xs font-bold uppercase tracking-wider text-amber-500/90 mb-3">Ceduo</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Matricianato</label>
+                                        <input type="text" id="s-aib-ceduo-matricianato" placeholder="es. 1 ha" class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Compostato</label>
+                                        <input type="text" id="s-aib-ceduo-compostato" placeholder="es. 0,45 ha" class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Degradato</label>
+                                        <input type="text" id="s-aib-ceduo-degradato" placeholder="es. 1 ha" class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Macchia</label>
+                                        <input type="text" id="s-aib-ceduo-macchia" placeholder="es. 0,45" ha class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+                                <p class="text-xs font-bold uppercase tracking-wider text-amber-500/90 mb-3">Alto fusto</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Resinoso</label>
+                                        <input type="text" id="s-aib-alto-resinoso" placeholder="es. 0,45 ha" class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Latifoglie</label>
+                                        <input type="text" id="s-aib-alto-latifoglie" placeholder="es. 1 ha" class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Misto</label>
+                                        <input type="text" id="s-aib-alto-misto" placeholder="es. 0,45" ha class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Rimboschimento</label>
+                                        <input type="text" id="s-aib-alto-rimboschimento" placeholder="es. 0,45" ha class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+                                <p class="text-xs font-bold uppercase tracking-wider text-amber-500/90 mb-3">Non boscato</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Cespugliato</label>
+                                        <input type="text" id="s-aib-non-cespugliato" placeholder="es. 0,45 ha" class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Pascolo</label>
+                                        <input type="text" id="s-aib-non-pascolo" placeholder="es. 0,45 ha" class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Seminativo</label>
+                                        <input type="text" id="s-aib-non-seminativo" placeholder="es. 0,45" ha class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Incolto</label>
+                                        <input type="text" id="s-aib-non-incolto" placeholder="es. 0,45 ha" class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div>
@@ -671,6 +784,17 @@
                         <option value="In corso">In corso</option>
                         <option value="Completato">Completato</option>
                     </select>
+                </div>
+
+                <div id="s-aib-orari-fine" class="hidden space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Orario di fine intervento</label>
+                        <input type="time" id="s-aib-ora-fine" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Orario di rientro in sede</label>
+                        <input type="time" id="s-aib-ora-rientro" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                    </div>
                 </div>
 
                 <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">

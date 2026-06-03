@@ -339,6 +339,7 @@ let serviziMapMarkersLayer = null;
 const geocodeCache = new Map();
 let serviziMapUpdateToken = 0;
 let pdfExportProgressTimer = null;
+let pendingPdfServizioId = null;
 
 const ICON_EDIT = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>`;
 
@@ -370,6 +371,121 @@ function getDB(table) {
 }
 
 // Funzione helper per caricare dati da Supabase in modo asincrono
+const AIB_TIPO_SERVIZIO = 'Antincendio Boschivo';
+
+const AIB_SUPERFICIE_FIELDS = {
+    ceduo: [
+        { key: 'matricianato', id: 's-aib-ceduo-matricianato' },
+        { key: 'compostato', id: 's-aib-ceduo-compostato' },
+        { key: 'degradato', id: 's-aib-ceduo-degradato' },
+        { key: 'macchia', id: 's-aib-ceduo-macchia' },
+    ],
+    altoFusto: [
+        { key: 'resinoso', id: 's-aib-alto-resinoso' },
+        { key: 'latifoglie', id: 's-aib-alto-latifoglie' },
+        { key: 'misto', id: 's-aib-alto-misto' },
+        { key: 'rimboschimento', id: 's-aib-alto-rimboschimento' },
+    ],
+    nonBoscato: [
+        { key: 'cespugliato', id: 's-aib-non-cespugliato' },
+        { key: 'pascolo', id: 's-aib-non-pascolo' },
+        { key: 'seminativo', id: 's-aib-non-seminativo' },
+        { key: 'incolto', id: 's-aib-non-incolto' },
+    ],
+};
+
+function isAntincendioBoschivo(tipo) {
+    return tipo === AIB_TIPO_SERVIZIO;
+}
+
+function collectSuperficieGroup(fieldDefs) {
+    const out = {};
+    let hasValue = false;
+    for (const { key, id } of fieldDefs) {
+        const el = document.getElementById(id);
+        const value = el ? el.value.trim() : '';
+        if (value) {
+            out[key] = value;
+            hasValue = true;
+        }
+    }
+    return hasValue ? out : null;
+}
+
+function setSuperficieGroup(fieldDefs, data) {
+    const source = data && typeof data === 'object' ? data : {};
+    for (const { key, id } of fieldDefs) {
+        const el = document.getElementById(id);
+        if (el) el.value = source[key] ?? '';
+    }
+}
+
+function resetServizioAibFields() {
+    const ids = [
+        's-aib-ora-arrivo',
+        's-aib-ora-fine',
+        's-aib-ora-rientro',
+        ...AIB_SUPERFICIE_FIELDS.ceduo.map(f => f.id),
+        ...AIB_SUPERFICIE_FIELDS.altoFusto.map(f => f.id),
+        ...AIB_SUPERFICIE_FIELDS.nonBoscato.map(f => f.id),
+    ];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+}
+
+function toggleServizioAibFields() {
+    const tipo = document.getElementById('s-tipo')?.value ?? '';
+    const show = isAntincendioBoschivo(tipo);
+    const section = document.getElementById('s-aib-section');
+    const orariFine = document.getElementById('s-aib-orari-fine');
+    if (section) section.classList.toggle('hidden', !show);
+    if (orariFine) orariFine.classList.toggle('hidden', !show);
+}
+
+function setServizioAibFormData(serv) {
+    resetServizioAibFields();
+    if (!serv || !isAntincendioBoschivo(serv.tipo)) return;
+
+    const oraArrivo = document.getElementById('s-aib-ora-arrivo');
+    const oraFine = document.getElementById('s-aib-ora-fine');
+    const oraRientro = document.getElementById('s-aib-ora-rientro');
+    if (oraArrivo) oraArrivo.value = serv.oraArrivoIncendio || '';
+    if (oraFine) oraFine.value = serv.oraFineIntervento || '';
+    if (oraRientro) oraRientro.value = serv.oraRientroSede || '';
+
+    setSuperficieGroup(AIB_SUPERFICIE_FIELDS.ceduo, serv.superficieCeduo);
+    setSuperficieGroup(AIB_SUPERFICIE_FIELDS.altoFusto, serv.superficieAltoFusto);
+    setSuperficieGroup(AIB_SUPERFICIE_FIELDS.nonBoscato, serv.superficieNonBoscato);
+}
+
+function buildServizioAibPayload(tipo) {
+    if (!isAntincendioBoschivo(tipo)) {
+        return {
+            ora_arrivo_incendio: null,
+            ora_fine_intervento: null,
+            ora_rientro_sede: null,
+            superficie_ceduo: null,
+            superficie_alto_fusto: null,
+            superficie_non_boscato: null,
+        };
+    }
+
+    const oraArrivo = document.getElementById('s-aib-ora-arrivo')?.value.trim() || null;
+    const oraFine = document.getElementById('s-aib-ora-fine')?.value.trim() || null;
+    const oraRientro = document.getElementById('s-aib-ora-rientro')?.value.trim() || null;
+
+    return {
+        ora_arrivo_incendio: oraArrivo,
+        ora_fine_intervento: oraFine,
+        ora_rientro_sede: oraRientro,
+        superficie_ceduo: collectSuperficieGroup(AIB_SUPERFICIE_FIELDS.ceduo),
+        superficie_alto_fusto: collectSuperficieGroup(AIB_SUPERFICIE_FIELDS.altoFusto),
+        superficie_non_boscato: collectSuperficieGroup(AIB_SUPERFICIE_FIELDS.nonBoscato),
+    };
+}
+
 function mapServizioRow(s) {
     return {
         id: s.id,
@@ -385,7 +501,13 @@ function mapServizioRow(s) {
         volontariIds: s.volontari_ids || [],
         note: s.note,
         altriEnti: s.altri_enti_coinvolti,
-        stato: s.stato
+        stato: s.stato,
+        oraArrivoIncendio: s.ora_arrivo_incendio || '',
+        oraFineIntervento: s.ora_fine_intervento || '',
+        oraRientroSede: s.ora_rientro_sede || '',
+        superficieCeduo: s.superficie_ceduo || {},
+        superficieAltoFusto: s.superficie_alto_fusto || {},
+        superficieNonBoscato: s.superficie_non_boscato || {},
     };
 }
 
@@ -1273,6 +1395,8 @@ function openNuovoServizioModal() {
     document.getElementById("s-note").value = "";
     document.getElementById("s-stato").value = "Programmato";
     resetServizioLocationFields();
+    resetServizioAibFields();
+    toggleServizioAibFields();
 
     toggleModal('modal-servizio', true);
 }
@@ -1295,6 +1419,8 @@ function openEditServizioModal(id) {
     document.getElementById("s-note").value = serv.note || "";
     document.getElementById("s-altri-enti").value = serv.altriEnti || "";
     document.getElementById("s-stato").value = serv.stato;
+    setServizioAibFormData(serv);
+    toggleServizioAibFields();
 
     toggleModal('modal-servizio', true);
 }
@@ -1587,7 +1713,7 @@ function renderServizi() {
             : '';
 
         const exportPdfBtn = s.stato === "Completato"
-            ? `<button onclick="exportServizioPdf('${s.id}')" title="Esporta riepilogo PDF" class="p-2 hover:bg-amber-950/30 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">
+            ? `<button onclick="openPdfTemplateModal('${s.id}')" title="Esporta PDF" class="p-2 hover:bg-amber-950/30 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                     </svg>
@@ -1685,7 +1811,8 @@ async function saveServizio(event) {
         volontari_ids: volontariIds,
         note,
         altri_enti_coinvolti: altriEnti || null,
-        stato
+        stato,
+        ...buildServizioAibPayload(tipo),
     };
 
     try {
@@ -1740,7 +1867,42 @@ async function completaServizio(id) {
     }
 }
 
-async function exportServizioPdf(id) {
+function openPdfTemplateModal(id) {
+    const serv = servizi.find(s => s.id === id);
+    if (!serv) return;
+
+    if (serv.stato !== "Completato") {
+        showToast("Export non disponibile", "Il PDF può essere generato solo per servizi completati.");
+        return;
+    }
+
+    const equipaggio = (serv.volontariIds || [])
+        .map(vId => volontari.find(v => v.id === vId))
+        .filter(Boolean);
+
+    if (equipaggio.length === 0) {
+        showToast("Dati incompleti", "Nessun volontario associato a questo servizio.");
+        return;
+    }
+
+    pendingPdfServizioId = id;
+    toggleModal('modal-pdf-template', true);
+}
+
+function closePdfTemplateModal() {
+    pendingPdfServizioId = null;
+    toggleModal('modal-pdf-template', false);
+}
+
+function confirmPdfTemplate(template) {
+    const id = pendingPdfServizioId;
+    closePdfTemplateModal();
+    if (id) {
+        exportServizioPdf(id, template);
+    }
+}
+
+async function exportServizioPdf(id, template = 'riepilogo-intervento') {
     const serv = servizi.find(s => s.id === id);
     if (!serv) return;
 
@@ -1775,11 +1937,15 @@ async function exportServizioPdf(id) {
                 'X-Requested-With': 'XMLHttpRequest',
             },
             body: JSON.stringify({
+                template,
                 servizio: {
                     id: serv.id,
                     tipo: serv.tipo,
                     data: serv.data,
                     note: serv.note || '',
+                    richiedente: serv.richiedente || '',
+                    indirizzo: serv.indirizzo || '',
+                    altriEnti: serv.altriEnti || '',
                     stato: serv.stato,
                     volontariIds: serv.volontariIds || [],
                 },
@@ -2125,9 +2291,13 @@ window.deleteMezzo = deleteMezzo;
 window.renderMezzi = renderMezzi;
 window.openNuovoServizioModal = openNuovoServizioModal;
 window.openEditServizioModal = openEditServizioModal;
+window.toggleServizioAibFields = toggleServizioAibFields;
 window.fillCoordinateFromGps = fillCoordinateFromGps;
 window.saveServizio = saveServizio;
 window.completaServizio = completaServizio;
+window.openPdfTemplateModal = openPdfTemplateModal;
+window.closePdfTemplateModal = closePdfTemplateModal;
+window.confirmPdfTemplate = confirmPdfTemplate;
 window.exportServizioPdf = exportServizioPdf;
 window.deleteServizio = deleteServizio;
 window.renderServizi = renderServizi;

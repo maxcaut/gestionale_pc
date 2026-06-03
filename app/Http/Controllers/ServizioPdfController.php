@@ -11,12 +11,16 @@ class ServizioPdfController extends Controller
     public function export(Request $request)
     {
         $validated = $request->validate([
+            'template' => 'nullable|string|in:riepilogo-intervento,template_aib',
             'servizio' => 'required|array',
             'servizio.id' => 'required|string',
             'servizio.tipo' => 'required|string',
             'servizio.data' => 'required|string',
             'servizio.stato' => 'required|string',
             'servizio.note' => 'nullable|string',
+            'servizio.richiedente' => 'nullable|string',
+            'servizio.indirizzo' => 'nullable|string',
+            'servizio.altriEnti' => 'nullable|string',
             'servizio.volontariIds' => 'nullable|array',
             'mezzi' => 'nullable|array',
             'mezzi.*.modello' => 'nullable|string',
@@ -36,8 +40,13 @@ class ServizioPdfController extends Controller
             return response()->json(['message' => 'Il PDF è disponibile solo per servizi completati.'], 422);
         }
 
+        $template = $validated['template'] ?? 'riepilogo-intervento';
         $dataIntervento = $this->formatDataIntervento($validated['servizio']['data']);
         $exportatoIl = now()->timezone('Europe/Rome')->format('d/m/Y H:i');
+
+        if ($template === 'template_aib') {
+            return $this->exportTemplateAib($validated, $dataIntervento);
+        }
 
         $pdf = Pdf::loadView('pdf.riepilogo-intervento', [
             'servizio' => $validated['servizio'],
@@ -53,7 +62,113 @@ class ServizioPdfController extends Controller
     }
 
     /**
-     * @return array{completa: string, data: string, ora: string, file: string}
+     * @param  array<string, mixed>  $validated
+     * @param  array{completa: string, data: string, ora: string, file: string, giorno?: string, mese?: string, anno?: string}  $dataIntervento
+     */
+    private function exportTemplateAib(array $validated, array $dataIntervento)
+    {
+        $servizio = $validated['servizio'];
+        $equipaggio = $validated['equipaggio'];
+        $mezzi = $validated['mezzi'] ?? [];
+
+        [$comune, $via] = $this->parseIndirizzo($servizio['indirizzo'] ?? '');
+        $richiedente = $servizio['richiedente'] ?? 'SOPI';
+        $richiedenteCode = match ($richiedente) {
+            'SORU' => 'RU',
+            'SOPI' => 'SO',
+            default => 'AL',
+        };
+
+        $protocollo = sprintf(
+            'PROT U %s%s/%s DEL %s',
+            $this->protocolNumber($servizio['id']),
+            $richiedenteCode,
+            $dataIntervento['anno'] ?? date('Y'),
+            $dataIntervento['data']
+        );
+
+        $dt = $this->parseDateTime($servizio['data']);
+        $oraInizio = $dt?->format('H:i') ?? '';
+        $oraFine = $dt?->modify('+30 minutes')->format('H:i') ?? '';
+        $oraPartenza = $this->parseDateTime($servizio['data'])?->modify('+2 hours')->format('H:i') ?? '';
+        $oraRientro = $this->parseDateTime($servizio['data'])?->modify('+2 hours 23 minutes')->format('H:i') ?? '';
+
+        $noteParts = array_filter([
+            $servizio['altriEnti'] ?? null,
+            $servizio['note'] ?? null,
+        ]);
+        $noteOperative = implode(' — ', $noteParts);
+
+        $primoVolontario = $equipaggio[0] ?? null;
+        $firma = $primoVolontario
+            ? trim(($primoVolontario['nome'] ?? '').' '.($primoVolontario['cognome'] ?? ''))
+            : '';
+
+        $pdf = Pdf::loadView('pdf.template_aib', [
+            'servizio' => $servizio,
+            'mezzi' => $mezzi,
+            'equipaggio' => $equipaggio,
+            'dataIntervento' => $dataIntervento,
+            'protocollo' => $protocollo,
+            'gruppo' => 'Gruppo Comunale Massa di Somma',
+            'comune' => $comune,
+            'via' => $via,
+            'richiedenteLabel' => strtoupper($richiedente).' NA',
+            'oraInizio' => $oraInizio,
+            'oraFine' => $oraFine,
+            'oraPartenza' => $oraPartenza,
+            'oraRientro' => $oraRientro,
+            'superficie' => '',
+            'noteOperative' => $noteOperative,
+            'firma' => $firma,
+        ])->setPaper('a4', 'portrait');
+
+        $filename = 'template-aib-'.Str::slug($servizio['tipo']).'-'.$dataIntervento['file'].'.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function parseIndirizzo(?string $indirizzo): array
+    {
+        $indirizzo = trim((string) $indirizzo);
+        if ($indirizzo === '') {
+            return ['', ''];
+        }
+
+        $parts = array_map('trim', explode(',', $indirizzo));
+        if (count($parts) >= 2) {
+            $comune = array_pop($parts);
+            $via = implode(', ', $parts);
+
+            return [strtoupper($comune), strtoupper($via)];
+        }
+
+        return ['', strtoupper($indirizzo)];
+    }
+
+    private function protocolNumber(string $servizioId): string
+    {
+        if (preg_match('/(\d+)/', $servizioId, $matches)) {
+            return (string) ((int) substr($matches[1], -2) ?: 1);
+        }
+
+        return '1';
+    }
+
+    private function parseDateTime(string $raw): ?\DateTimeImmutable
+    {
+        try {
+            return (new \DateTimeImmutable($raw))->setTimezone(new \DateTimeZone('Europe/Rome'));
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    /**
+     * @return array{completa: string, data: string, ora: string, file: string, giorno: string, mese: string, anno: string}
      */
     private function formatDataIntervento(string $raw): array
     {
@@ -66,6 +181,9 @@ class ServizioPdfController extends Controller
                 'data' => $raw,
                 'ora' => '—',
                 'file' => date('Y-m-d'),
+                'giorno' => '',
+                'mese' => '',
+                'anno' => '',
             ];
         }
 
@@ -74,6 +192,9 @@ class ServizioPdfController extends Controller
             'data' => $dt->format('d/m/Y'),
             'ora' => $dt->format('H:i'),
             'file' => $dt->format('Y-m-d'),
+            'giorno' => $dt->format('j'),
+            'mese' => $dt->format('n'),
+            'anno' => $dt->format('Y'),
         ];
     }
 }
