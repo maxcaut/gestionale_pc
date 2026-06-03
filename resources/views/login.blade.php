@@ -1,5 +1,5 @@
     <!-- ================= SCHERMATA DI LOGIN ================= -->
-    <div id="login-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950">
+    <div id="login-screen" class="fixed inset-0 z-[100] pb-20 flex items-center justify-center bg-slate-950">
         <!-- Sfondo animato con pattern -->
         <div class="absolute inset-0 overflow-hidden">
             <div class="absolute -top-40 -left-40 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl"></div>
@@ -76,15 +76,16 @@
             <p class="text-center text-xs text-slate-600 mt-6">Accesso riservato al personale autorizzato</p>
         </div>
 
-        <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-800 bg-slate-950/40">
+        <div class="fixed bottom-0 left-0 right-0 p-4 border-t border-slate-800 bg-slate-950/40 z-50">
             <div class="flex items-center justify-center gap-3">
                 <span class="relative flex h-3.5 w-3.5">
                     <span id="login-system-status-dot-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span id="login-system-status-dot" class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
                 </span>
+            
                 <div>
                     <p class="text-xs font-semibold text-slate-200">System Status</p>
-                    <p id="login-system-status-text" class="text-[10px] text-emerald-500 font-medium uppercase">HEALTHLY</p>
+                    <p id="login-system-status-text" class="text-[10px] text-emerald-500 font-medium uppercase">HEALTHY</p>
                 </div>
             </div>
         </div>
