@@ -36,6 +36,14 @@ function canAccessServizi() {
     return isMaster() || isCapoSquadra() || isSalaOperativa();
 }
 
+function canAccessAttivita() {
+    return isSegreteria();
+}
+
+function canLoadServizi() {
+    return canAccessServizi() || canAccessAttivita();
+}
+
 function canAccessMezzi() {
     return isMaster() || isSegreteria();
 }
@@ -56,7 +64,7 @@ function applyMezziScope(list) {
 }
 
 async function enrichMezziFromServizi(serviziList) {
-    if (!canAccessServizi() || !serviziList?.length) return;
+    if (!canLoadServizi() || !serviziList?.length) return;
 
     const knownIds = new Set(mezzi.map(m => m.id));
     const missingIds = [...new Set(
@@ -108,7 +116,7 @@ function applyVolontariScope(list) {
 }
 
 async function enrichVolontariFromServizi(serviziList) {
-    if (!canAccessServizi() || !serviziList?.length) return;
+    if (!canLoadServizi() || !serviziList?.length) return;
 
     const knownIds = new Set(volontari.map(v => v.id));
     const missingIds = [...new Set(
@@ -253,6 +261,46 @@ function applyCapoSquadraServizioFormRestrictions() {
     if (volontariList) markCapoSquadraReadonlyHint(volontariList);
 }
 
+function applySalaOperativaServizioFormRestrictions() {
+    if (!isSalaOperativa()) return;
+
+    document.querySelectorAll('[data-servizio-mezzi-volontari-block]').forEach(block => {
+        block.classList.add('hidden');
+    });
+}
+
+function resetSalaOperativaServizioFormRestrictions() {
+    document.querySelectorAll('[data-servizio-mezzi-volontari-block]').forEach(block => {
+        block.classList.remove('hidden');
+    });
+}
+
+function applySegreteriaAttivitaFormRestrictions() {
+    if (!isSegreteria()) return;
+
+    const form = document.querySelector('#modal-servizio form');
+    if (!form) return;
+
+    form.querySelectorAll('input, select, textarea').forEach(el => {
+        if (el.closest('#s-mezzi-list') || el.closest('#s-volontari-list')) return;
+        el.disabled = true;
+    });
+
+    form.querySelectorAll('button[type="button"]').forEach(btn => {
+        if (btn.closest('[data-servizio-mezzi-volontari-block]')) return;
+        btn.disabled = true;
+    });
+}
+
+function resetSegreteriaAttivitaFormRestrictions() {
+    const form = document.querySelector('#modal-servizio form');
+    if (!form) return;
+
+    form.querySelectorAll('input, select, textarea, button[type="button"]').forEach(el => {
+        el.disabled = false;
+    });
+}
+
 function resetCapoSquadraServizioFormRestrictions() {
     CAPO_SQUADRA_SERVIZIO_READONLY_IDS.forEach(id => {
         const el = document.getElementById(id);
@@ -324,6 +372,9 @@ function applyRoleBasedUI() {
     });
     document.querySelectorAll('[data-mezzi-access]').forEach(el => {
         el.classList.toggle('hidden', !canAccessMezzi());
+    });
+    document.querySelectorAll('#nav-attivita, #bottom-nav-attivita').forEach(el => {
+        el.classList.toggle('hidden', !canAccessAttivita());
     });
 
     const badge = document.getElementById('user-email-badge');
@@ -794,7 +845,7 @@ async function fetchDataFromSupabase() {
             volontari = applyVolontariScope(volResponse.data || []);
         }
 
-        if (canAccessMezzi() || canAccessServizi()) {
+        if (canAccessMezzi() || canLoadServizi()) {
             let mezQuery = supabase.from('mezzi').select('*').order('created_at', { ascending: true });
 
             if (shouldFilterMezziQueryByAssociazione()) {
@@ -810,7 +861,7 @@ async function fetchDataFromSupabase() {
                 ? mezQuery
                 : Promise.resolve({ data: [], error: null });
 
-            if (canAccessServizi()) {
+            if (canLoadServizi()) {
                 const [mezResponse, serResponse] = await Promise.all([
                     loadMezzi,
                     supabase.from('servizi').select('*').order('created_at', { ascending: true })
@@ -922,6 +973,8 @@ function toggleModal(modalId, show) {
         if (form) form.reset();
         resetEditState();
         resetCapoSquadraServizioFormRestrictions();
+        resetSalaOperativaServizioFormRestrictions();
+        resetSegreteriaAttivitaFormRestrictions();
         setModalFormMode('modal-volontario', { title: 'Aggiungi Nuovo Volontario', submitText: 'Registra' });
         setModalFormMode('modal-mezzo', { title: 'Aggiungi Nuovo Mezzo di Soccorso', submitText: 'Registra' });
         setModalFormMode('modal-servizio', { title: 'Pianifica Servizio / Missione', submitText: 'Pianifica' });
@@ -931,16 +984,24 @@ function toggleModal(modalId, show) {
 // --- CAMBIO TAB (NAVIGAZIONE) ---
 function switchTab(tabId) {
     if (!canAccessVolontari() && tabId === 'volontari') {
-        tabId = canAccessServizi() ? 'servizi' : 'dashboard';
+        if (canAccessServizi()) tabId = 'servizi';
+        else if (canAccessAttivita()) tabId = 'attivita';
+        else tabId = 'dashboard';
     }
     if (!canAccessServizi() && tabId === 'servizi') {
+        tabId = canAccessAttivita() ? 'attivita' : (canAccessVolontari() ? 'volontari' : 'dashboard');
+    }
+    if (!canAccessAttivita() && tabId === 'attivita') {
         tabId = canAccessVolontari() ? 'volontari' : 'dashboard';
     }
     if (!canAccessMezzi() && tabId === 'mezzi') {
-        tabId = canAccessVolontari() ? 'volontari' : 'dashboard';
+        tabId = canAccessVolontari() ? 'volontari' : (canAccessAttivita() ? 'attivita' : 'dashboard');
     }
     if (!isMaster() && (tabId === 'admin' || tabId === 'dashboard')) {
-        tabId = canAccessServizi() ? 'servizi' : (canAccessVolontari() ? 'volontari' : 'mezzi');
+        if (canAccessServizi()) tabId = 'servizi';
+        else if (canAccessAttivita()) tabId = 'attivita';
+        else if (canAccessVolontari()) tabId = 'volontari';
+        else tabId = 'mezzi';
     }
 
     // Nascondi tutti i contenuti delle tab
@@ -952,7 +1013,9 @@ function switchTab(tabId) {
     });
 
     // Mostra tab selezionata
-    document.getElementById(`tab-${tabId}`).classList.remove("hidden");
+    const activeTab = document.getElementById(`tab-${tabId}`);
+    if (!activeTab) return;
+    activeTab.classList.remove("hidden");
 
     // Attiva bottone nav selezionato (sidebar)
     const activeBtn = document.getElementById(`nav-${tabId}`);
@@ -978,6 +1041,7 @@ function switchTab(tabId) {
         volontari: "Gestione Volontari",
         mezzi: "Gestione Flotta Mezzi",
         servizi: "Sala Opeerativa",
+        attivita: "Attività",
         admin: "Gestione Utenti"
     };
     document.getElementById("page-title").innerText = titleMap[tabId] || tabId;
@@ -991,6 +1055,10 @@ function switchTab(tabId) {
             ensureServiziMap();
             renderServizi();
         }, 100);
+    }
+
+    if (tabId === "attivita") {
+        renderAttivita();
     }
 }
 
@@ -1665,6 +1733,14 @@ function openNuovoServizioModal() {
     resetServizioAibFields();
     toggleServizioAibFields();
 
+    resetCapoSquadraServizioFormRestrictions();
+    resetSegreteriaAttivitaFormRestrictions();
+    if (isSalaOperativa()) {
+        applySalaOperativaServizioFormRestrictions();
+    } else {
+        resetSalaOperativaServizioFormRestrictions();
+    }
+
     toggleModal('modal-servizio', true);
 }
 
@@ -1689,13 +1765,96 @@ function openEditServizioModal(id) {
     setServizioAibFormData(serv);
     toggleServizioAibFields();
 
-    if (isCapoSquadra()) {
+    resetCapoSquadraServizioFormRestrictions();
+    resetSalaOperativaServizioFormRestrictions();
+    resetSegreteriaAttivitaFormRestrictions();
+
+    if (isSegreteria()) {
+        if (serv.stato !== 'Programmato') {
+            editingServizioId = null;
+            showToast('Operazione non consentita', 'Puoi assegnare mezzi e volontari solo ai servizi programmati.');
+            return;
+        }
+        setModalFormMode('modal-servizio', { title: 'Assegna mezzi e equipaggio', submitText: 'Salva assegnazione' });
+        applySegreteriaAttivitaFormRestrictions();
+    } else if (isCapoSquadra()) {
         applyCapoSquadraServizioFormRestrictions();
-    } else {
-        resetCapoSquadraServizioFormRestrictions();
+    } else if (isSalaOperativa()) {
+        applySalaOperativaServizioFormRestrictions();
     }
 
     toggleModal('modal-servizio', true);
+}
+
+function getFilteredAttivita() {
+    const search = (document.getElementById('search-attivita')?.value || '').toLowerCase();
+    return getDB('pc_servizi').filter(s => {
+        if (s.stato !== 'Programmato') return false;
+        return `${s.tipo} ${s.note || ''}`.toLowerCase().includes(search);
+    });
+}
+
+function renderAttivita() {
+    const mezziList = getDB('pc_mezzi');
+    const volontariList = getDB('pc_volontari');
+    const tbody = document.getElementById('attivita-table-body');
+    if (!tbody) return;
+
+    const filtered = getFilteredAttivita();
+    tbody.innerHTML = '';
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="py-8 text-center text-slate-500 font-medium">Nessun servizio programmato disponibile per l'assegnazione.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    [...filtered].reverse().forEach(s => {
+        const mezziAssegnati = (s.mezziIds || [])
+            .map(mId => mezziList.find(m => m.id === mId))
+            .filter(Boolean);
+
+        const equipaggio = (s.volontariIds || []).map(vId => {
+            const vol = volontariList.find(v => v.id === vId);
+            return vol ? `${vol.nome} ${vol.cognome}` : null;
+        }).filter(Boolean);
+
+        const formattedDate = new Date(s.data).toLocaleDateString('it-IT', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+
+        const mezziPills = mezziAssegnati.length > 0
+            ? mezziAssegnati.map(m => `<span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">${m.modello}<span class="text-[10px] text-slate-400 font-mono ml-1">${m.targa}</span></span>`).join('')
+            : `<span class="text-xs text-rose-400 font-semibold">Nessun mezzo assegnato</span>`;
+
+        const volontariPills = equipaggio.length > 0
+            ? equipaggio.map(nome => `<span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">${nome}</span>`).join('')
+            : `<span class="text-xs text-rose-400 font-semibold">Nessun equipaggio assegnato</span>`;
+
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-800/10 transition-colors">
+                <td class="py-4 px-6 max-w-[280px]">
+                    <p class="font-bold text-white text-base">${s.tipo}</p>
+                    <p class="text-xs text-slate-500 mt-1 font-medium italic break-words">${s.note || 'Nessuna nota operativa aggiuntiva'}</p>
+                </td>
+                <td class="py-4 px-6 text-slate-300 font-bold">${formattedDate}</td>
+                <td class="py-4 px-6 max-w-[280px]"><div class="flex flex-wrap">${mezziPills}</div></td>
+                <td class="py-4 px-6 max-w-[280px]"><div class="flex flex-wrap">${volontariPills}</div></td>
+                <td class="py-4 px-6 text-right">
+                    <button onclick="openEditServizioModal('${s.id}')" title="Assegna mezzi e equipaggio" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">
+                        ${ICON_EDIT}
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
 }
 
 function getFilteredServizi() {
@@ -2039,12 +2198,58 @@ function renderServizi() {
 async function saveServizio(event) {
     event.preventDefault();
 
+    if (isSegreteria() && !editingServizioId) {
+        showToast("Operazione non consentita", "Non puoi creare nuove missioni o servizi.");
+        return;
+    }
+
     if (isCapoSquadra() && !editingServizioId) {
         showToast("Operazione non consentita", "Non puoi creare nuove missioni o servizi.");
         return;
     }
 
     const stato = document.getElementById("s-stato").value;
+
+    if (isSegreteria() && editingServizioId) {
+        const existing = servizi.find(s => s.id === editingServizioId);
+        if (!existing || existing.stato !== 'Programmato') {
+            showToast('Operazione non consentita', 'Puoi assegnare mezzi e volontari solo ai servizi programmati.');
+            return;
+        }
+
+        const mezziCheckboxes = document.querySelectorAll('input[name="s-mezzi-check"]:checked');
+        const mezziIds = [];
+        mezziCheckboxes.forEach(cb => mezziIds.push(cb.value));
+
+        const volontariCheckboxes = document.querySelectorAll('input[name="s-volontari-check"]:checked');
+        const volontariIds = [];
+        volontariCheckboxes.forEach(cb => volontariIds.push(cb.value));
+
+        if (mezziIds.length === 0) {
+            alert('Attenzione: devi assegnare almeno un mezzo al servizio!');
+            return;
+        }
+
+        if (volontariIds.length === 0) {
+            alert('Attenzione: devi assegnare almeno un volontario all\'equipaggio del servizio!');
+            return;
+        }
+
+        try {
+            const { error } = await supabase.from('servizi').update({
+                mezzi_ids: mezziIds,
+                volontari_ids: volontariIds,
+            }).eq('id', editingServizioId);
+            if (error) throw error;
+            toggleModal('modal-servizio', false);
+            showToast('Assegnazione salvata', 'Mezzi e equipaggio aggiornati correttamente.');
+            await fetchDataFromSupabase();
+        } catch (err) {
+            console.error('Errore durante l\'assegnazione:', err);
+            showToast('Errore di Salvataggio', 'Impossibile aggiornare il servizio su Supabase.');
+        }
+        return;
+    }
 
     if (isCapoSquadra() && editingServizioId) {
         const existing = servizi.find(s => s.id === editingServizioId);
@@ -2091,21 +2296,32 @@ async function saveServizio(event) {
     const altriEnti = document.getElementById("s-altri-enti").value.trim();
 
     const mezziCheckboxes = document.querySelectorAll('input[name="s-mezzi-check"]:checked');
-    const mezziIds = [];
+    let mezziIds = [];
     mezziCheckboxes.forEach(cb => mezziIds.push(cb.value));
 
     const volontariCheckboxes = document.querySelectorAll('input[name="s-volontari-check"]:checked');
-    const volontariIds = [];
+    let volontariIds = [];
     volontariCheckboxes.forEach(cb => volontariIds.push(cb.value));
 
-    if (mezziIds.length === 0) {
-        alert("Attenzione: devi assegnare almeno un mezzo al servizio!");
-        return;
-    }
+    if (isSalaOperativa()) {
+        if (editingServizioId) {
+            const existing = servizi.find(s => s.id === editingServizioId);
+            mezziIds = existing?.mezziIds || [];
+            volontariIds = existing?.volontariIds || [];
+        } else {
+            mezziIds = [];
+            volontariIds = [];
+        }
+    } else {
+        if (mezziIds.length === 0) {
+            alert("Attenzione: devi assegnare almeno un mezzo al servizio!");
+            return;
+        }
 
-    if (volontariIds.length === 0) {
-        alert("Attenzione: devi assegnare almeno un volontario all'equipaggio del servizio!");
-        return;
+        if (volontariIds.length === 0) {
+            alert("Attenzione: devi assegnare almeno un volontario all'equipaggio del servizio!");
+            return;
+        }
     }
 
     let latitudine = latValue !== "" ? parseFloat(latValue) : null;
@@ -2348,6 +2564,7 @@ function updateUI() {
     renderVolontari();
     renderMezzi();
     renderServizi();
+    renderAttivita();
 }
 
 // --- CLOCK E DATA IN TEMPO REALE ---
@@ -2628,6 +2845,7 @@ window.confirmPdfTemplate = confirmPdfTemplate;
 window.exportServizioPdf = exportServizioPdf;
 window.deleteServizio = deleteServizio;
 window.renderServizi = renderServizi;
+window.renderAttivita = renderAttivita;
 window.updateUI = updateUI;
 window.handleLogin = handleLogin;
 window.handleLogout = handleLogout;

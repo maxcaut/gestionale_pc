@@ -124,6 +124,13 @@
                     <span>Volontari</span>
                 </button>
 
+                <button onclick="switchTab('attivita')" id="nav-attivita" data-attivita-access class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800/50">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21.75 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                    </svg>
+                    <span>Attività</span>
+                </button>
+
                 <button onclick="switchTab('mezzi')" id="nav-mezzi" data-mezzi-access class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800/50">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177V3.75A1.125 1.125 0 0013.125 2.625h-2.25a1.125 1.125 0 00-1.125 1.125v11.177M14.25 7.5H9.75M16.5 18.75a1.875 1.875 0 11-3.75 0m3.75 0a1.875 1.875 0 00-3.75 0m-9.75 0h9.75" />
@@ -409,6 +416,8 @@
 
                 @include('servizi')
 
+                @include('attivita')
+
                 @include('admin')
 
             </div>
@@ -428,6 +437,12 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.109A11.386 11.386 0 0110.089 21c-2.243 0-4.352-.648-6.124-1.773L3.892 19.2c-.417-.234-.67-.679-.69-1.148a6.478 6.478 0 011.002-3.85 4.12 4.12 0 017.332-2.18c.633.796 1.439 1.379 2.36 1.7L15 19.128zm0-10.874a3 3 0 11-6 0 3 3 0 016 0zM19.5 7.125a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
             </svg>
             <span class="text-[10px] font-bold">Volontari</span>
+        </button>
+        <button onclick="switchTab('attivita')" id="bottom-nav-attivita" data-attivita-access class="bottom-nav-btn flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-slate-400 transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21.75 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+            </svg>
+            <span class="text-[10px] font-bold">Attività</span>
         </button>
         <button onclick="switchTab('mezzi')" id="bottom-nav-mezzi" data-mezzi-access class="bottom-nav-btn flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-slate-400 transition-all">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
@@ -759,8 +774,8 @@
                     <input type="text" id="s-indirizzo" placeholder="Via, civico, comune..." class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
                 </div>
 
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Seleziona Mezzi di Soccorso <span class="text-amber-500">*</span></label>
+                <div data-servizio-mezzi-volontari-block>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Seleziona Mezzi di Soccorso <span class="text-amber-500 servizio-mezzi-required">*</span></label>
                     <div id="s-mezzi-list" class="bg-slate-950 border border-slate-800 rounded-xl p-4 max-h-40 overflow-y-auto space-y-2">
                         <!-- Popolato dinamicamente con i mezzi registrati -->
                     </div>
@@ -768,8 +783,8 @@
                 </div>
 
                 <!-- Lista Checkbox Volontari (Equipaggio) -->
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Seleziona Equipaggio Volontari <span class="text-amber-500">*</span></label>
+                <div data-servizio-mezzi-volontari-block>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Seleziona Equipaggio Volontari <span class="text-amber-500 servizio-volontari-required">*</span></label>
                     <div id="s-volontari-list" class="bg-slate-950 border border-slate-800 rounded-xl p-4 max-h-40 overflow-y-auto space-y-2">
                         <!-- Popolato dinamicamente con i volontari registrati -->
                     </div>
