@@ -128,8 +128,76 @@ async function loadUserProfile(user) {
     return data;
 }
 
-const CAPO_SQUADRA_SERVIZIO_READONLY_IDS = ['s-richiedente', 's-tipo', 's-data'];
+const CAPO_SQUADRA_SERVIZIO_READONLY_IDS = ['s-richiedente', 's-tipo'];
 const CAPO_SQUADRA_SERVIZIO_REQUIRED_IDS = ['s-richiedente', 's-tipo', 's-data', 's-stato'];
+const CAPO_SQUADRA_READONLY_MESSAGE = 'Questo campo non può essere modificato con il ruolo Capo Squadra.';
+
+let capoSquadraReadonlyHintClickHandler = null;
+
+function getCapoSquadraReadonlyHintClickHandler() {
+    if (!capoSquadraReadonlyHintClickHandler) {
+        capoSquadraReadonlyHintClickHandler = (e) => {
+            const hint = e.currentTarget;
+            if (!hint?.dataset?.capoReadonlyHint || !isCapoSquadra()) return;
+            e.preventDefault();
+            e.stopPropagation();
+            showToast('Modifica non consentita', CAPO_SQUADRA_READONLY_MESSAGE);
+        };
+    }
+    return capoSquadraReadonlyHintClickHandler;
+}
+
+function markCapoSquadraReadonlyHint(el) {
+    if (!el || el.dataset.capoReadonlyHint === '1') return;
+    el.dataset.capoReadonlyHint = '1';
+    el.title = CAPO_SQUADRA_READONLY_MESSAGE;
+    el.classList.add('cursor-not-allowed');
+    el.addEventListener('click', getCapoSquadraReadonlyHintClickHandler(), true);
+}
+
+function unmarkCapoSquadraReadonlyHint(el) {
+    if (!el || el.dataset.capoReadonlyHint !== '1') return;
+    delete el.dataset.capoReadonlyHint;
+    el.removeAttribute('title');
+    el.classList.remove('cursor-not-allowed');
+    el.removeEventListener('click', getCapoSquadraReadonlyHintClickHandler(), true);
+}
+
+function wrapCapoSquadraReadonlyControl(el) {
+    if (!el) return null;
+    const existing = el.closest('[data-capo-readonly-wrap]');
+    if (existing) return existing;
+
+    const wrap = document.createElement('div');
+    wrap.dataset.capoReadonlyWrap = '1';
+    wrap.className = 'w-full';
+    el.parentNode.insertBefore(wrap, el);
+    wrap.appendChild(el);
+    el.classList.add('pointer-events-none');
+    return wrap;
+}
+
+function unwrapCapoSquadraReadonlyControl(el) {
+    if (!el) return;
+    const wrap = el.closest('[data-capo-readonly-wrap]');
+    if (!wrap) return;
+    el.classList.remove('pointer-events-none');
+    wrap.parentNode.insertBefore(el, wrap);
+    wrap.remove();
+}
+
+function formatServizioDataPianificata(value) {
+    if (!value) return '—';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleString('it-IT', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
 
 function applyCapoSquadraServizioFormRestrictions() {
     if (!isCapoSquadra()) return;
@@ -139,19 +207,55 @@ function applyCapoSquadraServizioFormRestrictions() {
         if (!el) return;
         el.disabled = true;
         el.required = false;
+        markCapoSquadraReadonlyHint(wrapCapoSquadraReadonlyControl(el));
     });
+
+    const dataEl = document.getElementById('s-data');
+    if (dataEl) {
+        dataEl.required = false;
+        dataEl.classList.add('hidden');
+
+        let display = document.getElementById('s-data-capo-display');
+        if (!display) {
+            display = document.createElement('div');
+            display.id = 's-data-capo-display';
+            display.className = 'w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm';
+            dataEl.insertAdjacentElement('afterend', display);
+        }
+        display.textContent = formatServizioDataPianificata(dataEl.value);
+        display.classList.remove('hidden');
+        markCapoSquadraReadonlyHint(display);
+    }
 
     document.querySelectorAll('#s-mezzi-list input[type="checkbox"], #s-volontari-list input[type="checkbox"]').forEach(cb => {
         cb.disabled = true;
     });
+
+    const mezziList = document.getElementById('s-mezzi-list');
+    const volontariList = document.getElementById('s-volontari-list');
+    if (mezziList) markCapoSquadraReadonlyHint(mezziList);
+    if (volontariList) markCapoSquadraReadonlyHint(volontariList);
 }
 
 function resetCapoSquadraServizioFormRestrictions() {
     CAPO_SQUADRA_SERVIZIO_READONLY_IDS.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
+        const wrap = el.closest('[data-capo-readonly-wrap]');
+        if (wrap) unmarkCapoSquadraReadonlyHint(wrap);
+        unwrapCapoSquadraReadonlyControl(el);
         el.disabled = false;
     });
+
+    const dataEl = document.getElementById('s-data');
+    if (dataEl) {
+        dataEl.classList.remove('hidden');
+    }
+    const dataDisplay = document.getElementById('s-data-capo-display');
+    if (dataDisplay) {
+        unmarkCapoSquadraReadonlyHint(dataDisplay);
+        dataDisplay.classList.add('hidden');
+    }
 
     CAPO_SQUADRA_SERVIZIO_REQUIRED_IDS.forEach(id => {
         const el = document.getElementById(id);
@@ -161,6 +265,11 @@ function resetCapoSquadraServizioFormRestrictions() {
     document.querySelectorAll('#s-mezzi-list input[type="checkbox"], #s-volontari-list input[type="checkbox"]').forEach(cb => {
         cb.disabled = false;
     });
+
+    const mezziList = document.getElementById('s-mezzi-list');
+    const volontariList = document.getElementById('s-volontari-list');
+    if (mezziList) unmarkCapoSquadraReadonlyHint(mezziList);
+    if (volontariList) unmarkCapoSquadraReadonlyHint(volontariList);
 }
 
 function buildCapoSquadraServizioUpdatePayload(existing, stato) {
