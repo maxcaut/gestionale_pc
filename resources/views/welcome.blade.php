@@ -629,18 +629,27 @@
                     <select id="s-richiedente" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
                         <option value="SORU">SORU</option>
                         <option value="SOPI">SOPI</option>
-                        <option value="Altro">Altro</option>
+                        <option value="COORDINAMENTO VESUVIUS">COORDINAMENTO VESUVIUS</option>
+                        <option value="COMUNE">COMUNE</option>
+                        <option value="ENTE ESTERNO">ENTE ESTERNO</option>
+                        <option value="FF.OO.">FF.OO.</option>
+                        <option value="V.V.F.">V.V.F.</option>
+                        <option value="PRIVATO">PRIVATO</option> 
+                        <option value="ALTRO COORDINAMENTO">ALTRO COORDINAMENTO</option>   
                     </select>
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Tipologia Servizio / Intervento <span class="text-amber-500">*</span></label>
                     <select id="s-tipo" required onchange="toggleServizioAibFields()" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
-                        <option value="Pattugliamento Territorio">Pattugliamento Territorio</option>
-                        <option value="Emergenza Alluvione">Emergenza Alluvione</option>
+                        <option value="ASSISTENZA ALLA POPOLAZIONE">ASSISTENZA ALLA POPOLAZIONE</option>
+                        <option value="ESERCITAZIONE">ESERCITAZIONE</option>
                         <option value="Antincendio Boschivo">Antincendio Boschivo</option>
-                        <option value="Assistenza Eventi / Gara">Assistenza Eventi / Gara</option>
+                        <option value="LOGISTICA">LOGISTICA</option>
                         <option value="Supporto Sanitario">Supporto Sanitario / Sociale</option>
+                        <option value="FORMAZIONE">FORMAZIONE</option>
+                        <option value="SEGRETERIA/SALA OPERATIVA">SEGRETERIA/SALA OPERATIVA</option>
+                        <option value="EMERGENZA">EMERGENZA</option>   
                     </select>
                 </div>
 

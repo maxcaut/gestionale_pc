@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>CONVENZIONE SUPPORTO AIB 2024</title>
+    <title>CONVENZIONE SUPPORTO AIB 2026</title>
     <style>
         /* Reset e ottimizzazione spazi per singola pagina */
         * {
