@@ -51,6 +51,7 @@
                                         <th class="py-4 px-6">Nominativo</th>
                                         <th class="py-4 px-6">Codice Fiscale</th>
                                         <th class="py-4 px-6">Ruolo Principale</th>
+                                        <th class="py-4 px-6">Associazione di appartenenza</th>
                                         <th class="py-4 px-6">Recapito</th>
                                         <th class="py-4 px-6">Stato Operativo</th>
                                         <th class="py-4 px-6 text-right">Azioni</th>

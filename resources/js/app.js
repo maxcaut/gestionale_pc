@@ -596,6 +596,8 @@ function updateDashboardStats() {
     // Aggiorna l'anello progressivo SVG (dasharray massimo 100)
     document.getElementById("svg-circle-progress").setAttribute("stroke-dasharray", `${percentOperativi}, 100`);
 
+    renderDashboardVolontari(volontari);
+
     // Rendering della Tabella Servizi Recenti (Max 5 ultimi servizi)
     const recentServicesBody = document.getElementById("dashboard-recent-services");
     recentServicesBody.innerHTML = "";
@@ -649,6 +651,44 @@ function updateDashboardStats() {
     });
 }
 
+function renderDashboardVolontari(volontariList) {
+    const tbody = document.getElementById("dashboard-volontari-body");
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    if (volontariList.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="py-6 text-center text-slate-500 font-medium">Nessun volontario registrato.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    volontariList.forEach(v => {
+        let badgeClass = "";
+        if (v.stato === "Operativo") badgeClass = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+        else if (v.stato === "In riposo") badgeClass = "bg-slate-800 text-slate-400 border-slate-700";
+        else badgeClass = "bg-rose-500/10 text-rose-400 border-rose-500/20";
+
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-800/20 transition-all">
+                <td class="py-4 px-4">
+                    <p class="font-semibold text-slate-200">${v.nome} ${v.cognome}</p>
+                </td>
+                <td class="py-4 px-4 text-slate-300 font-medium">${v.associazione_appartenenza || "—"}</td>
+                <td class="py-4 px-4">
+                    <span class="px-2.5 py-1 bg-slate-800 border border-slate-700/50 rounded-lg text-slate-300 text-xs font-medium">${v.ruolo}</span>
+                </td>
+                <td class="py-4 px-4">
+                    <span class="px-2.5 py-1 text-[10px] font-bold border rounded-full ${badgeClass}">${v.stato}</span>
+                </td>
+            </tr>
+        `;
+    });
+}
+
 // --- SEZIONE 2: VOLONTARI (CRUD & VIEW) ---
 function renderVolontari() {
     const volontari = getDB("pc_volontari");
@@ -660,7 +700,7 @@ function renderVolontari() {
     tbody.innerHTML = "";
 
     const filtered = volontari.filter(v => {
-        const matchSearch = `${v.nome} ${v.cognome} ${v.cf} ${v.telefono}`.toLowerCase().includes(search);
+        const matchSearch = `${v.nome} ${v.cognome} ${v.cf} ${v.telefono} ${v.associazione_appartenenza || ""}`.toLowerCase().includes(search);
         const matchRuolo = filterRuolo === "" || v.ruolo === filterRuolo;
         const matchStato = filterStato === "" || v.stato === filterStato;
         return matchSearch && matchRuolo && matchStato;
@@ -669,7 +709,7 @@ function renderVolontari() {
     if (filtered.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" class="py-8 text-center text-slate-500 font-medium">Nessun volontario trovato con i filtri inseriti.</td>
+                <td colspan="7" class="py-8 text-center text-slate-500 font-medium">Nessun volontario trovato con i filtri inseriti.</td>
             </tr>
         `;
         return;
@@ -697,6 +737,7 @@ function renderVolontari() {
                 <td class="py-4 px-6">
                     <span class="px-3 py-1 bg-slate-800 border border-slate-700/50 rounded-xl text-slate-300 font-medium text-xs">${v.ruolo}</span>
                 </td>
+                <td class="py-4 px-6 text-slate-300 font-medium">${v.associazione_appartenenza || "—"}</td>
                 <td class="py-4 px-6 text-slate-300 font-medium">
                     <a href="tel:${v.telefono}" class="flex items-center gap-1.5 hover:text-amber-500 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500" viewBox="0 0 20 20" fill="currentColor">

@@ -342,6 +342,32 @@
                         </div>
 
                     </div>
+
+                    <!-- Riepilogo Volontari -->
+                    <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 class="text-lg font-bold text-white">Riepilogo Volontari</h3>
+                                <p class="text-xs text-slate-400">Elenco del personale registrato per associazione.</p>
+                            </div>
+                            <button onclick="switchTab('volontari')" class="text-xs font-bold text-amber-500 hover:text-amber-400 hover:underline">Vedi Tutti</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-800 text-slate-400 text-xs font-semibold tracking-wider">
+                                        <th class="py-3 px-4">Nominativo</th>
+                                        <th class="py-3 px-4">Associazione di appartenenza</th>
+                                        <th class="py-3 px-4">Ruolo</th>
+                                        <th class="py-3 px-4">Stato</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboard-volontari-body" class="text-sm divide-y divide-slate-800/50">
+                                    <!-- Generato dinamicamente via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </section>
 
                 @include('volontari')
