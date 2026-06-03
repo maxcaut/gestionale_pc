@@ -1,5 +1,5 @@
                 <!-- ================= TAB 3: MEZZI ================= -->
-                <section id="tab-mezzi" class="tab-content space-y-6 hidden fade-in">
+                <section id="tab-mezzi" data-mezzi-access class="tab-content space-y-6 hidden fade-in">
                     
                     <!-- Barra Superiore Azioni Mezzi -->
                     <div class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">

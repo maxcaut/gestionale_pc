@@ -37,7 +37,25 @@ function canAccessServizi() {
 }
 
 function canAccessMezzi() {
-    return isMaster();
+    return isMaster() || isSegreteria();
+}
+
+function canSeeAllMezzi() {
+    return isMaster() || isSalaOperativa();
+}
+
+function applyMezziScope(list) {
+    if (canSeeAllMezzi()) return list;
+    const assoc = getUserAssociazione();
+    if (!assoc) return [];
+    return list.filter(m => m.associazione_appartenenza === assoc);
+}
+
+function getMezzoAssociazioneValue() {
+    if (isSegreteria()) {
+        return getUserAssociazione();
+    }
+    return document.getElementById('m-associazione')?.value || null;
 }
 
 function roleRequiresAssociazione(ruolo) {
@@ -100,6 +118,9 @@ function applyRoleBasedUI() {
     document.querySelectorAll('[data-servizi-access]').forEach(el => {
         el.classList.toggle('hidden', !canAccessServizi());
     });
+    document.querySelectorAll('[data-mezzi-access]').forEach(el => {
+        el.classList.toggle('hidden', !canAccessMezzi());
+    });
 
     const badge = document.getElementById('user-email-badge');
     if (badge && currentUserProfile) {
@@ -115,6 +136,7 @@ function applyRoleBasedUI() {
     }
 
     setupVolontarioAssociazioneField();
+    setupMezzoAssociazioneField();
 
     if (isSegreteria()) {
         switchTab('volontari');
@@ -154,6 +176,32 @@ function getVolontarioAssociazioneValue() {
         return getUserAssociazione();
     }
     return document.getElementById('v-associazione')?.value || null;
+}
+
+function setupMezzoAssociazioneField() {
+    const selectWrap = document.getElementById('m-associazione-select-wrap');
+    const fissaWrap = document.getElementById('m-associazione-fissa-wrap');
+    const select = document.getElementById('m-associazione');
+    const fissaInput = document.getElementById('m-associazione-fissa');
+    const fissaLabel = document.getElementById('m-associazione-fissa-label');
+
+    if (!selectWrap || !fissaWrap) return;
+
+    if (isSegreteria()) {
+        const assoc = getUserAssociazione() || '';
+        selectWrap.classList.add('hidden');
+        fissaWrap.classList.remove('hidden');
+        if (fissaInput) fissaInput.value = assoc;
+        if (fissaLabel) fissaLabel.innerText = assoc;
+        if (select) {
+            select.required = false;
+            select.value = assoc;
+        }
+    } else {
+        selectWrap.classList.remove('hidden');
+        fissaWrap.classList.add('hidden');
+        if (select) select.required = true;
+    }
 }
 
 async function bootstrapApp(user) {
@@ -364,17 +412,44 @@ async function fetchDataFromSupabase() {
             volontari = applyVolontariScope(volResponse.data || []);
         }
 
-        if (canAccessServizi()) {
-            const [mezResponse, serResponse] = await Promise.all([
-                supabase.from('mezzi').select('*').order('created_at', { ascending: true }),
-                supabase.from('servizi').select('*').order('created_at', { ascending: true })
-            ]);
+        if (canAccessMezzi() || canAccessServizi()) {
+            let mezQuery = supabase.from('mezzi').select('*').order('created_at', { ascending: true });
 
-            if (mezResponse.error) throw mezResponse.error;
-            if (serResponse.error) throw serResponse.error;
+            if (!canSeeAllMezzi()) {
+                const assoc = getUserAssociazione();
+                if (!assoc) {
+                    mezzi = [];
+                } else {
+                    mezQuery = mezQuery.eq('associazione_appartenenza', assoc);
+                }
+            }
 
-            mezzi = mezResponse.data || [];
-            servizi = (serResponse.data || []).map(mapServizioRow);
+            const loadMezzi = canSeeAllMezzi() || getUserAssociazione()
+                ? mezQuery
+                : Promise.resolve({ data: [], error: null });
+
+            if (canAccessServizi()) {
+                const [mezResponse, serResponse] = await Promise.all([
+                    loadMezzi,
+                    supabase.from('servizi').select('*').order('created_at', { ascending: true })
+                ]);
+
+                if (mezResponse.error) throw mezResponse.error;
+                if (serResponse.error) throw serResponse.error;
+
+                mezzi = applyMezziScope(mezResponse.data || []);
+                servizi = (serResponse.data || []).map(mapServizioRow);
+            } else if (canAccessMezzi()) {
+                const mezResponse = await loadMezzi;
+
+                if (mezResponse.error) throw mezResponse.error;
+
+                mezzi = applyMezziScope(mezResponse.data || []);
+                servizi = [];
+            } else {
+                mezzi = [];
+                servizi = [];
+            }
         } else {
             mezzi = [];
             servizi = [];
@@ -474,8 +549,11 @@ function switchTab(tabId) {
     if (!canAccessServizi() && tabId === 'servizi') {
         tabId = canAccessVolontari() ? 'volontari' : 'dashboard';
     }
-    if (!isMaster() && (tabId === 'mezzi' || tabId === 'admin' || tabId === 'dashboard')) {
-        tabId = canAccessServizi() ? 'servizi' : 'volontari';
+    if (!canAccessMezzi() && tabId === 'mezzi') {
+        tabId = canAccessVolontari() ? 'volontari' : 'dashboard';
+    }
+    if (!isMaster() && (tabId === 'admin' || tabId === 'dashboard')) {
+        tabId = canAccessServizi() ? 'servizi' : (canAccessVolontari() ? 'volontari' : 'mezzi');
     }
 
     // Nascondi tutti i contenuti delle tab
@@ -980,6 +1058,7 @@ function renderMezzi() {
 function openNuovoMezzoModal() {
     resetEditState();
     setModalFormMode('modal-mezzo', { title: 'Aggiungi Nuovo Mezzo di Soccorso', submitText: 'Registra' });
+    setupMezzoAssociazioneField();
     toggleModal('modal-mezzo', true);
 }
 
@@ -994,6 +1073,11 @@ function openEditMezzoModal(id) {
     document.getElementById("m-targa").value = mezzo.targa;
     document.getElementById("m-tipo").value = mezzo.tipo;
     document.getElementById("m-stato").value = mezzo.stato;
+    setupMezzoAssociazioneField();
+    const mAssocSelect = document.getElementById("m-associazione");
+    if (mAssocSelect) {
+        mAssocSelect.value = mezzo.associazione_appartenenza || "G.C. Massa di Somma";
+    }
 
     toggleModal('modal-mezzo', true);
 }
@@ -1004,8 +1088,14 @@ async function saveMezzo(event) {
     const targa = document.getElementById("m-targa").value.toUpperCase();
     const tipo = document.getElementById("m-tipo").value;
     const stato = document.getElementById("m-stato").value;
+    const associazione_appartenenza = getMezzoAssociazioneValue();
 
-    const payload = { modello, targa, tipo, stato };
+    if (!associazione_appartenenza) {
+        showToast("Associazione mancante", "Seleziona l'associazione di appartenenza del mezzo.");
+        return;
+    }
+
+    const payload = { modello, targa, tipo, stato, associazione_appartenenza };
 
     try {
         if (editingMezzoId) {
@@ -1014,7 +1104,10 @@ async function saveMezzo(event) {
             toggleModal('modal-mezzo', false);
             showToast("Mezzo Aggiornato", `${modello} (${targa}) modificato correttamente.`);
         } else {
-            const newMezzo = { id: "m_" + Date.now(), ...payload };
+            const newMezzo = {
+                id: "m_" + Date.now(),
+                ...payload,
+            };
             const { error } = await supabase.from('mezzi').insert([newMezzo]);
             if (error) throw error;
             toggleModal('modal-mezzo', false);
@@ -1088,7 +1181,7 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
         return `
             <label class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
                 <input type="checkbox" name="s-mezzi-check" value="${m.id}" ${checked} class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
-                <span class="text-xs ${fontClass}">${m.modello} [${m.targa}] (${m.tipo})${extra}</span>
+                <span class="text-xs ${fontClass}">${m.modello} [${m.targa}] (${m.tipo})${m.associazione_appartenenza ? ` · ${m.associazione_appartenenza}` : ''}${extra}</span>
             </label>
         `;
     };

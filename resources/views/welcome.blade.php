@@ -91,7 +91,7 @@
                     <span>Volontari</span>
                 </button>
 
-                <button onclick="switchTab('mezzi')" id="nav-mezzi" data-master-only class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800/50">
+                <button onclick="switchTab('mezzi')" id="nav-mezzi" data-mezzi-access class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800/50">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177V3.75A1.125 1.125 0 0013.125 2.625h-2.25a1.125 1.125 0 00-1.125 1.125v11.177M14.25 7.5H9.75M16.5 18.75a1.875 1.875 0 11-3.75 0m3.75 0a1.875 1.875 0 00-3.75 0m-9.75 0h9.75" />
                     </svg>
@@ -396,7 +396,7 @@
             </svg>
             <span class="text-[10px] font-bold">Volontari</span>
         </button>
-        <button onclick="switchTab('mezzi')" id="bottom-nav-mezzi" data-master-only class="bottom-nav-btn flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-slate-400 transition-all">
+        <button onclick="switchTab('mezzi')" id="bottom-nav-mezzi" data-mezzi-access class="bottom-nav-btn flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-slate-400 transition-all">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177V3.75A1.125 1.125 0 0013.125 2.625h-2.25a1.125 1.125 0 00-1.125 1.125v11.177M14.25 7.5H9.75M16.5 18.75a1.875 1.875 0 11-3.75 0m3.75 0a1.875 1.875 0 00-3.75 0m-9.75 0h9.75" />
             </svg>
@@ -544,6 +544,24 @@
                             <option value="In manutenzione">In manutenzione</option>
                         </select>
                     </div>
+                </div>
+
+                <div id="m-associazione-select-wrap">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Associazione di appartenenza <span class="text-amber-500">*</span></label>
+                    <select id="m-associazione" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                        <option value="G.C. Massa di Somma">G.C. Massa di Somma</option>
+                        <option value="G.C. Cercola">G.C. Cercola</option>
+                        <option value="Cobra 2">Cobra 2</option>
+                        <option value="G.C. Sant'Anastasia">G.C. Sant'Anastasia</option>
+                        <option value="Save Me">Save Me</option>
+                        <option value="NVPC Pomigliano">NVPC Pomigliano</option>
+                    </select>
+                </div>
+                <div id="m-associazione-fissa-wrap" class="hidden">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Associazione di appartenenza</label>
+                    <input type="hidden" id="m-associazione-fissa" value="">
+                    <p id="m-associazione-fissa-label" class="w-full bg-slate-950 border border-slate-800 text-amber-500 font-semibold rounded-xl px-4 py-2.5 text-sm"></p>
+                    <p class="text-[10px] text-slate-500 mt-1 font-medium">Associazione fissa per il tuo account segreteria.</p>
                 </div>
 
                 <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">
