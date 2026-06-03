@@ -75,4 +75,17 @@
 
             <p class="text-center text-xs text-slate-600 mt-6">Accesso riservato al personale autorizzato</p>
         </div>
+
+        <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-800 bg-slate-950/40">
+            <div class="flex items-center justify-center gap-3">
+                <span class="relative flex h-3.5 w-3.5">
+                    <span id="login-system-status-dot-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span id="login-system-status-dot" class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
+                </span>
+                <div>
+                    <p class="text-xs font-semibold text-slate-200">System Status</p>
+                    <p id="login-system-status-text" class="text-[10px] text-emerald-500 font-medium uppercase">HEALTHLY</p>
+                </div>
+            </div>
+        </div>
     </div>

@@ -408,12 +408,65 @@ function setupMezzoAssociazioneField() {
     }
 }
 
+const SYSTEM_STATUS_BLOCKS = [
+    { ping: 'system-status-dot-ping', dot: 'system-status-dot', text: 'system-status-text' },
+    { ping: 'login-system-status-dot-ping', dot: 'login-system-status-dot', text: 'login-system-status-text' },
+];
+
+function setSystemStatus(healthy) {
+    SYSTEM_STATUS_BLOCKS.forEach(({ ping, dot, text }) => {
+        const pingEl = document.getElementById(ping);
+        const dotEl = document.getElementById(dot);
+        const textEl = document.getElementById(text);
+        if (!dotEl || !textEl) return;
+
+        if (healthy) {
+            if (pingEl) {
+                pingEl.classList.remove('hidden');
+                pingEl.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75';
+            }
+            dotEl.className = 'relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500';
+            textEl.textContent = 'HEALTHLY';
+            textEl.className = 'text-[10px] text-emerald-500 font-medium uppercase';
+        } else {
+            if (pingEl) pingEl.classList.add('hidden');
+            dotEl.className = 'relative inline-flex rounded-full h-3.5 w-3.5 bg-red-500';
+            textEl.textContent = 'UNHEALTHLY';
+            textEl.className = 'text-[10px] text-red-500 font-medium uppercase';
+        }
+    });
+}
+
+async function pingSupabaseAvailability() {
+    const response = await fetch(`${supabaseUrl}/auth/v1/health`, {
+        headers: { apikey: supabaseKey },
+    });
+    return response.ok;
+}
+
+async function checkDatabaseConnection(forLoginScreen = false) {
+    try {
+        if (!forLoginScreen) {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                const { error } = await supabase.from('volontari').select('id').limit(1);
+                setSystemStatus(!error);
+                return;
+            }
+        }
+
+        setSystemStatus(await pingSupabaseAvailability());
+    } catch {
+        setSystemStatus(false);
+    }
+}
+
 async function bootstrapApp(user) {
     await loadUserProfile(user);
 
     if (!currentUserProfile) {
         await supabase.auth.signOut();
-        showLogin();
+        await showLogin();
         const errorDiv = document.getElementById('login-error');
         const errorText = document.getElementById('login-error-text');
         if (errorDiv && errorText) {
@@ -425,6 +478,7 @@ async function bootstrapApp(user) {
 
     showApp(user);
     applyRoleBasedUI();
+    await checkDatabaseConnection();
     await fetchDataFromSupabase();
     startRealtimeClock();
     return true;
@@ -443,7 +497,7 @@ function showApp(user) {
     if (bottomNav) bottomNav.style.display = '';
 }
 
-function showLogin() {
+async function showLogin() {
     document.getElementById('app-layout').classList.add('hidden');
     document.getElementById('app-layout').style.display = '';
     document.getElementById('login-screen').style.display = '';
@@ -453,6 +507,8 @@ function showLogin() {
     // Nascondi bottom navigation
     const bottomNav = document.getElementById('bottom-nav');
     if (bottomNav) bottomNav.style.display = 'none';
+
+    await checkDatabaseConnection(true);
 }
 
 async function handleLogin(event) {
@@ -501,7 +557,7 @@ async function handleLogout() {
     volontari = [];
     mezzi = [];
     servizi = [];
-    showLogin();
+    await showLogin();
 }
 
 // --- MEMORIA DATI INITIALI (MOCK DATABASE) ---
@@ -788,8 +844,10 @@ async function fetchDataFromSupabase() {
             return;
         }
 
+        setSystemStatus(true);
         updateUI();
     } catch (err) {
+        setSystemStatus(false);
         console.error("Errore durante il caricamento da Supabase:", err);
         showToast("Errore di caricamento", "Impossibile caricare i dati da Supabase.");
     }
@@ -2586,15 +2644,14 @@ window.addEventListener("DOMContentLoaded", async () => {
     if (session && session.user) {
         await bootstrapApp(session.user);
     } else {
-        // Mostra la schermata di login
-        showLogin();
+        await showLogin();
     }
 
     // Ascolta i cambiamenti di stato auth
-    supabase.auth.onAuthStateChange((event, session) => {
+    supabase.auth.onAuthStateChange(async (event) => {
         if (event === 'SIGNED_OUT') {
             currentUserProfile = null;
-            showLogin();
+            await showLogin();
         }
     });
 });
