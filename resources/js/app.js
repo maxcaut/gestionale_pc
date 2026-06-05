@@ -2105,7 +2105,7 @@ function getFilteredServizi() {
     const filterStato = filterEl ? filterEl.value : "";
 
     return allServizi.filter(s => {
-        const matchSearch = `${s.tipo} ${s.note || ""}`.toLowerCase().includes(search);
+        const matchSearch = `${s.id} ${s.tipo} ${s.note || ""}`.toLowerCase().includes(search);
         const matchStato = filterStato === "" || s.stato === filterStato;
         return matchSearch && matchStato;
     });
@@ -2342,7 +2342,7 @@ function renderServizi() {
     if (tableServizi.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" class="py-8 text-center text-slate-500 font-medium">Nessuna missione o servizio pianificato con questi criteri.</td>
+                <td colspan="7" class="py-8 text-center text-slate-500 font-medium">Nessuna missione o servizio pianificato con questi criteri.</td>
             </tr>
         `;
         return;
@@ -2409,6 +2409,7 @@ function renderServizi() {
 
         tbody.innerHTML += `
             <tr class="hover:bg-slate-800/10 transition-colors">
+                <td class="py-4 px-6 text-slate-400 font-mono text-xs break-all">${s.id}</td>
                 <td class="py-4 px-6 max-w-[280px]">
                     <p class="font-bold text-white text-base">${s.tipo}</p>
                     <p class="text-xs text-slate-500 mt-1 font-medium italic break-words">${s.note || "Nessuna nota operativa aggiuntiva"}</p>
