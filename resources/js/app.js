@@ -28,16 +28,24 @@ function isSalaOperativa() {
     return currentUserProfile?.ruolo === 'sala_operativa';
 }
 
+function isSuperUser() {
+    return currentUserProfile?.ruolo === 'super_user';
+}
+
+function hasMasterAccess() {
+    return isMaster() || isSuperUser();
+}
+
 function canAccessVolontari() {
-    return isMaster() || isSegreteria();
+    return hasMasterAccess() || isSegreteria();
 }
 
 function canAccessServizi() {
-    return isMaster() || isCapoSquadra() || isSalaOperativa();
+    return hasMasterAccess() || isCapoSquadra() || isSalaOperativa();
 }
 
 function canAccessAttivita() {
-    return isSegreteria();
+    return isSegreteria() || isSuperUser();
 }
 
 function canLoadServizi() {
@@ -45,11 +53,11 @@ function canLoadServizi() {
 }
 
 function canAccessMezzi() {
-    return isMaster() || isSegreteria();
+    return hasMasterAccess() || isSegreteria();
 }
 
 function canSeeAllMezzi() {
-    return isMaster() || isSalaOperativa();
+    return hasMasterAccess() || isSalaOperativa();
 }
 
 function shouldFilterMezziQueryByAssociazione() {
@@ -96,6 +104,7 @@ function formatRuoloLabel(ruolo) {
         segreteria: 'Segreteria',
         capo_squadra: 'Capo Squadra',
         sala_operativa: 'Sala Operativa',
+        super_user: 'SuperUser',
     };
     return labels[ruolo] || ruolo;
 }
@@ -105,7 +114,7 @@ function getUserAssociazione() {
 }
 
 function canSeeAllVolontari() {
-    return isMaster() || isSalaOperativa();
+    return hasMasterAccess() || isSalaOperativa();
 }
 
 function applyVolontariScope(list) {
@@ -406,7 +415,7 @@ function buildCapoSquadraServizioUpdatePayload(existing, stato) {
 
 function applyRoleBasedUI() {
     document.querySelectorAll('[data-master-only]').forEach(el => {
-        el.classList.toggle('hidden', !isMaster());
+        el.classList.toggle('hidden', !hasMasterAccess());
     });
     document.querySelectorAll('[data-hide-for-capo-squadra]').forEach(el => {
         el.classList.toggle('hidden', isCapoSquadra());
@@ -426,7 +435,9 @@ function applyRoleBasedUI() {
 
     const badge = document.getElementById('user-email-badge');
     if (badge && currentUserProfile) {
-        if (isMaster()) {
+        if (isSuperUser()) {
+            badge.innerText = 'SuperUser';
+        } else if (isMaster()) {
             badge.innerText = 'Master';
         } else if (isSalaOperativa()) {
             badge.innerText = 'Sala Operativa';
@@ -938,7 +949,7 @@ async function fetchDataFromSupabase() {
             servizi = [];
         }
 
-        if (isMaster() && volontari.length === 0 && mezzi.length === 0 && servizi.length === 0) {
+        if (hasMasterAccess() && volontari.length === 0 && mezzi.length === 0 && servizi.length === 0) {
             await initializeDefaultData();
             return;
         }
@@ -954,7 +965,7 @@ async function fetchDataFromSupabase() {
 
 // Funzione helper per inserire i dati di mock su Supabase se vuoto
 async function initializeDefaultData() {
-    if (!isMaster()) return;
+    if (!hasMasterAccess()) return;
 
     try {
         const { error: volErr } = await supabase.from('volontari').insert(DEFAULT_VOLONTARI);
@@ -1045,7 +1056,7 @@ function switchTab(tabId) {
     if (!canAccessMezzi() && tabId === 'mezzi') {
         tabId = canAccessVolontari() ? 'volontari' : (canAccessAttivita() ? 'attivita' : 'dashboard');
     }
-    if (!isMaster() && (tabId === 'admin' || tabId === 'dashboard')) {
+    if (!hasMasterAccess() && (tabId === 'admin' || tabId === 'dashboard')) {
         if (canAccessServizi()) tabId = 'servizi';
         else if (canAccessAttivita()) tabId = 'attivita';
         else if (canAccessVolontari()) tabId = 'volontari';
@@ -1142,7 +1153,7 @@ function updateDashboardStats() {
     const volontariOperativi = volontari.filter(v => v.stato === "Operativo").length;
     document.getElementById("stat-volontari-attivi").innerText = volontariOperativi;
 
-    if (!isMaster()) {
+    if (!hasMasterAccess()) {
         const totalVolontari = volontari.length || 1;
         const percentOperativi = Math.round((volontariOperativi / totalVolontari) * 100);
         document.getElementById("widget-volontari-percent").innerText = `${percentOperativi}%`;
@@ -1380,7 +1391,7 @@ function openEditVolontarioModal(id) {
     document.getElementById("v-stato").value = vol.stato;
     document.getElementById("v-telefono").value = vol.telefono;
     setupVolontarioAssociazioneField();
-    if (isMaster()) {
+    if (hasMasterAccess()) {
         document.getElementById("v-associazione").value = vol.associazione_appartenenza || "G.C. Massa di Somma";
     }
 
@@ -2395,13 +2406,13 @@ function renderServizi() {
                </button>`
             : '';
 
-        const editBtn = (isMaster() || s.stato !== "Completato")
+        const editBtn = (hasMasterAccess() || s.stato !== "Completato")
             ? `<button onclick="openEditServizioModal('${s.id}')" title="Modifica dati" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">
                     ${ICON_EDIT}
                </button>`
             : '';
 
-        const viewBtn = (isMaster() || isSalaOperativa())
+        const viewBtn = (hasMasterAccess() || isSalaOperativa())
             ? `<button onclick="openViewServizioModal('${s.id}')" title="Visualizza dettagli intervento" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-cyan-500 transition-colors">
                     ${ICON_EYE}
                </button>`
@@ -2885,7 +2896,7 @@ function toggleProfiloAssociazioneField() {
 }
 
 async function renderAdminProfiles() {
-    if (!isMaster()) return;
+    if (!hasMasterAccess()) return;
 
     const tbody = document.getElementById('admin-profiles-table-body');
     if (!tbody) return;
@@ -2924,7 +2935,8 @@ async function renderAdminProfiles() {
     tbody.innerHTML = '';
     profiles.forEach(p => {
         let ruoloBadge = 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-        if (p.ruolo === 'master') ruoloBadge = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+        if (p.ruolo === 'super_user') ruoloBadge = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+        else if (p.ruolo === 'master') ruoloBadge = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
         else if (p.ruolo === 'sala_operativa') ruoloBadge = 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20';
         else if (p.ruolo === 'capo_squadra') ruoloBadge = 'bg-violet-500/10 text-violet-400 border-violet-500/20';
         const isSelf = p.id === currentUserProfile?.id;
@@ -2998,7 +3010,7 @@ async function openEditProfiloModal(id) {
 
 async function saveProfilo(event) {
     event.preventDefault();
-    if (!isMaster()) return;
+    if (!hasMasterAccess()) return;
 
     const email = document.getElementById('p-email').value.trim();
     const password = document.getElementById('p-password').value;
@@ -3049,7 +3061,7 @@ async function saveProfilo(event) {
 }
 
 async function deleteProfilo(id) {
-    if (!isMaster()) return;
+    if (!hasMasterAccess()) return;
     if (id === currentUserProfile?.id) {
         showToast('Errore', 'Non puoi eliminare il tuo account.');
         return;

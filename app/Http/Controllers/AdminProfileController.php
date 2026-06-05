@@ -15,13 +15,13 @@ class AdminProfileController extends Controller
         $validated = $request->validate([
             'email' => 'required|email',
             'password' => 'required|string|min:6',
-            'ruolo' => ['required', Rule::in(['segreteria', 'master', 'capo_squadra', 'sala_operativa'])],
+            'ruolo' => ['required', Rule::in(['segreteria', 'master', 'capo_squadra', 'sala_operativa', 'super_user'])],
             'associazione' => 'nullable|string|max:255',
         ]);
 
         $this->validateAssociazioneForRuolo($validated['ruolo'], $validated['associazione'] ?? null);
 
-        $associazione = in_array($validated['ruolo'], ['master', 'sala_operativa'], true)
+        $associazione = in_array($validated['ruolo'], ['master', 'sala_operativa', 'super_user'], true)
             ? null
             : trim((string) $validated['associazione']);
 
@@ -85,7 +85,7 @@ class AdminProfileController extends Controller
     public function update(Request $request, string $id): JsonResponse
     {
         $validated = $request->validate([
-            'ruolo' => ['sometimes', Rule::in(['segreteria', 'master', 'capo_squadra', 'sala_operativa'])],
+            'ruolo' => ['sometimes', Rule::in(['segreteria', 'master', 'capo_squadra', 'sala_operativa', 'super_user'])],
             'associazione' => 'nullable|string|max:255',
             'password' => 'nullable|string|min:6',
         ]);
@@ -109,7 +109,7 @@ class AdminProfileController extends Controller
         $profilePayload = [];
         if (array_key_exists('ruolo', $validated)) {
             $profilePayload['ruolo'] = $validated['ruolo'];
-            $profilePayload['associazione'] = in_array($validated['ruolo'], ['master', 'sala_operativa'], true)
+            $profilePayload['associazione'] = in_array($validated['ruolo'], ['master', 'sala_operativa', 'super_user'], true)
                 ? null
                 : trim((string) ($validated['associazione'] ?? ''));
         } elseif (array_key_exists('associazione', $validated)) {

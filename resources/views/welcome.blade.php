@@ -908,6 +908,7 @@
                         <option value="capo_squadra">Capo Squadra</option>
                         <option value="sala_operativa">Sala Operativa</option>
                         <option value="master">Master</option>
+                        <option value="super_user">SuperUser</option>
                     </select>
                 </div>
                 <div id="p-associazione-wrap">

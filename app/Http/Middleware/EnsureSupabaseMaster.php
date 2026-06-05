@@ -46,7 +46,7 @@ class EnsureSupabaseMaster
         $profiles = $profileResponse->json();
         $ruolo = is_array($profiles) && isset($profiles[0]['ruolo']) ? $profiles[0]['ruolo'] : null;
 
-        if ($ruolo !== 'master') {
+        if (! in_array($ruolo, ['master', 'super_user'], true)) {
             return response()->json(['message' => 'Accesso riservato ai master.'], 403);
         }
 
