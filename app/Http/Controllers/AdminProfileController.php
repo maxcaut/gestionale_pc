@@ -21,6 +21,10 @@ class AdminProfileController extends Controller
 
         $this->validateAssociazioneForRuolo($validated['ruolo'], $validated['associazione'] ?? null);
 
+        if ($denied = $this->denyMasterManagingSuperUser($request, $validated['ruolo'])) {
+            return $denied;
+        }
+
         $associazione = in_array($validated['ruolo'], ['master', 'sala_operativa', 'super_user'], true)
             ? null
             : trim((string) $validated['associazione']);
@@ -173,6 +177,18 @@ class AdminProfileController extends Controller
             'Authorization' => 'Bearer '.$serviceKey,
         ];
 
+        $profileResponse = Http::withHeaders($adminHeaders)->get($url.'/rest/v1/profiles', [
+            'id' => 'eq.'.$id,
+            'select' => 'ruolo',
+        ]);
+
+        $profiles = $profileResponse->json();
+        $targetRuolo = is_array($profiles) && isset($profiles[0]['ruolo']) ? $profiles[0]['ruolo'] : null;
+
+        if ($denied = $this->denyMasterManagingSuperUser($request, (string) $targetRuolo)) {
+            return $denied;
+        }
+
         $deleteResponse = Http::withHeaders($adminHeaders)
             ->delete($url.'/auth/v1/admin/users/'.$id);
 
@@ -190,5 +206,19 @@ class AdminProfileController extends Controller
                 'associazione' => 'Associazione obbligatoria per segreteria e capo squadra.',
             ]);
         }
+    }
+
+    private function denyMasterManagingSuperUser(Request $request, string $targetRuolo): ?JsonResponse
+    {
+        if (
+            $request->attributes->get('supabase_user_ruolo') === 'master'
+            && $targetRuolo === 'super_user'
+        ) {
+            return response()->json([
+                'message' => 'Non autorizzato a gestire utenti SuperUser.',
+            ], 403);
+        }
+
+        return null;
     }
 }

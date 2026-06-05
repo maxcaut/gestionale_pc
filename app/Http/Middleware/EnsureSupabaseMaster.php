@@ -51,6 +51,7 @@ class EnsureSupabaseMaster
         }
 
         $request->attributes->set('supabase_user_id', $userId);
+        $request->attributes->set('supabase_user_ruolo', $ruolo);
 
         return $next($request);
     }

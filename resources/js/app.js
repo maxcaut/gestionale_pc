@@ -433,6 +433,8 @@ function applyRoleBasedUI() {
         el.classList.toggle('hidden', !canAccessAttivita());
     });
 
+    configureProfiloRuoloOptions();
+
     const badge = document.getElementById('user-email-badge');
     if (badge && currentUserProfile) {
         if (isSuperUser()) {
@@ -2880,6 +2882,25 @@ async function adminApiFetch(path, options = {}) {
     return data;
 }
 
+function canManageSuperUser() {
+    return isSuperUser();
+}
+
+function configureProfiloRuoloOptions() {
+    const select = document.getElementById('p-ruolo');
+    if (!select) return;
+
+    const superOption = select.querySelector('option[value="super_user"]');
+    if (!superOption) return;
+
+    const allowed = canManageSuperUser();
+    superOption.hidden = !allowed;
+    superOption.disabled = !allowed;
+    if (!allowed && select.value === 'super_user') {
+        select.value = 'segreteria';
+    }
+}
+
 function toggleProfiloAssociazioneField() {
     const wrap = document.getElementById('p-associazione-wrap');
     const select = document.getElementById('p-associazione');
@@ -2940,6 +2961,7 @@ async function renderAdminProfiles() {
         else if (p.ruolo === 'sala_operativa') ruoloBadge = 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20';
         else if (p.ruolo === 'capo_squadra') ruoloBadge = 'bg-violet-500/10 text-violet-400 border-violet-500/20';
         const isSelf = p.id === currentUserProfile?.id;
+        const canDelete = !isSelf && (p.ruolo !== 'super_user' || canManageSuperUser());
 
         tbody.innerHTML += `
             <tr class="hover:bg-slate-800/20 transition-all">
@@ -2953,11 +2975,11 @@ async function renderAdminProfiles() {
                         <button type="button" onclick="openEditProfiloModal('${p.id}')" title="Modifica" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-all">
                             ${ICON_EDIT}
                         </button>
-                        ${isSelf ? '' : `<button type="button" onclick="deleteProfilo('${p.id}')" title="Elimina" class="p-2 hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-500 transition-all">
+                        ${canDelete ? `<button type="button" onclick="deleteProfilo('${p.id}', '${p.ruolo}')" title="Elimina" class="p-2 hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-500 transition-all">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                             </svg>
-                        </button>`}
+                        </button>` : ''}
                     </div>
                 </td>
             </tr>
@@ -2977,6 +2999,7 @@ function openNuovoProfiloModal() {
     document.getElementById('p-password-hint').classList.add('hidden');
     document.getElementById('p-ruolo').value = 'segreteria';
     document.getElementById('p-associazione').value = 'G.C. Massa di Somma';
+    configureProfiloRuoloOptions();
     toggleProfiloAssociazioneField();
     toggleModal('modal-profilo', true);
 }
@@ -3004,6 +3027,7 @@ async function openEditProfiloModal(id) {
     document.getElementById('p-password-hint').classList.remove('hidden');
     document.getElementById('p-ruolo').value = data.ruolo;
     document.getElementById('p-associazione').value = data.associazione || 'G.C. Massa di Somma';
+    configureProfiloRuoloOptions();
     toggleProfiloAssociazioneField();
     toggleModal('modal-profilo', true);
 }
@@ -3038,6 +3062,11 @@ async function saveProfilo(event) {
                 return;
             }
 
+            if (ruolo === 'super_user' && !canManageSuperUser()) {
+                showToast('Errore', 'Non autorizzato a creare utenti SuperUser.');
+                return;
+            }
+
             await adminApiFetch('/api/admin/profiles', {
                 method: 'POST',
                 body: JSON.stringify({
@@ -3060,10 +3089,15 @@ async function saveProfilo(event) {
     }
 }
 
-async function deleteProfilo(id) {
+async function deleteProfilo(id, ruolo) {
     if (!hasMasterAccess()) return;
     if (id === currentUserProfile?.id) {
         showToast('Errore', 'Non puoi eliminare il tuo account.');
+        return;
+    }
+
+    if (ruolo === 'super_user' && !canManageSuperUser()) {
+        showToast('Errore', 'Non autorizzato a eliminare utenti SuperUser.');
         return;
     }
 
