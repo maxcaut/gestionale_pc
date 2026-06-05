@@ -2091,12 +2091,15 @@ function renderServizi() {
 
     const tbody = document.getElementById("servizi-table-body");
     const filtered = getFilteredServizi();
+    const tableServizi = isCapoSquadra()
+        ? filtered.filter(s => s.stato !== "Completato")
+        : filtered;
 
     updateServiziMap(filtered);
 
     tbody.innerHTML = "";
 
-    if (filtered.length === 0) {
+    if (tableServizi.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="6" class="py-8 text-center text-slate-500 font-medium">Nessuna missione o servizio pianificato con questi criteri.</td>
@@ -2105,7 +2108,7 @@ function renderServizi() {
         return;
     }
 
-    [...filtered].reverse().forEach(s => {
+    [...tableServizi].reverse().forEach(s => {
         const mezziAssegnati = (s.mezziIds || [])
             .map(mId => mezzi.find(m => m.id === mId))
             .filter(Boolean);
