@@ -700,6 +700,7 @@ let pdfExportProgressTimer = null;
 let pendingPdfServizioId = null;
 
 const ICON_EDIT = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>`;
+const ICON_EYE = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`;
 
 function toDatetimeLocalValue(isoString) {
     const d = new Date(isoString);
@@ -1833,6 +1834,142 @@ function openEditServizioModal(id) {
     toggleModal('modal-servizio', true);
 }
 
+function servizioViewField(label, value, options = {}) {
+    const hasValue = value !== undefined && value !== null && String(value).trim() !== '';
+    const displayValue = hasValue ? value : '—';
+    const valueClass = options.multiline ? 'whitespace-pre-wrap break-words' : '';
+    return `
+        <div>
+            <p class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">${label}</p>
+            <div class="text-sm text-slate-100 ${valueClass}">${displayValue}</div>
+        </div>
+    `;
+}
+
+function formatServizioViewMezzi(mezziIds) {
+    const mezziList = getDB('pc_mezzi');
+    const assigned = (mezziIds || [])
+        .map(id => mezziList.find(m => m.id === id))
+        .filter(Boolean);
+
+    if (assigned.length === 0) {
+        return '<span class="text-sm text-slate-500">Nessun mezzo assegnato</span>';
+    }
+
+    return assigned.map(m => `
+        <span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">
+            ${m.modello} [${m.targa}] (${m.tipo})${m.associazione_appartenenza ? ` · ${m.associazione_appartenenza}` : ''}
+        </span>
+    `).join('');
+}
+
+function formatServizioViewVolontari(volontariIds) {
+    const volontariList = getDB('pc_volontari');
+    const assigned = (volontariIds || [])
+        .map(id => volontariList.find(v => v.id === id))
+        .filter(Boolean);
+
+    if (assigned.length === 0) {
+        return '<span class="text-sm text-slate-500">Nessun equipaggio assegnato</span>';
+    }
+
+    return assigned.map(v => `
+        <span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">
+            ${v.nome} ${v.cognome}${v.associazione_appartenenza ? ` · ${v.associazione_appartenenza}` : ''}
+        </span>
+    `).join('');
+}
+
+function buildServizioViewSuperficieSection(title, fieldDefs, data, labels) {
+    const rows = fieldDefs.map(({ key }) => {
+        const value = data && typeof data === 'object' ? data[key] : '';
+        return servizioViewField(labels[key], value || '');
+    }).join('');
+
+    return `
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+            <p class="text-xs font-bold uppercase tracking-wider text-amber-500/90">${title}</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">${rows}</div>
+        </div>
+    `;
+}
+
+function buildServizioViewHtml(serv) {
+    const lat = serv.latitudine;
+    const lng = serv.longitudine;
+    const hasCoords = lat != null && lat !== '' && lng != null && lng !== '';
+    const coordsValue = hasCoords ? `${lat}, ${lng}` : '';
+
+    let html = `
+        <div class="space-y-4">
+            ${servizioViewField('Richiedente', serv.richiedente || 'SORU')}
+            ${servizioViewField('Tipologia Servizio / Intervento', serv.tipo)}
+            ${servizioViewField('Data e Ora Pianificazione', formatServizioDataPianificata(serv.data))}
+    `;
+
+    if (isAntincendioBoschivo(serv.tipo)) {
+        html += `
+            ${servizioViewField("Orario di arrivo sull'incendio", serv.oraArrivoIncendio)}
+            <div>
+                <p class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Superficie percorsa dal fuoco (ha)</p>
+                <div class="space-y-3">
+                    ${buildServizioViewSuperficieSection('Ceduo', AIB_SUPERFICIE_FIELDS.ceduo, serv.superficieCeduo, {
+                        matricianato: 'Matricianato',
+                        compostato: 'Compostato',
+                        degradato: 'Degradato',
+                        macchia: 'Macchia',
+                    })}
+                    ${buildServizioViewSuperficieSection('Alto fusto', AIB_SUPERFICIE_FIELDS.altoFusto, serv.superficieAltoFusto, {
+                        resinoso: 'Resinoso',
+                        latifoglie: 'Latifoglie',
+                        misto: 'Misto',
+                        rimboschimento: 'Rimboschimento',
+                    })}
+                    ${buildServizioViewSuperficieSection('Non boscato', AIB_SUPERFICIE_FIELDS.nonBoscato, serv.superficieNonBoscato, {
+                        cespugliato: 'Cespugliato',
+                        pascolo: 'Pascolo',
+                        seminativo: 'Seminativo',
+                        incolto: 'Incolto',
+                    })}
+                </div>
+            </div>
+            ${servizioViewField('Orario di fine intervento', serv.oraFineIntervento)}
+            ${servizioViewField('Orario di rientro in sede', serv.oraRientroSede)}
+        `;
+    }
+
+    html += `
+            ${servizioViewField('Coordinate Geografiche', coordsValue)}
+            ${servizioViewField('Indirizzo Intervento', serv.indirizzo)}
+            <div>
+                <p class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Mezzi di Soccorso assegnati</p>
+                <div class="flex flex-wrap">${formatServizioViewMezzi(serv.mezziIds)}</div>
+            </div>
+            <div>
+                <p class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Equipaggio Volontari assegnati</p>
+                <div class="flex flex-wrap">${formatServizioViewVolontari(serv.volontariIds)}</div>
+            </div>
+            ${servizioViewField('Note / Dettagli Operativi', serv.note, { multiline: true })}
+            ${servizioViewField('Altri Enti Coinvolti', serv.altriEnti)}
+            ${servizioViewField('Stato Servizio', serv.stato)}
+        </div>
+    `;
+
+    return html;
+}
+
+function openViewServizioModal(id) {
+    const serv = servizi.find(s => s.id === id);
+    if (!serv) return;
+
+    const body = document.getElementById('modal-servizio-view-body');
+    if (body) {
+        body.innerHTML = buildServizioViewHtml(serv);
+    }
+
+    toggleModal('modal-servizio-view', true);
+}
+
 function getFilteredAttivita() {
     const search = (document.getElementById('search-attivita')?.value || '').toLowerCase();
     return getDB('pc_servizi').filter(s => {
@@ -2208,6 +2345,12 @@ function renderServizi() {
                </button>`
             : '';
 
+        const viewBtn = isSalaOperativa()
+            ? `<button onclick="openViewServizioModal('${s.id}')" title="Visualizza dettagli intervento" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-cyan-500 transition-colors">
+                    ${ICON_EYE}
+               </button>`
+            : '';
+
         tbody.innerHTML += `
             <tr class="hover:bg-slate-800/10 transition-colors">
                 <td class="py-4 px-6 max-w-[280px]">
@@ -2230,6 +2373,7 @@ function renderServizi() {
                 </td>
                 <td class="py-4 px-6 text-right">
                     <div class="inline-flex gap-2">
+                        ${viewBtn}
                         ${editBtn}
                         ${completaBtn}
                         ${exportPdfBtn}
@@ -2885,6 +3029,7 @@ window.deleteMezzo = deleteMezzo;
 window.renderMezzi = renderMezzi;
 window.openNuovoServizioModal = openNuovoServizioModal;
 window.openEditServizioModal = openEditServizioModal;
+window.openViewServizioModal = openViewServizioModal;
 window.toggleServizioAibFields = toggleServizioAibFields;
 window.fillCoordinateFromGps = fillCoordinateFromGps;
 window.saveServizio = saveServizio;
