@@ -775,7 +775,17 @@
                 </div>
 
                 <div data-servizio-mezzi-volontari-block>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Seleziona Mezzi di Soccorso <span class="text-amber-500 servizio-mezzi-required">*</span></label>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 shrink-0">Seleziona Mezzi di Soccorso <span class="text-amber-500 servizio-mezzi-required">*</span></label>
+                        <div class="relative flex-1 min-w-0 sm:max-w-xs sm:ml-auto">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </span>
+                            <input type="text" id="s-mezzi-search" oninput="filterServizioMezziList()" placeholder="Cerca per targa..." class="w-full bg-slate-950 border border-slate-800 text-slate-100 pl-9 pr-3 py-2 rounded-xl text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                        </div>
+                    </div>
                     <div id="s-mezzi-list" class="bg-slate-950 border border-slate-800 rounded-xl p-4 max-h-40 overflow-y-auto space-y-2">
                         <!-- Popolato dinamicamente con i mezzi registrati -->
                     </div>
@@ -784,7 +794,17 @@
 
                 <!-- Lista Checkbox Volontari (Equipaggio) -->
                 <div data-servizio-mezzi-volontari-block>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Seleziona Equipaggio Volontari <span class="text-amber-500 servizio-volontari-required">*</span></label>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 shrink-0">Seleziona Equipaggio Volontari <span class="text-amber-500 servizio-volontari-required">*</span></label>
+                        <div class="relative flex-1 min-w-0 sm:max-w-xs sm:ml-auto">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </span>
+                            <input type="text" id="s-volontari-search" oninput="filterServizioVolontariList()" placeholder="Cerca volontario..." class="w-full bg-slate-950 border border-slate-800 text-slate-100 pl-9 pr-3 py-2 rounded-xl text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                        </div>
+                    </div>
                     <div id="s-volontari-list" class="bg-slate-950 border border-slate-800 rounded-xl p-4 max-h-40 overflow-y-auto space-y-2">
                         <!-- Popolato dinamicamente con i volontari registrati -->
                     </div>

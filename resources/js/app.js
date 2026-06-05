@@ -1676,13 +1676,17 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
     const mezziDisponibili = mezziList.filter(m => m.stato === "Disponibile");
     const mezziNonDisponibili = mezziList.filter(m => m.stato !== "Disponibile");
 
+    const mezziSearchEl = document.getElementById("s-mezzi-search");
+    if (mezziSearchEl) mezziSearchEl.value = "";
+
     const renderMezzoCheckbox = (m, muted = false) => {
         const checked = selectedMezziIds.includes(m.id) ? 'checked' : '';
         const textClass = muted ? 'text-slate-400' : 'text-slate-200';
         const fontClass = muted ? 'font-medium' : 'font-semibold';
         const extra = muted ? ` - [${m.stato}]` : '';
+        const searchText = (m.targa || "").toLowerCase();
         return `
-            <label class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
+            <label data-mezzo-search="${searchText}" class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
                 <input type="checkbox" name="s-mezzi-check" value="${m.id}" ${checked} class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
                 <span class="text-xs ${fontClass}">${m.modello} [${m.targa}] (${m.tipo})${m.associazione_appartenenza ? ` · ${m.associazione_appartenenza}` : ''}${extra}</span>
             </label>
@@ -1706,6 +1710,9 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
     const volontariBox = document.getElementById("s-volontari-list");
     volontariBox.innerHTML = "";
 
+    const volontariSearchEl = document.getElementById("s-volontari-search");
+    if (volontariSearchEl) volontariSearchEl.value = "";
+
     const volontariOperativi = volontariList.filter(v => v.stato === "Operativo");
     const volontariNonOperativi = volontariList.filter(v => v.stato !== "Operativo");
 
@@ -1714,8 +1721,9 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
         const textClass = muted ? 'text-slate-400' : 'text-slate-200';
         const fontClass = muted ? 'font-medium' : 'font-semibold';
         const extra = muted ? ` - [${v.stato}]` : '';
+        const searchText = `${v.nome} ${v.cognome} ${v.ruolo} ${v.associazione_appartenenza || ''} ${v.stato}`.toLowerCase();
         return `
-            <label class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
+            <label data-volontario-search="${searchText}" class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
                 <input type="checkbox" name="s-volontari-check" value="${v.id}" ${checked} class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
                 <span class="text-xs ${fontClass}">${v.nome} ${v.cognome} (${v.ruolo})${v.associazione_appartenenza ? ` · ${v.associazione_appartenenza}` : ''}${extra}</span>
             </label>
@@ -1735,6 +1743,54 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
     if (volontariList.length === 0) {
         volontariBox.innerHTML = `<p class="text-xs text-slate-500 p-2 text-center">Nessun volontario registrato!</p>`;
     }
+}
+
+function filterServizioMezziList() {
+    const search = (document.getElementById("s-mezzi-search")?.value || "").toLowerCase().trim();
+    const box = document.getElementById("s-mezzi-list");
+    if (!box) return;
+
+    box.querySelectorAll("label[data-mezzo-search]").forEach(label => {
+        const text = label.dataset.mezzoSearch || "";
+        label.classList.toggle("hidden", search !== "" && !text.includes(search));
+    });
+
+    box.querySelectorAll("p").forEach(section => {
+        let sibling = section.nextElementSibling;
+        let hasVisible = false;
+        while (sibling && sibling.tagName !== "P") {
+            if (sibling.matches("label[data-mezzo-search]") && !sibling.classList.contains("hidden")) {
+                hasVisible = true;
+                break;
+            }
+            sibling = sibling.nextElementSibling;
+        }
+        section.classList.toggle("hidden", search !== "" && !hasVisible);
+    });
+}
+
+function filterServizioVolontariList() {
+    const search = (document.getElementById("s-volontari-search")?.value || "").toLowerCase().trim();
+    const box = document.getElementById("s-volontari-list");
+    if (!box) return;
+
+    box.querySelectorAll("label[data-volontario-search]").forEach(label => {
+        const text = label.dataset.volontarioSearch || "";
+        label.classList.toggle("hidden", search !== "" && !text.includes(search));
+    });
+
+    box.querySelectorAll("p").forEach(section => {
+        let sibling = section.nextElementSibling;
+        let hasVisible = false;
+        while (sibling && sibling.tagName !== "P") {
+            if (sibling.matches("label[data-volontario-search]") && !sibling.classList.contains("hidden")) {
+                hasVisible = true;
+                break;
+            }
+            sibling = sibling.nextElementSibling;
+        }
+        section.classList.toggle("hidden", search !== "" && !hasVisible);
+    });
 }
 
 function resetServizioLocationFields() {
@@ -2345,7 +2401,7 @@ function renderServizi() {
                </button>`
             : '';
 
-        const viewBtn = isSalaOperativa()
+        const viewBtn = (isMaster() || isSalaOperativa())
             ? `<button onclick="openViewServizioModal('${s.id}')" title="Visualizza dettagli intervento" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-cyan-500 transition-colors">
                     ${ICON_EYE}
                </button>`
@@ -3029,6 +3085,8 @@ window.deleteMezzo = deleteMezzo;
 window.renderMezzi = renderMezzi;
 window.openNuovoServizioModal = openNuovoServizioModal;
 window.openEditServizioModal = openEditServizioModal;
+window.filterServizioMezziList = filterServizioMezziList;
+window.filterServizioVolontariList = filterServizioVolontariList;
 window.openViewServizioModal = openViewServizioModal;
 window.toggleServizioAibFields = toggleServizioAibFields;
 window.fillCoordinateFromGps = fillCoordinateFromGps;
