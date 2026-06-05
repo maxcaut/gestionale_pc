@@ -275,16 +275,48 @@ function resetSalaOperativaServizioFormRestrictions() {
     });
 }
 
+function getSegreteriaAttivitaHiddenBlocks() {
+    const blocks = [
+        document.getElementById('s-aib-section'),
+        document.getElementById('s-aib-orari-fine'),
+        document.getElementById('s-lat')?.parentElement?.parentElement ?? null,
+        document.getElementById('s-stato')?.parentElement ?? null,
+    ];
+
+    return blocks.filter(Boolean);
+}
+
 function applySegreteriaAttivitaFormRestrictions() {
     if (!isSegreteria()) return;
 
     const form = document.querySelector('#modal-servizio form');
     if (!form) return;
 
+    getSegreteriaAttivitaHiddenBlocks().forEach(block => {
+        block.classList.add('hidden');
+        block.dataset.segreteriaAttivitaHidden = '1';
+    });
+
     form.querySelectorAll('input, select, textarea').forEach(el => {
-        if (el.closest('#s-mezzi-list') || el.closest('#s-volontari-list')) return;
+        if (el.id === 's-data' || el.closest('#s-mezzi-list') || el.closest('#s-volontari-list')) return;
         el.disabled = true;
     });
+
+    const dataEl = document.getElementById('s-data');
+    if (dataEl) {
+        dataEl.required = false;
+        dataEl.classList.add('hidden');
+
+        let display = document.getElementById('s-data-segreteria-display');
+        if (!display) {
+            display = document.createElement('div');
+            display.id = 's-data-segreteria-display';
+            display.className = 'w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm';
+            dataEl.insertAdjacentElement('afterend', display);
+        }
+        display.textContent = formatServizioDataPianificata(dataEl.value);
+        display.classList.remove('hidden');
+    }
 
     form.querySelectorAll('button[type="button"]').forEach(btn => {
         if (btn.closest('[data-servizio-mezzi-volontari-block]')) return;
@@ -295,6 +327,21 @@ function applySegreteriaAttivitaFormRestrictions() {
 function resetSegreteriaAttivitaFormRestrictions() {
     const form = document.querySelector('#modal-servizio form');
     if (!form) return;
+
+    document.querySelectorAll('[data-segreteria-attivita-hidden]').forEach(block => {
+        block.classList.remove('hidden');
+        delete block.dataset.segreteriaAttivitaHidden;
+    });
+
+    const dataEl = document.getElementById('s-data');
+    if (dataEl) {
+        dataEl.classList.remove('hidden');
+        dataEl.required = true;
+    }
+    const dataDisplay = document.getElementById('s-data-segreteria-display');
+    if (dataDisplay) {
+        dataDisplay.classList.add('hidden');
+    }
 
     form.querySelectorAll('input, select, textarea, button[type="button"]').forEach(el => {
         el.disabled = false;
