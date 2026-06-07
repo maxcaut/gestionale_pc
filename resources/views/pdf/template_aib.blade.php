@@ -123,10 +123,13 @@
 
         .protocollo {
             position: fixed;
-            bottom: 4mm;
+            top: 4mm;
             left: 8mm;
-            right: 8mm;
+           
             font-size: 10px;
+            border: 2px solid red;
+            padding: 4px 8px;
+            border-radius: 4px;
         }
 
         /* Forzatura stampa su singola pagina senza margini browser */
@@ -146,6 +149,7 @@
     </style>
 </head>
 <body>
+    <div class="protocollo">Protocollo {{ $servizio['id'] ?? '' }}</div>
 @php
         $giorno = $dataIntervento['giorno'] ?? '________';
         $mese = $dataIntervento['mese'] ?? '________';
@@ -373,6 +377,6 @@
 
 </div>
 
-<div class="protocollo">protocollo {{ $servizio['id'] ?? '' }}</div>
+
 </body>
 </html>

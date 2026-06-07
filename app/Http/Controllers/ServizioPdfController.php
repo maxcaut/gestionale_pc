@@ -65,7 +65,7 @@ class ServizioPdfController extends Controller
             'exportatoIl' => $exportatoIl,
         ])->setPaper('a4', 'landscape');
 
-        $filename = 'riepilogo-intervento-'.Str::slug($validated['servizio']['tipo']).'-'.$dataIntervento['file'].'.pdf';
+        $filename = 'Modello A - Presenze ODV-'.Str::slug($validated['servizio']['tipo']).'-'.$dataIntervento['file'].'.pdf';
 
         return $pdf->download($filename);
     }
@@ -146,7 +146,7 @@ class ServizioPdfController extends Controller
             'firma' => $firma,
         ])->setPaper('a4', 'portrait');
 
-        $filename = 'template-aib-'.Str::slug($servizio['tipo']).'-'.$dataIntervento['file'].'.pdf';
+        $filename = 'Modello AIB-'.Str::slug($servizio['tipo']).'-'.$dataIntervento['file'].'.pdf';
 
         return $pdf->download($filename);
     }

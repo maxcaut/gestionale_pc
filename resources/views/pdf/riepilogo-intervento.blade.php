@@ -156,12 +156,15 @@
         .blocco-continuazione {
             page-break-inside: avoid;
         }
-        .protocollo {
+       .protocollo {
             position: fixed;
-            bottom: 4mm;
-            left: 4%;
-            right: 4%;
-            font-size: 10pt;
+            top: 4mm;
+            left: 8mm;
+            
+            font-size: 10px;
+            border: 2px solid red;
+            padding: 4px 8px;
+            border-radius: 4px;
         }
         thead { display: table-header-group; }
         tr { page-break-inside: avoid; }
