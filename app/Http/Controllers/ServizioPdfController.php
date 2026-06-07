@@ -133,7 +133,7 @@ class ServizioPdfController extends Controller
             'gruppo' => 'Gruppo Comunale Massa di Somma',
             'comune' => $comune,
             'via' => $via,
-            'richiedenteLabel' => strtoupper($richiedente).' NA',
+            'richiedenteLabel' => strtoupper($richiedente),
             'oraInizio' => $oraInizio,
             'oraArrivoIncendio' => $oraArrivoIncendio,
             'oraFineIntervento' => $oraFineIntervento,
