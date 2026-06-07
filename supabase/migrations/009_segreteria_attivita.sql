@@ -1,4 +1,4 @@
--- Segreteria: lettura servizi pianificati e aggiornamento solo assegnazione mezzi/volontari
+-- Segreteria: lettura servizi pianificati/completati e aggiornamento solo assegnazione mezzi/volontari
 
 CREATE OR REPLACE FUNCTION public.is_segreteria()
 RETURNS BOOLEAN
@@ -19,7 +19,7 @@ CREATE POLICY "servizi_segreteria_select"
     TO authenticated
     USING (
         public.is_segreteria()
-        AND stato = 'Programmato'
+        AND stato IN ('Programmato', 'Completato')
     );
 
 CREATE POLICY "servizi_segreteria_assign"

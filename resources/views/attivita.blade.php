@@ -10,7 +10,7 @@
                             </span>
                             <input type="text" id="search-attivita" oninput="renderAttivita()" placeholder="Cerca servizio o note..." class="w-full bg-slate-900 border border-slate-800 text-slate-100 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
                         </div>
-                        <p class="text-xs text-slate-500 font-medium">Solo servizi in stato <span class="text-blue-400 font-bold">Programmato</span>. Assegna mezzi e volontari della tua associazione.</p>
+                        <p class="text-xs text-slate-500 font-medium">Servizi in stato <span class="text-blue-400 font-bold">Programmato</span> o <span class="text-emerald-400 font-bold">Completato</span>. I completati sono in sola lettura.</p>
                     </div>
 
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">

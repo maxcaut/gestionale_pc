@@ -2077,7 +2077,7 @@ function openViewServizioModal(id) {
 function getFilteredAttivita() {
     const search = (document.getElementById('search-attivita')?.value || '').toLowerCase();
     return getDB('pc_servizi').filter(s => {
-        if (s.stato !== 'Programmato') return false;
+        if (!['Programmato', 'Completato'].includes(s.stato)) return false;
         return `${s.tipo} ${s.note || ''}`.toLowerCase().includes(search);
     });
 }
@@ -2094,13 +2094,16 @@ function renderAttivita() {
     if (filtered.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" class="py-8 text-center text-slate-500 font-medium">Nessun servizio programmato disponibile per l'assegnazione.</td>
+                <td colspan="5" class="py-8 text-center text-slate-500 font-medium">Nessun servizio programmato o completato disponibile.</td>
             </tr>
         `;
         return;
     }
 
-    [...filtered].reverse().forEach(s => {
+    [...filtered].sort((a, b) => {
+        if (a.stato === b.stato) return new Date(b.data) - new Date(a.data);
+        return a.stato === 'Programmato' ? -1 : 1;
+    }).forEach(s => {
         const mezziAssegnati = (s.mezziIds || [])
             .map(mId => mezziList.find(m => m.id === mId))
             .filter(Boolean);
@@ -2126,8 +2129,15 @@ function renderAttivita() {
             ? equipaggio.map(nome => `<span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">${nome}</span>`).join('')
             : `<span class="text-xs text-rose-400 font-semibold">Nessun equipaggio assegnato</span>`;
 
+        const editBtn = s.stato === 'Programmato'
+            ? `<button onclick="openEditServizioModal('${s.id}')" title="Assegna mezzi e equipaggio" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">
+                    ${ICON_EDIT}
+               </button>`
+            : '';
+        const statoBorderClass = s.stato === 'Programmato' ? 'border-l-4 border-l-blue-400' : 'border-l-4 border-l-emerald-400';
+
         tbody.innerHTML += `
-            <tr class="hover:bg-slate-800/10 transition-colors">
+            <tr class="${statoBorderClass} hover:bg-slate-800/10 transition-colors">
                 <td class="py-4 px-6 max-w-[280px]">
                     <p class="font-bold text-white text-base">${s.tipo}</p>
                     <p class="text-xs text-slate-500 mt-1 font-medium italic break-words">${s.note || 'Nessuna nota operativa aggiuntiva'}</p>
@@ -2136,9 +2146,7 @@ function renderAttivita() {
                 <td class="py-4 px-6 max-w-[280px]"><div class="flex flex-wrap">${mezziPills}</div></td>
                 <td class="py-4 px-6 max-w-[280px]"><div class="flex flex-wrap">${volontariPills}</div></td>
                 <td class="py-4 px-6 text-right">
-                    <button onclick="openEditServizioModal('${s.id}')" title="Assegna mezzi e equipaggio" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">
-                        ${ICON_EDIT}
-                    </button>
+                    ${editBtn}
                 </td>
             </tr>
         `;
