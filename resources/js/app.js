@@ -885,6 +885,7 @@ function mapServizioRow(s) {
             ? s.mezzi_ids
             : (s.mezzo_id ? [s.mezzo_id] : []),
         volontariIds: s.volontari_ids || [],
+        volontariArt39: s.volontari_art39 || {},
         note: s.note,
         altriEnti: s.altri_enti_coinvolti,
         stato: s.stato,
@@ -1694,7 +1695,7 @@ async function deleteMezzo(id) {
 }
 
 // --- SEZIONE 4: SERVIZI (CRUD & VIEW) ---
-function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariIds = []) {
+function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariIds = [], selectedVolontariArt39 = {}) {
     const mezziList = getDB("pc_mezzi");
     const volontariList = getDB("pc_volontari");
 
@@ -1746,14 +1747,24 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
 
     const renderVolontarioCheckbox = (v, muted = false) => {
         const checked = selectedVolontariIds.includes(v.id) ? 'checked' : '';
+        const art39Value = selectedVolontariArt39?.[v.id] === 'Si' ? 'Si' : 'No';
         const textClass = muted ? 'text-slate-400' : 'text-slate-200';
         const fontClass = muted ? 'font-medium' : 'font-semibold';
         const extra = muted ? ` - [${v.stato}]` : '';
         const searchText = `${v.nome} ${v.cognome} ${v.ruolo} ${v.associazione_appartenenza || ''} ${v.stato}`.toLowerCase();
         return `
-            <label data-volontario-search="${searchText}" class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
-                <input type="checkbox" name="s-volontari-check" value="${v.id}" ${checked} class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
-                <span class="text-xs ${fontClass}">${v.nome} ${v.cognome} (${v.ruolo})${v.associazione_appartenenza ? ` · ${v.associazione_appartenenza}` : ''}${extra}</span>
+            <label data-volontario-search="${searchText}" class="flex items-center justify-between gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
+                <span class="flex items-center gap-3 min-w-0">
+                    <input type="checkbox" name="s-volontari-check" value="${v.id}" ${checked} class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
+                    <span class="text-xs ${fontClass} truncate">${v.nome} ${v.cognome} (${v.ruolo})${v.associazione_appartenenza ? ` · ${v.associazione_appartenenza}` : ''}${extra}</span>
+                </span>
+                <span class="flex items-center gap-1.5 shrink-0">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">art.39</span>
+                    <select name="s-volontari-art39" data-volontario-id="${v.id}" onclick="event.stopPropagation()" class="bg-slate-900 border border-slate-700 text-slate-200 py-1 px-2 rounded-lg text-[11px] font-bold focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
+                        <option value="Si" ${art39Value === 'Si' ? 'selected' : ''}>Si</option>
+                        <option value="No" ${art39Value === 'No' ? 'selected' : ''}>No</option>
+                    </select>
+                </span>
             </label>
         `;
     };
@@ -1771,6 +1782,15 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
     if (volontariList.length === 0) {
         volontariBox.innerHTML = `<p class="text-xs text-slate-500 p-2 text-center">Nessun volontario registrato!</p>`;
     }
+}
+
+function collectServizioVolontariArt39(volontariIds) {
+    const volontariArt39 = {};
+    (volontariIds || []).forEach(id => {
+        const select = document.querySelector(`select[name="s-volontari-art39"][data-volontario-id="${CSS.escape(id)}"]`);
+        volontariArt39[id] = select?.value === 'Si' ? 'Si' : 'No';
+    });
+    return volontariArt39;
 }
 
 function filterServizioMezziList() {
@@ -1883,7 +1903,7 @@ function openEditServizioModal(id) {
     editingServizioId = id;
     setModalFormMode('modal-servizio', { title: 'Modifica Servizio / Missione', submitText: 'Salva modifiche' });
 
-    populateServizioModalOptions(serv.mezziIds || [], serv.volontariIds || []);
+    populateServizioModalOptions(serv.mezziIds || [], serv.volontariIds || [], serv.volontariArt39 || {});
 
     document.getElementById("s-richiedente").value = serv.richiedente || "SORU";
     document.getElementById("s-tipo").value = serv.tipo;
@@ -2503,6 +2523,7 @@ async function saveServizio(event) {
         const volontariCheckboxes = document.querySelectorAll('input[name="s-volontari-check"]:checked');
         const volontariIds = [];
         volontariCheckboxes.forEach(cb => volontariIds.push(cb.value));
+        const volontariArt39 = collectServizioVolontariArt39(volontariIds);
 
         if (mezziIds.length === 0) {
             alert('Attenzione: devi assegnare almeno un mezzo al servizio!');
@@ -2518,6 +2539,7 @@ async function saveServizio(event) {
             const { error } = await supabase.from('servizi').update({
                 mezzi_ids: mezziIds,
                 volontari_ids: volontariIds,
+                volontari_art39: volontariArt39,
             }).eq('id', editingServizioId);
             if (error) throw error;
             toggleModal('modal-servizio', false);
@@ -2581,15 +2603,18 @@ async function saveServizio(event) {
     const volontariCheckboxes = document.querySelectorAll('input[name="s-volontari-check"]:checked');
     let volontariIds = [];
     volontariCheckboxes.forEach(cb => volontariIds.push(cb.value));
+    let volontariArt39 = collectServizioVolontariArt39(volontariIds);
 
     if (isSalaOperativa()) {
         if (editingServizioId) {
             const existing = servizi.find(s => s.id === editingServizioId);
             mezziIds = existing?.mezziIds || [];
             volontariIds = existing?.volontariIds || [];
+            volontariArt39 = existing?.volontariArt39 || {};
         } else {
             mezziIds = [];
             volontariIds = [];
+            volontariArt39 = {};
         }
     } else {
         if (mezziIds.length === 0) {
@@ -2623,6 +2648,7 @@ async function saveServizio(event) {
         indirizzo_intervento: indirizzo || null,
         mezzi_ids: mezziIds,
         volontari_ids: volontariIds,
+        volontari_art39: volontariArt39,
         note,
         altri_enti_coinvolti: altriEnti || null,
         stato,

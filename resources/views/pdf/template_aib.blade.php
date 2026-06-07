@@ -121,6 +121,14 @@
             font-size: 11px;
         }
 
+        .protocollo {
+            position: fixed;
+            bottom: 4mm;
+            left: 8mm;
+            right: 8mm;
+            font-size: 10px;
+        }
+
         /* Forzatura stampa su singola pagina senza margini browser */
         @media print {
             @page {
@@ -194,7 +202,7 @@
         OdV: {{ $gruppo ?? '' }}
     </div>
     <div class="info-line">
-        Coordinamento: <span style="font-size: 10px;">COORDINAMENTO TERRITORIALE AREA VESUVIANA "VESUVIUS"</span> <div class="protocollo">protocollo {{ $servizio['id'] ?? '' }}</div>
+        Coordinamento: <span style="font-size: 10px;">COORDINAMENTO TERRITORIALE AREA VESUVIANA "VESUVIUS"</span>
     </div>
 
     <table class="form-table">
