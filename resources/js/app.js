@@ -260,8 +260,8 @@ function applyCapoSquadraServizioFormRestrictions() {
         markCapoSquadraReadonlyHint(display);
     }
 
-    document.querySelectorAll('#s-mezzi-list input[type="checkbox"], #s-volontari-list input[type="checkbox"]').forEach(cb => {
-        cb.disabled = true;
+    document.querySelectorAll('#s-mezzi-list input[type="checkbox"], #s-volontari-list input[type="checkbox"], #s-volontari-list select[name="s-volontari-art39"]').forEach(control => {
+        control.disabled = true;
     });
 
     const mezziList = document.getElementById('s-mezzi-list');
@@ -382,8 +382,8 @@ function resetCapoSquadraServizioFormRestrictions() {
         if (el) el.required = true;
     });
 
-    document.querySelectorAll('#s-mezzi-list input[type="checkbox"], #s-volontari-list input[type="checkbox"]').forEach(cb => {
-        cb.disabled = false;
+    document.querySelectorAll('#s-mezzi-list input[type="checkbox"], #s-volontari-list input[type="checkbox"], #s-volontari-list select[name="s-volontari-art39"]').forEach(control => {
+        control.disabled = false;
     });
 
     const mezziList = document.getElementById('s-mezzi-list');
