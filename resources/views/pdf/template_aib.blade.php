@@ -194,7 +194,7 @@
         OdV: {{ $gruppo ?? '' }}
     </div>
     <div class="info-line">
-        Coordinamento: <span style="font-size: 10px;">COORDINAMENTO TERRITORIALE AREA VESUVIANA "VESUVIUS"</span> {{ $protocollo ?? '' }}
+        Coordinamento: <span style="font-size: 10px;">COORDINAMENTO TERRITORIALE AREA VESUVIANA "VESUVIUS"</span> <div class="protocollo">protocollo {{ $servizio['id'] ?? '' }}</div>
     </div>
 
     <table class="form-table">
@@ -364,5 +364,7 @@
     </table>
 
 </div>
+
+<div class="protocollo">protocollo {{ $servizio['id'] ?? '' }}</div>
 </body>
 </html>

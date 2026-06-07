@@ -156,6 +156,13 @@
         .blocco-continuazione {
             page-break-inside: avoid;
         }
+        .protocollo {
+            position: fixed;
+            bottom: 4mm;
+            left: 4%;
+            right: 4%;
+            font-size: 10pt;
+        }
         thead { display: table-header-group; }
         tr { page-break-inside: avoid; }
     </style>
@@ -306,5 +313,7 @@
             </td>
         </tr>
     </table>
+
+    <div class="protocollo">protocollo {{ $servizio['id'] ?? '' }}</div>
 </body>
 </html>
