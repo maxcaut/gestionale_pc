@@ -17,6 +17,7 @@ class ServizioPdfController extends Controller
             'servizio.tipo' => 'required|string',
             'servizio.data' => 'required|string',
             'servizio.stato' => 'required|string',
+            'servizio.tipologia_aib' => 'nullable|string',
             'servizio.note' => 'nullable|string',
             'servizio.richiedente' => 'nullable|string',
             'servizio.indirizzo' => 'nullable|string',

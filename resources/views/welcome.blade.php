@@ -659,12 +659,20 @@
                     <select id="s-tipo" required onchange="toggleServizioAibFields()" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
                         <option value="ASSISTENZA ALLA POPOLAZIONE">ASSISTENZA ALLA POPOLAZIONE</option>
                         <option value="ESERCITAZIONE">ESERCITAZIONE</option>
-                        <option value="Antincendio Boschivo">Antincendio Boschivo</option>
+                        <option value="Antincendio Boschivo">ANTINCENDIO BOSCHIVO</option>
                         <option value="LOGISTICA">LOGISTICA</option>
-                        <option value="Supporto Sanitario">Supporto Sanitario / Sociale</option>
+                        <option value="Supporto Sanitario">SUPPORTO SANITARIO / SOCIALE</option>
                         <option value="FORMAZIONE">FORMAZIONE</option>
                         <option value="SEGRETERIA/SALA OPERATIVA">SEGRETERIA/SALA OPERATIVA</option>
                         <option value="EMERGENZA">EMERGENZA</option>   
+                    </select>
+                </div>
+
+                <div id="s-aib-tipologia-servizio-block" class="hidden">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Tipologia AIB <span class="text-amber-500">*</span></label>
+                    <select id="s-aib-tipologia-servizio" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                        <option value="L">Lotta attiva</option>
+                        <option value="P">Pattugliamento</option>
                     </select>
                 </div>
 

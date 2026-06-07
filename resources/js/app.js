@@ -805,14 +805,23 @@ function resetServizioAibFields() {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
+    const tipologia = document.getElementById('s-aib-tipologia-servizio');
+    if (tipologia) tipologia.value = 'L';
 }
 
 function toggleServizioAibFields() {
     const tipo = document.getElementById('s-tipo')?.value ?? '';
     const show = isAntincendioBoschivo(tipo);
     const section = document.getElementById('s-aib-section');
+    const tipologiaBlock = document.getElementById('s-aib-tipologia-servizio-block');
+    const tipologia = document.getElementById('s-aib-tipologia-servizio');
     const orariFine = document.getElementById('s-aib-orari-fine');
     if (section) section.classList.toggle('hidden', !show);
+    if (tipologiaBlock) tipologiaBlock.classList.toggle('hidden', !show);
+    if (tipologia) {
+        tipologia.required = show;
+        if (show && !tipologia.value) tipologia.value = 'L';
+    }
     if (orariFine) orariFine.classList.toggle('hidden', !show);
 }
 
@@ -823,9 +832,11 @@ function setServizioAibFormData(serv) {
     const oraArrivo = document.getElementById('s-aib-ora-arrivo');
     const oraFine = document.getElementById('s-aib-ora-fine');
     const oraRientro = document.getElementById('s-aib-ora-rientro');
+    const tipologia = document.getElementById('s-aib-tipologia-servizio');
     if (oraArrivo) oraArrivo.value = serv.oraArrivoIncendio || '';
     if (oraFine) oraFine.value = serv.oraFineIntervento || '';
     if (oraRientro) oraRientro.value = serv.oraRientroSede || '';
+    if (tipologia) tipologia.value = serv.tipologiaAib || 'L';
 
     setSuperficieGroup(AIB_SUPERFICIE_FIELDS.ceduo, serv.superficieCeduo);
     setSuperficieGroup(AIB_SUPERFICIE_FIELDS.altoFusto, serv.superficieAltoFusto);
@@ -841,14 +852,17 @@ function buildServizioAibPayload(tipo) {
             superficie_ceduo: null,
             superficie_alto_fusto: null,
             superficie_non_boscato: null,
+            tipologia_aib: null,
         };
     }
 
+    const tipologiaAib = document.getElementById('s-aib-tipologia-servizio')?.value || null;
     const oraArrivo = document.getElementById('s-aib-ora-arrivo')?.value.trim() || null;
     const oraFine = document.getElementById('s-aib-ora-fine')?.value.trim() || null;
     const oraRientro = document.getElementById('s-aib-ora-rientro')?.value.trim() || null;
 
     return {
+        tipologia_aib: tipologiaAib,
         ora_arrivo_incendio: oraArrivo,
         ora_fine_intervento: oraFine,
         ora_rientro_sede: oraRientro,
@@ -880,6 +894,7 @@ function mapServizioRow(s) {
         superficieCeduo: s.superficie_ceduo || {},
         superficieAltoFusto: s.superficie_alto_fusto || {},
         superficieNonBoscato: s.superficie_non_boscato || {},
+        tipologiaAib: s.tipologia_aib || '',
     };
 }
 
@@ -2746,6 +2761,7 @@ async function exportServizioPdf(id, template = 'riepilogo-intervento') {
                     indirizzo: serv.indirizzo || '',
                     altriEnti: serv.altriEnti || '',
                     stato: serv.stato,
+                    tipologia_aib: serv.tipologiaAib || '',
                     volontariIds: serv.volontariIds || [],
                     oraArrivoIncendio: serv.oraArrivoIncendio || '',
                     oraFineIntervento: serv.oraFineIntervento || '',

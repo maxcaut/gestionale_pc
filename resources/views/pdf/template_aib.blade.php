@@ -187,7 +187,7 @@
     </table>
 
     <div class="main-title">
-        CONVENZIONE SUPPORTO AIB 2024 – TIPOLOGIA L – RAPPORTO ATTIVITA'
+        CONVENZIONE SUPPORTO AIB 2024 – TIPOLOGIA {{ $servizio['tipologia_aib'] ?? '' }} – RAPPORTO ATTIVITA'
     </div>
 
     <div class="info-line">
