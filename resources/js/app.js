@@ -1967,7 +1967,7 @@ function formatServizioViewMezzi(mezziIds) {
     `).join('');
 }
 
-function formatServizioViewVolontari(volontariIds) {
+function formatServizioViewVolontari(volontariIds, volontariArt39 = {}) {
     const volontariList = getDB('pc_volontari');
     const assigned = (volontariIds || [])
         .map(id => volontariList.find(v => v.id === id))
@@ -1979,7 +1979,7 @@ function formatServizioViewVolontari(volontariIds) {
 
     return assigned.map(v => `
         <span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">
-            ${v.nome} ${v.cognome}${v.associazione_appartenenza ? ` · ${v.associazione_appartenenza}` : ''}
+            ${v.nome} ${v.cognome} ${v.associazione_appartenenza ? ` · ${v.associazione_appartenenza}` : ''} · Art.39 ${volontariArt39[v.id] === 'Si' ? 'Si' : 'No'}
         </span>
     `).join('');
 }
@@ -2051,7 +2051,7 @@ function buildServizioViewHtml(serv) {
             </div>
             <div>
                 <p class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Equipaggio Volontari assegnati</p>
-                <div class="flex flex-wrap">${formatServizioViewVolontari(serv.volontariIds)}</div>
+                <div class="flex flex-wrap">${formatServizioViewVolontari(serv.volontariIds, serv.volontariArt39)}</div>
             </div>
             ${servizioViewField('Note / Dettagli Operativi', serv.note, { multiline: true })}
             ${servizioViewField('Altri Enti Coinvolti', serv.altriEnti)}
@@ -2789,6 +2789,7 @@ async function exportServizioPdf(id, template = 'riepilogo-intervento') {
                     stato: serv.stato,
                     tipologia_aib: serv.tipologiaAib || '',
                     volontariIds: serv.volontariIds || [],
+                    volontari_art39: serv.volontariArt39 || {},
                     oraArrivoIncendio: serv.oraArrivoIncendio || '',
                     oraFineIntervento: serv.oraFineIntervento || '',
                     oraRientroSede: serv.oraRientroSede || '',
@@ -2803,6 +2804,7 @@ async function exportServizioPdf(id, template = 'riepilogo-intervento') {
                     stato: m.stato,
                 })),
                 equipaggio: equipaggio.map(v => ({
+                    id: v.id,
                     nome: v.nome,
                     cognome: v.cognome,
                     cf: v.cf,

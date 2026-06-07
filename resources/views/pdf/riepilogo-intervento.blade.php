@@ -260,7 +260,7 @@
                             <td>{{ $volontario['nome'] ?? '' }}</td>
                             <td>{{ $volontario['cf'] ?? '' }}</td>
                             <td>&nbsp;</td>
-                            <td>&nbsp;</td>
+                            <td>{{ $volontario['art39'] ?? $volontario['art_39'] ?? (($servizio['volontari_art39'] ?? [])[$volontario['id'] ?? ''] ?? '') }}</td>
                         </tr>
                     @endforeach
                 </tbody>
