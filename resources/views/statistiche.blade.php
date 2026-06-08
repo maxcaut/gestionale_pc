@@ -1,8 +1,13 @@
                 <!-- ================= TAB: STATISTICHE ================= -->
                 <section id="tab-statistiche" data-master-only class="tab-content space-y-6 hidden fade-in">
-                    <div>
-                        <h2 class="text-lg font-bold text-white">Statistiche</h2>
-                        <p class="text-xs text-slate-400 mt-1">Ore lavorate calcolate dai servizi con orari disponibili.</p>
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-white">Statistiche</h2>
+                            <p class="text-xs text-slate-400 mt-1">Ore lavorate calcolate dai servizi con orari disponibili.</p>
+                        </div>
+                        <button type="button" onclick="exportStatistiche()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition-all shadow-md shadow-amber-500/10">
+                            Export
+                        </button>
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -1604,9 +1604,7 @@ function renderStatisticheNonCalcolabili(serviziList) {
     `).join('');
 }
 
-function renderStatistiche() {
-    if (!hasMasterAccess()) return;
-
+function getStatisticheData() {
     const volontariList = getDB('pc_volontari');
     const mezziList = getDB('pc_mezzi');
     const serviziList = getDB('pc_servizi');
@@ -1648,19 +1646,90 @@ function renderStatistiche() {
     const byLabelAndTipologia = (a, b) => a.label.localeCompare(b.label, 'it') || a.tipologia.localeCompare(b.tipologia, 'it');
     const byTipologia = (a, b) => a.tipologia.localeCompare(b.tipologia, 'it');
 
+    return {
+        volontariStats: [...volontariStats.values()].sort(byLabelAndTipologia),
+        mezziStats: [...mezziStats.values()].sort(byLabelAndTipologia),
+        tipologieStats: [...tipologieStats.values()].sort(byTipologia),
+        nonCalcolabili,
+    };
+}
+
+function escapeCsvValue(value) {
+    const text = String(value ?? '');
+    return /[;"\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function exportStatistiche() {
+    if (!hasMasterAccess()) return;
+
+    const {
+        volontariStats,
+        mezziStats,
+        tipologieStats,
+        nonCalcolabili,
+    } = getStatisticheData();
+
+    const lines = [];
+    const addSection = (title, headers, rows) => {
+        if (lines.length > 0) lines.push('');
+        lines.push(title);
+        lines.push(headers.map(escapeCsvValue).join(';'));
+        rows.forEach(row => lines.push(row.map(escapeCsvValue).join(';')));
+    };
+
+    addSection('Ore volontari per tipologia', ['Volontario', 'Tipologia', 'Ore'], volontariStats.map(row => [
+        row.label,
+        row.tipologia,
+        formatHours(row.hours),
+    ]));
+    addSection('Ore mezzi per tipologia', ['Mezzo', 'Tipologia', 'Ore'], mezziStats.map(row => [
+        row.label,
+        row.tipologia,
+        formatHours(row.hours),
+    ]));
+    addSection('Ore per tipologia', ['Tipologia', 'Ore'], tipologieStats.map(row => [
+        row.tipologia,
+        formatHours(row.hours),
+    ]));
+    addSection('Servizi senza ore calcolabili', ['ID', 'Tipologia'], nonCalcolabili.map(servizio => [
+        servizio.id,
+        servizio.tipo,
+    ]));
+
+    const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `statistiche-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+}
+
+function renderStatistiche() {
+    if (!hasMasterAccess()) return;
+
+    const {
+        volontariStats,
+        mezziStats,
+        tipologieStats,
+        nonCalcolabili,
+    } = getStatisticheData();
+
     renderStatisticheGroupedTable(
         'statistiche-volontari-body',
-        [...volontariStats.values()].sort(byLabelAndTipologia),
+        volontariStats,
         'Nessuna ora volontario calcolabile.'
     );
     renderStatisticheGroupedTable(
         'statistiche-mezzi-body',
-        [...mezziStats.values()].sort(byLabelAndTipologia),
+        mezziStats,
         'Nessuna ora mezzo calcolabile.'
     );
     renderStatisticheTable(
         'statistiche-tipologie-body',
-        [...tipologieStats.values()].sort(byTipologia),
+        tipologieStats,
         'Nessuna ora per tipologia calcolabile.',
         2
     );
@@ -4023,6 +4092,7 @@ window.openPdfTemplateModal = openPdfTemplateModal;
 window.closePdfTemplateModal = closePdfTemplateModal;
 window.confirmPdfTemplate = confirmPdfTemplate;
 window.exportServizioPdf = exportServizioPdf;
+window.exportStatistiche = exportStatistiche;
 window.deleteServizio = deleteServizio;
 window.renderServizi = renderServizi;
 window.renderAttivita = renderAttivita;
