@@ -859,10 +859,6 @@ function toggleServizioAibFields() {
     }
     if (orariFine) orariFine.classList.toggle('hidden', !show);
     if (squadreBlock) squadreBlock.classList.toggle('hidden', !(show && isSalaOperativa()));
-    if (show && !editingServizioId) {
-        const art39 = document.getElementById('s-art39');
-        if (art39) art39.value = 'No';
-    }
     populateServizioSquadreAibOptions(collectCheckedValues('s-aib-squadre-check'));
 }
 
@@ -2357,7 +2353,7 @@ function openNuovoServizioModal() {
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     document.getElementById("s-data").value = now.toISOString().slice(0, 16);
     document.getElementById("s-tipo").value = "Pattugliamento Territorio";
-    document.getElementById("s-art39").value = "Si";
+    document.getElementById("s-art39").value = "No";
     document.getElementById("s-note").value = "";
     document.getElementById("s-stato").value = "Programmato";
     resetServizioLocationFields();
