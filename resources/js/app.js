@@ -1902,6 +1902,13 @@ function renderSquadreAib() {
 
     tbody.innerHTML = '';
     filtered.forEach(s => {
+        const assegnazione = getSquadraAibInterventoAttivo(s.id);
+        const statoAssegnazione = formatSquadraAibStatoIntervento(assegnazione?.stato);
+        const assegnazioneHtml = assegnazione
+            ? `<div class="mt-2 text-[11px] font-semibold text-amber-300 leading-snug">
+                    Assegnata a: ${assegnazione.tipo}${statoAssegnazione ? ` · ${statoAssegnazione}` : ''}${assegnazione.data ? ` · ${formatServizioDataPianificata(assegnazione.data)}` : ''}
+               </div>`
+            : '';
         const badgeClass = s.stato === 'Operativa'
             ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
             : 'bg-slate-500/10 text-slate-400 border-slate-500/20';
@@ -1911,7 +1918,7 @@ function renderSquadreAib() {
                 <td class="py-4 px-6 text-slate-300">${s.associazione_appartenenza || '—'}</td>
                 <td class="py-4 px-6 max-w-[280px]"><div class="flex flex-wrap">${formatSquadraAibMezzi(s.mezziIds)}</div></td>
                 <td class="py-4 px-6 max-w-[280px]"><div class="flex flex-wrap">${formatSquadraAibVolontari(s.volontariIds)}</div></td>
-                <td class="py-4 px-6"><span class="px-2.5 py-1 text-[10px] font-bold border rounded-full ${badgeClass}">${s.stato}</span></td>
+                <td class="py-4 px-6"><span class="px-2.5 py-1 text-[10px] font-bold border rounded-full ${badgeClass}">${s.stato}</span>${assegnazioneHtml}</td>
                 <td class="py-4 px-6 text-right">
                     <div class="inline-flex gap-2">
                         <button type="button" onclick="openEditSquadraAibModal('${s.id}')" title="Modifica" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">${ICON_EDIT}</button>
@@ -2165,9 +2172,29 @@ function isSquadraAibAssegnataAInterventoAttivo(squadraId, excludeServizioId = n
     return servizi.some(serv => (
         serv.id !== excludeServizioId
         && isAntincendioBoschivo(serv.tipo)
-        && serv.stato !== 'Completato'
+        && isStatoInterventoAibAssegnato(serv.stato)
         && (serv.squadreAibIds || []).includes(squadraId)
     ));
+}
+
+function getSquadraAibInterventoAttivo(squadraId, excludeServizioId = null) {
+    return servizi.find(serv => (
+        serv.id !== excludeServizioId
+        && isAntincendioBoschivo(serv.tipo)
+        && isStatoInterventoAibAssegnato(serv.stato)
+        && (serv.squadreAibIds || []).includes(squadraId)
+    ));
+}
+
+function isStatoInterventoAibAssegnato(stato) {
+    return ['programmato', 'pianificato', 'in corso'].includes((stato || '').trim().toLowerCase());
+}
+
+function formatSquadraAibStatoIntervento(stato) {
+    const normalized = (stato || '').trim().toLowerCase();
+    if (normalized === 'in corso') return 'Intervento in corso';
+    if (normalized === 'programmato' || normalized === 'pianificato') return 'Intervento pianificato';
+    return stato || '';
 }
 
 function getSquadreAibAssegnateAInterventiAttivi(squadreIds = [], excludeServizioId = null) {
