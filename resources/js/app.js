@@ -908,6 +908,7 @@ function mapServizioRow(s) {
             : (s.mezzo_id ? [s.mezzo_id] : []),
         volontariIds: s.volontari_ids || [],
         volontariArt39: s.volontari_art39 || {},
+        art39: s.art39 || 'Si',
         note: s.note,
         altriEnti: s.altri_enti_coinvolti,
         stato: s.stato,
@@ -1752,7 +1753,7 @@ async function deleteMezzo(id) {
 }
 
 // --- SEZIONE 4: SERVIZI (CRUD & VIEW) ---
-function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariIds = [], selectedVolontariArt39 = {}) {
+function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariIds = [], selectedVolontariArt39 = {}, servizioArt39 = 'Si') {
     const mezziList = getDB("pc_mezzi");
     const volontariList = getDB("pc_volontari");
 
@@ -1801,20 +1802,16 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
 
     const volontariOperativi = volontariList.filter(v => v.stato === "Operativo");
     const volontariNonOperativi = volontariList.filter(v => v.stato !== "Operativo");
+    const canManageVolontariArt39 = servizioArt39 !== 'No' || !isSegreteria();
 
     const renderVolontarioCheckbox = (v, muted = false) => {
         const checked = selectedVolontariIds.includes(v.id) ? 'checked' : '';
-        const art39Value = selectedVolontariArt39?.[v.id] === 'Si' ? 'Si' : 'No';
+        const art39Value = servizioArt39 === 'No' ? 'No' : (selectedVolontariArt39?.[v.id] === 'Si' ? 'Si' : 'No');
         const textClass = muted ? 'text-slate-400' : 'text-slate-200';
         const fontClass = muted ? 'font-medium' : 'font-semibold';
         const extra = muted ? ` - [${v.stato}]` : '';
         const searchText = `${v.nome} ${v.cognome} ${v.ruolo} ${v.associazione_appartenenza || ''} ${v.stato}`.toLowerCase();
-        return `
-            <label data-volontario-search="${searchText}" class="flex items-center justify-between gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
-                <span class="flex items-center gap-3 min-w-0">
-                    <input type="checkbox" name="s-volontari-check" value="${v.id}" ${checked} class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
-                    <span class="text-xs ${fontClass} truncate">${v.nome} ${v.cognome} (${v.ruolo})${v.associazione_appartenenza ? ` · ${v.associazione_appartenenza}` : ''}${extra}</span>
-                </span>
+        const art39Control = canManageVolontariArt39 ? `
                 <span class="flex items-center gap-1.5 shrink-0">
                     <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">art.39</span>
                     <select name="s-volontari-art39" data-volontario-id="${v.id}" onclick="event.stopPropagation()" class="bg-slate-900 border border-slate-700 text-slate-200 py-1 px-2 rounded-lg text-[11px] font-bold focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
@@ -1822,6 +1819,14 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
                         <option value="No" ${art39Value === 'No' ? 'selected' : ''}>No</option>
                     </select>
                 </span>
+        ` : '';
+        return `
+            <label data-volontario-search="${searchText}" class="flex items-center justify-between gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
+                <span class="flex items-center gap-3 min-w-0">
+                    <input type="checkbox" name="s-volontari-check" value="${v.id}" ${checked} class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
+                    <span class="text-xs ${fontClass} truncate">${v.nome} ${v.cognome} (${v.ruolo})${v.associazione_appartenenza ? ` · ${v.associazione_appartenenza}` : ''}${extra}</span>
+                </span>
+                ${art39Control}
             </label>
         `;
     };
@@ -1843,9 +1848,10 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
 
 function collectServizioVolontariArt39(volontariIds) {
     const volontariArt39 = {};
+    const servizioArt39 = document.getElementById('s-art39')?.value || 'Si';
     (volontariIds || []).forEach(id => {
         const select = document.querySelector(`select[name="s-volontari-art39"][data-volontario-id="${CSS.escape(id)}"]`);
-        volontariArt39[id] = select?.value === 'Si' ? 'Si' : 'No';
+        volontariArt39[id] = servizioArt39 === 'No' ? 'No' : (select?.value === 'Si' ? 'Si' : 'No');
     });
     return volontariArt39;
 }
@@ -1936,6 +1942,7 @@ function openNuovoServizioModal() {
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     document.getElementById("s-data").value = now.toISOString().slice(0, 16);
     document.getElementById("s-tipo").value = "Pattugliamento Territorio";
+    document.getElementById("s-art39").value = "Si";
     document.getElementById("s-note").value = "";
     document.getElementById("s-stato").value = "Programmato";
     resetServizioLocationFields();
@@ -1960,10 +1967,11 @@ function openEditServizioModal(id) {
     editingServizioId = id;
     setModalFormMode('modal-servizio', { title: 'Modifica Servizio / Missione', submitText: 'Salva modifiche' });
 
-    populateServizioModalOptions(serv.mezziIds || [], serv.volontariIds || [], serv.volontariArt39 || {});
+    populateServizioModalOptions(serv.mezziIds || [], serv.volontariIds || [], serv.volontariArt39 || {}, serv.art39 || 'Si');
 
     document.getElementById("s-richiedente").value = serv.richiedente || "SORU";
     document.getElementById("s-tipo").value = serv.tipo;
+    document.getElementById("s-art39").value = serv.art39 || "Si";
     document.getElementById("s-data").value = toDatetimeLocalValue(serv.data);
     document.getElementById("s-lat").value = serv.latitudine ?? "";
     document.getElementById("s-lng").value = serv.longitudine ?? "";
@@ -2654,6 +2662,7 @@ async function saveServizio(event) {
 
     const richiedente = document.getElementById("s-richiedente").value;
     const tipo = document.getElementById("s-tipo").value;
+    const art39 = document.getElementById("s-art39").value;
     const data = document.getElementById("s-data").value;
     const latValue = document.getElementById("s-lat").value.trim();
     const lngValue = document.getElementById("s-lng").value.trim();
@@ -2693,6 +2702,10 @@ async function saveServizio(event) {
         }
     }
 
+    if (art39 === 'No') {
+        volontariArt39 = Object.fromEntries(volontariIds.map(id => [id, 'No']));
+    }
+
     let latitudine = latValue !== "" ? parseFloat(latValue) : null;
     let longitudine = lngValue !== "" ? parseFloat(lngValue) : null;
 
@@ -2714,6 +2727,7 @@ async function saveServizio(event) {
         mezzi_ids: mezziIds,
         volontari_ids: volontariIds,
         volontari_art39: volontariArt39,
+        art39,
         note,
         altri_enti_coinvolti: altriEnti || null,
         stato,

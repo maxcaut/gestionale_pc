@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS servizi (
     data TEXT NOT NULL,
     mezzi_ids TEXT[] NOT NULL DEFAULT '{}',
     volontari_ids TEXT[] NOT NULL DEFAULT '{}',
+    art39 TEXT NOT NULL DEFAULT 'Si',
     note TEXT,
     stato TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
