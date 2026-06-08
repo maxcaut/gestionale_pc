@@ -2127,7 +2127,10 @@ function populateServizioSquadreAibOptions(selectedSquadreIds = []) {
     }
 
     const selected = new Set(Array.isArray(selectedSquadreIds) ? selectedSquadreIds : []);
-    const operative = squadreAib.filter(s => s.stato === 'Operativa');
+    const operative = squadreAib.filter(s => (
+        s.stato === 'Operativa'
+        && (!isSquadraAibAssegnataAInterventoAttivo(s.id) || selected.has(s.id))
+    ));
     if (operative.length === 0) {
         box.innerHTML = `<p class="text-xs text-slate-500 p-2 text-center">Nessuna squadra A.I.B. operativa disponibile.</p>`;
         return;
@@ -2156,6 +2159,19 @@ function populateServizioSquadreAibOptions(selectedSquadreIds = []) {
             </div>
         `;
     }).join('');
+}
+
+function isSquadraAibAssegnataAInterventoAttivo(squadraId, excludeServizioId = null) {
+    return servizi.some(serv => (
+        serv.id !== excludeServizioId
+        && isAntincendioBoschivo(serv.tipo)
+        && serv.stato !== 'Completato'
+        && (serv.squadreAibIds || []).includes(squadraId)
+    ));
+}
+
+function getSquadreAibAssegnateAInterventiAttivi(squadreIds = [], excludeServizioId = null) {
+    return squadreIds.filter(id => isSquadraAibAssegnataAInterventoAttivo(id, excludeServizioId));
 }
 
 function buildServizioSquadraAibDetailsHtml(squadra) {
@@ -3060,6 +3076,11 @@ async function saveServizio(event) {
             squadreAibIds = getSelectedServizioSquadreAibIds();
             if (squadreAibIds.length === 0) {
                 alert("Attenzione: devi assegnare almeno una squadra A.I.B. operativa all'intervento!");
+                return;
+            }
+            const squadreOccupate = getSquadreAibAssegnateAInterventiAttivi(squadreAibIds, editingServizioId);
+            if (squadreOccupate.length > 0) {
+                alert("Attenzione: una o più squadre A.I.B. selezionate sono già assegnate a un intervento non completato.");
                 return;
             }
             const resources = getServizioSquadreAibResources(squadreAibIds);
