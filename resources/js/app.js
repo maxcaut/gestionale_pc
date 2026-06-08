@@ -743,6 +743,15 @@ function normalizeTimeValue(value) {
     return match ? `${match[1]}:${match[2]}` : '';
 }
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
 function isTimeValuePassedToday(value) {
     const normalized = normalizeTimeValue(value);
     if (!normalized) return false;
@@ -852,7 +861,6 @@ function setSuperficieGroup(fieldDefs, data) {
 function resetServizioAibFields() {
     const ids = [
         's-aib-ora-arrivo',
-        's-aib-ora-fine',
         's-aib-ora-rientro',
         ...AIB_SUPERFICIE_FIELDS.ceduo.map(f => f.id),
         ...AIB_SUPERFICIE_FIELDS.altoFusto.map(f => f.id),
@@ -904,10 +912,12 @@ function setServizioAibFormData(serv) {
 }
 
 function buildServizioAibPayload(tipo) {
+    const oraFine = document.getElementById('s-aib-ora-fine')?.value.trim() || null;
+
     if (!isAntincendioBoschivo(tipo)) {
         return {
             ora_arrivo_incendio: null,
-            ora_fine_intervento: null,
+            ora_fine_intervento: oraFine,
             ora_rientro_sede: null,
             superficie_ceduo: null,
             superficie_alto_fusto: null,
@@ -918,7 +928,6 @@ function buildServizioAibPayload(tipo) {
 
     const tipologiaAib = document.getElementById('s-aib-tipologia-servizio')?.value || null;
     const oraArrivo = document.getElementById('s-aib-ora-arrivo')?.value.trim() || null;
-    const oraFine = document.getElementById('s-aib-ora-fine')?.value.trim() || null;
     const oraRientro = document.getElementById('s-aib-ora-rientro')?.value.trim() || null;
 
     return {
@@ -1211,7 +1220,7 @@ function switchTab(tabId) {
     if (!canAccessSquadreAib() && tabId === 'squadre-aib') {
         tabId = canAccessVolontari() ? 'volontari' : (canAccessServizi() ? 'servizi' : 'dashboard');
     }
-    if (!hasMasterAccess() && (tabId === 'admin' || tabId === 'dashboard')) {
+    if (!hasMasterAccess() && (tabId === 'admin' || tabId === 'dashboard' || tabId === 'statistiche')) {
         if (canAccessServizi()) tabId = 'servizi';
         else if (canAccessAttivita()) tabId = 'attivita';
         else if (canAccessSquadreAib()) tabId = 'squadre-aib';
@@ -1257,6 +1266,7 @@ function switchTab(tabId) {
         mezzi: "Gestione Flotta Mezzi",
         "squadre-aib": "Squadre A.I.B.",
         servizi: "Sala Opeerativa",
+        statistiche: "Statistiche",
         attivita: "Attività",
         admin: "Gestione Utenti"
     };
@@ -1275,6 +1285,10 @@ function switchTab(tabId) {
 
     if (tabId === "attivita") {
         renderAttivita();
+    }
+
+    if (tabId === "statistiche") {
+        renderStatistiche();
     }
 
     if (tabId === "squadre-aib") {
@@ -1447,6 +1461,159 @@ function renderDashboardVolontari(volontariList) {
             </tr>
         `;
     });
+}
+
+function getServizioDurationHours(servizio) {
+    if (servizio.stato !== 'Completato' || !servizio.data) return null;
+
+    const start = new Date(servizio.data);
+    if (Number.isNaN(start.getTime())) return null;
+
+    const endTime = normalizeTimeValue(servizio.oraRientroSede || servizio.oraFineIntervento);
+    if (!endTime) return null;
+
+    const [hours, minutes] = endTime.split(':').map(Number);
+    const end = new Date(start);
+    end.setHours(hours, minutes, 0, 0);
+    if (end <= start) {
+        end.setDate(end.getDate() + 1);
+    }
+
+    const diffHours = (end.getTime() - start.getTime()) / 3600000;
+    return diffHours > 0 ? diffHours : null;
+}
+
+function formatHours(value) {
+    return Number(value || 0).toLocaleString('it-IT', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+}
+
+function addStatHours(map, key, label, tipologia, hours) {
+    const mapKey = `${key}__${tipologia}`;
+    const current = map.get(mapKey) || { label, tipologia, hours: 0 };
+    current.hours += hours;
+    map.set(mapKey, current);
+}
+
+function renderStatisticheTable(tbodyId, rows, emptyMessage, columns) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+    if (rows.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="${columns}" class="py-8 px-6 text-center text-slate-500 font-medium">${emptyMessage}</td>
+            </tr>
+        `;
+        return;
+    }
+
+    rows.forEach(row => {
+        if (columns === 2) {
+            tbody.innerHTML += `
+                <tr class="hover:bg-slate-800/10 transition-colors">
+                    <td class="py-4 px-6 text-slate-100 font-semibold">${escapeHtml(row.tipologia)}</td>
+                    <td class="py-4 px-6 text-right text-amber-400 font-bold">${formatHours(row.hours)}</td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-800/10 transition-colors">
+                <td class="py-4 px-6 text-slate-100 font-semibold">${escapeHtml(row.label)}</td>
+                <td class="py-4 px-6 text-slate-300">${escapeHtml(row.tipologia)}</td>
+                <td class="py-4 px-6 text-right text-amber-400 font-bold">${formatHours(row.hours)}</td>
+            </tr>
+        `;
+    });
+}
+
+function renderStatisticheNonCalcolabili(serviziList) {
+    const wrap = document.getElementById('statistiche-non-calcolabili');
+    const list = document.getElementById('statistiche-non-calcolabili-list');
+    if (!wrap || !list) return;
+
+    if (serviziList.length === 0) {
+        wrap.classList.add('hidden');
+        list.innerHTML = '';
+        return;
+    }
+
+    wrap.classList.remove('hidden');
+    list.innerHTML = serviziList.map(s => `
+        <span class="inline-flex max-w-full px-2.5 py-1 bg-slate-800 text-slate-300 border border-slate-700/60 rounded-xl text-xs font-semibold">
+            <span class="truncate">${escapeHtml(s.id)} · ${escapeHtml(s.tipo)}</span>
+        </span>
+    `).join('');
+}
+
+function renderStatistiche() {
+    if (!hasMasterAccess()) return;
+
+    const volontariList = getDB('pc_volontari');
+    const mezziList = getDB('pc_mezzi');
+    const serviziList = getDB('pc_servizi');
+    const volontariById = new Map(volontariList.map(v => [v.id, v]));
+    const mezziById = new Map(mezziList.map(m => [m.id, m]));
+    const volontariStats = new Map();
+    const mezziStats = new Map();
+    const tipologieStats = new Map();
+    const nonCalcolabili = [];
+
+    serviziList.forEach(servizio => {
+        if (servizio.stato !== 'Completato') return;
+
+        const hours = getServizioDurationHours(servizio);
+        if (hours === null) {
+            nonCalcolabili.push(servizio);
+            return;
+        }
+
+        const tipologia = servizio.tipo || 'Senza tipologia';
+        const tipoStat = tipologieStats.get(tipologia) || { tipologia, hours: 0 };
+        tipoStat.hours += hours;
+        tipologieStats.set(tipologia, tipoStat);
+
+        (servizio.volontariIds || []).forEach(id => {
+            const volontario = volontariById.get(id);
+            if (!volontario) return;
+            addStatHours(volontariStats, id, `${volontario.nome} ${volontario.cognome}`, tipologia, hours);
+        });
+
+        (servizio.mezziIds || []).forEach(id => {
+            const mezzo = mezziById.get(id);
+            if (!mezzo) return;
+            const label = `${mezzo.modello}${mezzo.targa ? ` [${mezzo.targa}]` : ''}`;
+            addStatHours(mezziStats, id, label, tipologia, hours);
+        });
+    });
+
+    const byLabelAndTipologia = (a, b) => a.label.localeCompare(b.label, 'it') || a.tipologia.localeCompare(b.tipologia, 'it');
+    const byTipologia = (a, b) => a.tipologia.localeCompare(b.tipologia, 'it');
+
+    renderStatisticheTable(
+        'statistiche-volontari-body',
+        [...volontariStats.values()].sort(byLabelAndTipologia),
+        'Nessuna ora volontario calcolabile.',
+        3
+    );
+    renderStatisticheTable(
+        'statistiche-mezzi-body',
+        [...mezziStats.values()].sort(byLabelAndTipologia),
+        'Nessuna ora mezzo calcolabile.',
+        3
+    );
+    renderStatisticheTable(
+        'statistiche-tipologie-body',
+        [...tipologieStats.values()].sort(byTipologia),
+        'Nessuna ora per tipologia calcolabile.',
+        2
+    );
+    renderStatisticheNonCalcolabili(nonCalcolabili);
 }
 
 // --- SEZIONE 2: VOLONTARI (CRUD & VIEW) ---
@@ -2442,6 +2609,7 @@ function openNuovoServizioModal() {
     document.getElementById("s-art39").value = "No";
     document.getElementById("s-note").value = "";
     document.getElementById("s-stato").value = "Programmato";
+    document.getElementById("s-aib-ora-fine").value = "";
     resetServizioLocationFields();
     resetServizioAibFields();
     toggleServizioAibFields();
@@ -2477,6 +2645,7 @@ function openEditServizioModal(id) {
     document.getElementById("s-note").value = serv.note || "";
     document.getElementById("s-altri-enti").value = serv.altriEnti || "";
     document.getElementById("s-stato").value = serv.stato;
+    document.getElementById("s-aib-ora-fine").value = serv.oraFineIntervento || "";
     setServizioAibFormData(serv);
     toggleServizioAibFields();
     populateServizioSquadreAibOptions(serv.squadreAibIds || []);
@@ -2605,12 +2774,12 @@ function buildServizioViewHtml(serv) {
                     })}
                 </div>
             </div>
-            ${servizioViewField('Orario di fine intervento', serv.oraFineIntervento)}
             ${servizioViewField('Orario di rientro in sede', serv.oraRientroSede)}
         `;
     }
 
     html += `
+            ${servizioViewField('Orario di fine intervento', serv.oraFineIntervento)}
             ${servizioViewField('Coordinate Geografiche', coordsValue)}
             ${servizioViewField('Indirizzo Intervento', serv.indirizzo)}
             <div>
@@ -3480,6 +3649,7 @@ function updateUI() {
     renderSquadreAib();
     renderServizi();
     renderAttivita();
+    renderStatistiche();
 }
 
 // --- CLOCK E DATA IN TEMPO REALE ---
