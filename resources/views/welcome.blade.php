@@ -461,7 +461,7 @@
 
     <!-- ================= MODAL: NUOVO VOLONTARIO ================= -->
     <div id="modal-volontario" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl slide-in">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl slide-in max-h-[90vh] flex flex-col">
             <!-- Modal Header -->
             <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -477,7 +477,7 @@
                 </button>
             </div>
             <!-- Modal Form -->
-            <form id="form-volontario" onsubmit="saveVolontario(event)" class="p-6 space-y-4">
+            <form id="form-volontario" onsubmit="saveVolontario(event)" class="p-6 space-y-4 overflow-y-auto">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Nome <span class="text-amber-500">*</span></label>
@@ -488,6 +488,17 @@
                         <input type="text" id="v-cognome" required placeholder="Es. Rossi" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
                     </div>
                 </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Data di nascita <span class="text-amber-500">*</span></label>
+                        <input type="date" id="v-data-nascita" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Luogo di nascita <span class="text-amber-500">*</span></label>
+                        <input type="text" id="v-luogo-nascita" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                    </div>
+                </div>
                 
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Codice Fiscale <span class="text-amber-500">*</span></label>
@@ -496,12 +507,39 @@
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Comune di residenza <span class="text-amber-500">*</span></label>
+                        <input type="text" id="v-comune-residenza" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Via di residenza <span class="text-amber-500">*</span></label>
+                        <input type="text" id="v-via-residenza" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Censito? <span class="text-amber-500">*</span></label>
+                        <select id="v-censito" required onchange="toggleVolontarioMatricolaField()" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                            <option value="No">No</option>
+                            <option value="Si">Si</option>
+                        </select>
+                    </div>
+                    <div id="v-matricola-regionale-wrap" class="hidden">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Matricola Regionale <span class="text-amber-500">*</span></label>
+                        <input type="text" id="v-matricola-regionale" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Ruolo Operativo <span class="text-amber-500">*</span></label>
                         <select id="v-ruolo" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
-                            <option value="Soccorritore">Soccorritore</option>
-                            <option value="Autista">Autista</option>
-                            <option value="Logista">Logista</option>
                             <option value="Coordinatore">Coordinatore</option>
+                            <option value="Vice Coordinatore">Vice Coordinatore</option>
+                            <option value="Caposquadra">Caposquadra</option>
+                            <option value="Consigliere direttivo">Consigliere direttivo</option>
+                            <option value="Tesoriere">Tesoriere</option>
+                            <option value="Volontario">Volontario</option>
                         </select>
                     </div>
                     <div>
@@ -511,6 +549,62 @@
                             <option value="In riposo">In riposo (Non disp.)</option>
                             <option value="Sospeso">Sospeso</option>
                         </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Qualifica Antincendio</label>
+                    <div class="grid grid-cols-5 gap-2">
+                        <label class="flex items-center justify-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold">
+                            <input type="checkbox" name="v-qualifica-antincendio" value="P" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            P
+                        </label>
+                        <label class="flex items-center justify-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold">
+                            <input type="checkbox" name="v-qualifica-antincendio" value="L" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            L
+                        </label>
+                        <label class="flex items-center justify-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold">
+                            <input type="checkbox" name="v-qualifica-antincendio" value="S" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            S
+                        </label>
+                        <label class="flex items-center justify-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold">
+                            <input type="checkbox" name="v-qualifica-antincendio" value="D" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            D
+                        </label>
+                        <label class="flex items-center justify-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold">
+                            <input type="checkbox" name="v-qualifica-antincendio" value="CS" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            CS
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Qualifiche Coordinamento</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
+                            <input type="checkbox" name="v-qualifiche-coordinamento" value="Corso Base Coordinamento" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            Corso Base Coordinamento
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
+                            <input type="checkbox" name="v-qualifiche-coordinamento" value="Idrogeologico" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            Idrogeologico
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
+                            <input type="checkbox" name="v-qualifiche-coordinamento" value="Segreteria" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            Segreteria
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
+                            <input type="checkbox" name="v-qualifiche-coordinamento" value="Logistica" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            Logistica
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
+                            <input type="checkbox" name="v-qualifiche-coordinamento" value="Sanitario" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            Sanitario
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
+                            <input type="checkbox" name="v-qualifiche-coordinamento" value="telecomunicazioni" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            telecomunicazioni
+                        </label>
                     </div>
                 </div>
 

@@ -37,6 +37,14 @@ CREATE TABLE IF NOT EXISTS servizi (
 
 -- 4. Colonna associazione volontari
 ALTER TABLE volontari ADD COLUMN IF NOT EXISTS associazione_appartenenza TEXT;
+ALTER TABLE volontari ADD COLUMN IF NOT EXISTS data_nascita DATE;
+ALTER TABLE volontari ADD COLUMN IF NOT EXISTS luogo_nascita TEXT;
+ALTER TABLE volontari ADD COLUMN IF NOT EXISTS comune_residenza TEXT;
+ALTER TABLE volontari ADD COLUMN IF NOT EXISTS via_residenza TEXT;
+ALTER TABLE volontari ADD COLUMN IF NOT EXISTS censito BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE volontari ADD COLUMN IF NOT EXISTS matricola_regionale TEXT;
+ALTER TABLE volontari ADD COLUMN IF NOT EXISTS qualifica_antincendio TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE volontari ADD COLUMN IF NOT EXISTS qualifiche_coordinamento TEXT[] NOT NULL DEFAULT '{}';
 
 -- 5. Profili utente + RLS: eseguire supabase/migrations/001_profiles_rls_volontari.sql
 --    Guida completa: docs/SUPABASE_SETUP.md

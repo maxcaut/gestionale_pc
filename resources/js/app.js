@@ -673,10 +673,10 @@ async function handleLogout() {
 
 // --- MEMORIA DATI INITIALI (MOCK DATABASE) ---
 const DEFAULT_VOLONTARI = [
-    { id: "v1", nome: "Mario", cognome: "Rossi", cf: "RSSMRA80A01H501U", ruolo: "Coordinatore", telefono: "3331234567", stato: "Operativo", associazione_appartenenza: "G.C. Massa di Somma" },
-    { id: "v2", nome: "Laura", cognome: "Bianchi", cf: "BNCLRA85B41H501X", ruolo: "Soccorritore", telefono: "3459876543", stato: "Operativo", associazione_appartenenza: "G.C. Cercola" },
-    { id: "v3", nome: "Giuseppe", cognome: "Verdi", cf: "VRDGPP78C12H501Z", ruolo: "Logista", telefono: "3287654321", stato: "In riposo", associazione_appartenenza: "G.C. Massa di Somma" },
-    { id: "v4", nome: "Anna", cognome: "Neri", cf: "NRANNA90D50H501W", ruolo: "Autista", telefono: "3394567890", stato: "Operativo", associazione_appartenenza: "Save Me" }
+    { id: "v1", nome: "Mario", cognome: "Rossi", data_nascita: "1980-01-01", luogo_nascita: "Roma", cf: "RSSMRA80A01H501U", comune_residenza: "Massa di Somma", via_residenza: "Via Roma", censito: false, matricola_regionale: null, ruolo: "Coordinatore", qualifica_antincendio: [], qualifiche_coordinamento: [], telefono: "3331234567", stato: "Operativo", associazione_appartenenza: "G.C. Massa di Somma" },
+    { id: "v2", nome: "Laura", cognome: "Bianchi", data_nascita: "1985-02-01", luogo_nascita: "Roma", cf: "BNCLRA85B41H501X", comune_residenza: "Cercola", via_residenza: "Via Napoli", censito: false, matricola_regionale: null, ruolo: "Volontario", qualifica_antincendio: [], qualifiche_coordinamento: [], telefono: "3459876543", stato: "Operativo", associazione_appartenenza: "G.C. Cercola" },
+    { id: "v3", nome: "Giuseppe", cognome: "Verdi", data_nascita: "1978-03-12", luogo_nascita: "Roma", cf: "VRDGPP78C12H501Z", comune_residenza: "Massa di Somma", via_residenza: "Via Vesuvio", censito: false, matricola_regionale: null, ruolo: "Volontario", qualifica_antincendio: [], qualifiche_coordinamento: [], telefono: "3287654321", stato: "In riposo", associazione_appartenenza: "G.C. Massa di Somma" },
+    { id: "v4", nome: "Anna", cognome: "Neri", data_nascita: "1990-04-10", luogo_nascita: "Roma", cf: "NRANNA90D50H501W", comune_residenza: "Pomigliano", via_residenza: "Via Nazionale", censito: false, matricola_regionale: null, ruolo: "Volontario", qualifica_antincendio: [], qualifiche_coordinamento: [], telefono: "3394567890", stato: "Operativo", associazione_appartenenza: "Save Me" }
 ];
 
 const DEFAULT_MEZZI = [
@@ -732,6 +732,28 @@ function setModalFormMode(modalId, { title, submitText }) {
     const submitEl = document.getElementById(`${modalId}-submit`);
     if (titleEl) titleEl.innerText = title;
     if (submitEl) submitEl.innerText = submitText;
+}
+
+function collectCheckedValues(name) {
+    return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(input => input.value);
+}
+
+function setCheckedValues(name, values = []) {
+    const selected = new Set(Array.isArray(values) ? values : []);
+    document.querySelectorAll(`input[name="${name}"]`).forEach(input => {
+        input.checked = selected.has(input.value);
+    });
+}
+
+function toggleVolontarioMatricolaField() {
+    const censito = document.getElementById("v-censito")?.value === "Si";
+    const wrap = document.getElementById("v-matricola-regionale-wrap");
+    const input = document.getElementById("v-matricola-regionale");
+    if (wrap) wrap.classList.toggle("hidden", !censito);
+    if (input) {
+        input.required = censito;
+        if (!censito) input.value = "";
+    }
 }
 
 // Funzione helper per caricare dati sincronicamente dallo stato in-memory
@@ -1048,6 +1070,7 @@ function toggleModal(modalId, show) {
         modal.classList.add("hidden");
         const form = modal.querySelector("form");
         if (form) form.reset();
+        toggleVolontarioMatricolaField();
         resetEditState();
         resetCapoSquadraServizioFormRestrictions();
         resetSalaOperativaServizioFormRestrictions();
@@ -1391,6 +1414,7 @@ function renderVolontari() {
 function openNuovoVolontarioModal() {
     resetEditState();
     setModalFormMode('modal-volontario', { title: 'Aggiungi Nuovo Volontario', submitText: 'Registra' });
+    toggleVolontarioMatricolaField();
     setupVolontarioAssociazioneField();
     toggleModal('modal-volontario', true);
 }
@@ -1404,8 +1428,17 @@ function openEditVolontarioModal(id) {
 
     document.getElementById("v-nome").value = vol.nome;
     document.getElementById("v-cognome").value = vol.cognome;
+    document.getElementById("v-data-nascita").value = vol.data_nascita || "";
+    document.getElementById("v-luogo-nascita").value = vol.luogo_nascita || "";
     document.getElementById("v-cf").value = vol.cf;
+    document.getElementById("v-comune-residenza").value = vol.comune_residenza || "";
+    document.getElementById("v-via-residenza").value = vol.via_residenza || "";
+    document.getElementById("v-censito").value = vol.censito ? "Si" : "No";
+    document.getElementById("v-matricola-regionale").value = vol.matricola_regionale || "";
+    toggleVolontarioMatricolaField();
     document.getElementById("v-ruolo").value = vol.ruolo;
+    setCheckedValues("v-qualifica-antincendio", vol.qualifica_antincendio || []);
+    setCheckedValues("v-qualifiche-coordinamento", vol.qualifiche_coordinamento || []);
     document.getElementById("v-stato").value = vol.stato;
     document.getElementById("v-telefono").value = vol.telefono;
     setupVolontarioAssociazioneField();
@@ -1420,8 +1453,16 @@ async function saveVolontario(event) {
     event.preventDefault();
     const nome = document.getElementById("v-nome").value;
     const cognome = document.getElementById("v-cognome").value;
+    const data_nascita = document.getElementById("v-data-nascita").value;
+    const luogo_nascita = document.getElementById("v-luogo-nascita").value;
     const cf = document.getElementById("v-cf").value.toUpperCase();
+    const comune_residenza = document.getElementById("v-comune-residenza").value;
+    const via_residenza = document.getElementById("v-via-residenza").value;
+    const censito = document.getElementById("v-censito").value === "Si";
+    const matricola_regionale = censito ? document.getElementById("v-matricola-regionale").value : null;
     const ruolo = document.getElementById("v-ruolo").value;
+    const qualifica_antincendio = collectCheckedValues("v-qualifica-antincendio");
+    const qualifiche_coordinamento = collectCheckedValues("v-qualifiche-coordinamento");
     const stato = document.getElementById("v-stato").value;
     const telefono = document.getElementById("v-telefono").value;
     const associazione_appartenenza = getVolontarioAssociazioneValue();
@@ -1430,7 +1471,23 @@ async function saveVolontario(event) {
         return;
     }
 
-    const payload = { nome, cognome, cf, ruolo, stato, telefono, associazione_appartenenza };
+    const payload = {
+        nome,
+        cognome,
+        data_nascita,
+        luogo_nascita,
+        cf,
+        comune_residenza,
+        via_residenza,
+        censito,
+        matricola_regionale,
+        ruolo,
+        qualifica_antincendio,
+        qualifiche_coordinamento,
+        stato,
+        telefono,
+        associazione_appartenenza
+    };
 
     try {
         if (editingVolontarioId) {
@@ -3170,6 +3227,7 @@ async function deleteProfilo(id, ruolo) {
 // Esporta le funzioni globalmente affinché gli event handler in HTML (onclick, onsubmit, oninput, onchange) possano trovarle
 window.switchTab = switchTab;
 window.toggleModal = toggleModal;
+window.toggleVolontarioMatricolaField = toggleVolontarioMatricolaField;
 window.openNuovoVolontarioModal = openNuovoVolontarioModal;
 window.openEditVolontarioModal = openEditVolontarioModal;
 window.saveVolontario = saveVolontario;
