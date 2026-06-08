@@ -1000,7 +1000,10 @@
                     <select id="aib-squadra-associazione" required onchange="populateSquadraAibModalOptions()" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
                         <option value="G.C. Massa di Somma">G.C. Massa di Somma</option>
                         <option value="G.C. Cercola">G.C. Cercola</option>
+                        <option value="Cobra 2">Cobra 2</option>
+                        <option value="G.C. Sant'Anastasia">G.C. Sant'Anastasia</option>
                         <option value="Save Me">Save Me</option>
+                        <option value="NVPC Pomigliano">NVPC Pomigliano</option>
                     </select>
                 </div>
 
