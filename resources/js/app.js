@@ -859,6 +859,10 @@ function toggleServizioAibFields() {
     }
     if (orariFine) orariFine.classList.toggle('hidden', !show);
     if (squadreBlock) squadreBlock.classList.toggle('hidden', !(show && isSalaOperativa()));
+    if (show && !editingServizioId) {
+        const art39 = document.getElementById('s-art39');
+        if (art39) art39.value = 'No';
+    }
     populateServizioSquadreAibOptions(collectCheckedValues('s-aib-squadre-check'));
 }
 
