@@ -890,6 +890,7 @@ function toggleServizioAibFields() {
     }
     if (orariFine) orariFine.classList.toggle('hidden', !show);
     if (squadreBlock) squadreBlock.classList.toggle('hidden', !(show && isSalaOperativa()));
+    document.querySelectorAll('.servizio-mezzi-required').forEach(el => el.classList.toggle('hidden', !show));
     populateServizioSquadreAibOptions(collectCheckedValues('s-aib-squadre-check'));
 }
 
@@ -3390,7 +3391,7 @@ async function saveServizio(event) {
         volontariCheckboxes.forEach(cb => volontariIds.push(cb.value));
         const volontariArt39 = collectServizioVolontariArt39(volontariIds);
 
-        if (mezziIds.length === 0) {
+        if (isAntincendioBoschivo(existing.tipo) && mezziIds.length === 0) {
             alert('Attenzione: devi assegnare almeno un mezzo al servizio!');
             return;
         }
@@ -3506,7 +3507,7 @@ async function saveServizio(event) {
         }
     } else {
         squadreAibIds = isAntincendioBoschivo(tipo) ? squadreAibIds : [];
-        if (mezziIds.length === 0) {
+        if (isAntincendioBoschivo(tipo) && mezziIds.length === 0) {
             alert("Attenzione: devi assegnare almeno un mezzo al servizio!");
             return;
         }
