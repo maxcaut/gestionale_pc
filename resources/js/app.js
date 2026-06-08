@@ -1532,6 +1532,59 @@ function renderStatisticheTable(tbodyId, rows, emptyMessage, columns) {
     });
 }
 
+function renderStatisticheGroupedTable(tbodyId, rows, emptyMessage) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+    if (rows.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="3" class="py-8 px-6 text-center text-slate-500 font-medium">${emptyMessage}</td>
+            </tr>
+        `;
+        return;
+    }
+
+    const grouped = new Map();
+    rows.forEach(row => {
+        const current = grouped.get(row.label) || { label: row.label, hours: 0, details: [] };
+        current.hours += row.hours;
+        current.details.push({ tipologia: row.tipologia, hours: row.hours });
+        grouped.set(row.label, current);
+    });
+
+    [...grouped.values()]
+        .sort((a, b) => a.label.localeCompare(b.label, 'it'))
+        .forEach(row => {
+            const details = row.details
+                .sort((a, b) => a.tipologia.localeCompare(b.tipologia, 'it'))
+                .map(detail => `
+                    <div class="flex items-center justify-between gap-4 py-2 border-t border-slate-800/60">
+                        <span class="text-slate-300">${escapeHtml(detail.tipologia)}</span>
+                        <span class="text-amber-400 font-bold">${formatHours(detail.hours)}</span>
+                    </div>
+                `).join('');
+
+            tbody.innerHTML += `
+                <tr class="hover:bg-slate-800/10 transition-colors">
+                    <td colspan="3" class="py-4 px-6">
+                        <details class="group">
+                            <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-slate-100 font-semibold">
+                                <span class="inline-flex items-center gap-2">
+                                    <span>${escapeHtml(row.label)}</span>
+                                    <span class="text-[10px] text-slate-500 group-open:rotate-180 transition-transform">v</span>
+                                </span>
+                                <span class="text-right text-amber-400 font-bold">${formatHours(row.hours)}</span>
+                            </summary>
+                            <div class="mt-3">${details}</div>
+                        </details>
+                    </td>
+                </tr>
+            `;
+        });
+}
+
 function renderStatisticheNonCalcolabili(serviziList) {
     const wrap = document.getElementById('statistiche-non-calcolabili');
     const list = document.getElementById('statistiche-non-calcolabili-list');
@@ -1595,17 +1648,15 @@ function renderStatistiche() {
     const byLabelAndTipologia = (a, b) => a.label.localeCompare(b.label, 'it') || a.tipologia.localeCompare(b.tipologia, 'it');
     const byTipologia = (a, b) => a.tipologia.localeCompare(b.tipologia, 'it');
 
-    renderStatisticheTable(
+    renderStatisticheGroupedTable(
         'statistiche-volontari-body',
         [...volontariStats.values()].sort(byLabelAndTipologia),
-        'Nessuna ora volontario calcolabile.',
-        3
+        'Nessuna ora volontario calcolabile.'
     );
-    renderStatisticheTable(
+    renderStatisticheGroupedTable(
         'statistiche-mezzi-body',
         [...mezziStats.values()].sort(byLabelAndTipologia),
-        'Nessuna ora mezzo calcolabile.',
-        3
+        'Nessuna ora mezzo calcolabile.'
     );
     renderStatisticheTable(
         'statistiche-tipologie-body',
