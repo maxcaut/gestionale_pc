@@ -36,6 +36,7 @@
                                         <th class="py-4 px-6">Mezzi</th>
                                         <th class="py-4 px-6">Volontari</th>
                                         <th class="py-4 px-6">Stato</th>
+                                        <th class="py-4 px-6">Fine disponibilità</th>
                                         <th class="py-4 px-6 text-right">Azioni</th>
                                     </tr>
                                 </thead>

@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS public.squadre_aib (
     mezzi_ids TEXT[] NOT NULL CHECK (cardinality(mezzi_ids) > 0),
     volontari_ids TEXT[] NOT NULL CHECK (cardinality(volontari_ids) > 0),
     stato TEXT NOT NULL DEFAULT 'Operativa' CHECK (stato IN ('Operativa', 'Non operativa')),
+    disponibile_fino TIME,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

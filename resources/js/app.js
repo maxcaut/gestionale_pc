@@ -600,6 +600,7 @@ async function bootstrapApp(user) {
     await checkDatabaseConnection();
     await fetchDataFromSupabase();
     startRealtimeClock();
+    startSquadreAibScadenzaTimer();
     return true;
 }
 
@@ -676,6 +677,8 @@ async function handleLogout() {
     volontari = [];
     mezzi = [];
     servizi = [];
+    squadreAib = [];
+    stopSquadreAibScadenzaTimer();
     await showLogin();
 }
 
@@ -721,14 +724,34 @@ const geocodeCache = new Map();
 let serviziMapUpdateToken = 0;
 let pdfExportProgressTimer = null;
 let pendingPdfServizioId = null;
+let squadreAibScadenzaTimer = null;
 
 const ICON_EDIT = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>`;
 const ICON_EYE = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`;
 
 function toDatetimeLocalValue(isoString) {
+    if (!isoString) return '';
     const d = new Date(isoString);
+    if (Number.isNaN(d.getTime())) return '';
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
     return d.toISOString().slice(0, 16);
+}
+
+function normalizeTimeValue(value) {
+    if (!value) return '';
+    const match = String(value).match(/^(\d{2}):(\d{2})/);
+    return match ? `${match[1]}:${match[2]}` : '';
+}
+
+function isTimeValuePassedToday(value) {
+    const normalized = normalizeTimeValue(value);
+    if (!normalized) return false;
+
+    const [hours, minutes] = normalized.split(':').map(Number);
+    const now = new Date();
+    const end = new Date();
+    end.setHours(hours, minutes, 0, 0);
+    return end <= now;
 }
 
 function resetEditState() {
@@ -946,7 +969,50 @@ function mapSquadraAibRow(s) {
         mezziIds: s.mezzi_ids || [],
         volontariIds: s.volontari_ids || [],
         stato: s.stato || 'Operativa',
+        disponibileFino: s.disponibile_fino || null,
     };
+}
+
+async function cleanupSquadreAibScadute() {
+    if (!canAccessSquadreAib() || squadreAib.length === 0) return;
+
+    const expiredIds = squadreAib
+        .filter(s => {
+            if (!s.disponibileFino) return false;
+            return isTimeValuePassedToday(s.disponibileFino)
+                && canManageSquadraAib(s)
+                && !isSquadraAibAssegnataAInterventoAttivo(s.id);
+        })
+        .map(s => s.id);
+
+    if (expiredIds.length === 0) return;
+
+    const { error } = await supabase
+        .from('squadre_aib')
+        .delete()
+        .in('id', expiredIds);
+    if (error) throw error;
+
+    squadreAib = squadreAib.filter(s => !expiredIds.includes(s.id));
+}
+
+function startSquadreAibScadenzaTimer() {
+    stopSquadreAibScadenzaTimer();
+    if (!canAccessSquadreAib()) return;
+
+    squadreAibScadenzaTimer = setInterval(async () => {
+        try {
+            await fetchDataFromSupabase();
+        } catch (err) {
+            console.error('Errore controllo scadenza squadre AIB:', err);
+        }
+    }, 60000);
+}
+
+function stopSquadreAibScadenzaTimer() {
+    if (!squadreAibScadenzaTimer) return;
+    clearInterval(squadreAibScadenzaTimer);
+    squadreAibScadenzaTimer = null;
 }
 
 async function fetchDataFromSupabase() {
@@ -1029,6 +1095,7 @@ async function fetchDataFromSupabase() {
             const squadreResponse = await squadreQuery;
             if (squadreResponse.error) throw squadreResponse.error;
             squadreAib = (squadreResponse.data || []).map(mapSquadraAibRow);
+            await cleanupSquadreAibScadute();
         } else {
             squadreAib = [];
         }
@@ -1882,6 +1949,12 @@ function formatSquadraAibVolontari(volontariIds = []) {
         .join('') || `<span class="text-xs text-rose-400 font-semibold">Nessun volontario</span>`;
 }
 
+function formatSquadraAibDisponibileFino(value) {
+    if (!value) return `<span class="text-xs text-rose-400 font-semibold">Non impostata</span>`;
+
+    return normalizeTimeValue(value) || `<span class="text-xs text-rose-400 font-semibold">Non valida</span>`;
+}
+
 function renderSquadreAib() {
     if (!canAccessSquadreAib()) return;
     const tbody = document.getElementById('squadre-aib-table-body');
@@ -1896,7 +1969,7 @@ function renderSquadreAib() {
     });
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500 font-medium">Nessuna squadra A.I.B. configurata.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500 font-medium">Nessuna squadra A.I.B. configurata.</td></tr>`;
         return;
     }
 
@@ -1919,6 +1992,7 @@ function renderSquadreAib() {
                 <td class="py-4 px-6 max-w-[280px]"><div class="flex flex-wrap">${formatSquadraAibMezzi(s.mezziIds)}</div></td>
                 <td class="py-4 px-6 max-w-[280px]"><div class="flex flex-wrap">${formatSquadraAibVolontari(s.volontariIds)}</div></td>
                 <td class="py-4 px-6"><span class="px-2.5 py-1 text-[10px] font-bold border rounded-full ${badgeClass}">${s.stato}</span>${assegnazioneHtml}</td>
+                <td class="py-4 px-6 text-slate-300 font-semibold">${formatSquadraAibDisponibileFino(s.disponibileFino)}</td>
                 <td class="py-4 px-6 text-right">
                     <div class="inline-flex gap-2">
                         <button type="button" onclick="openEditSquadraAibModal('${s.id}')" title="Modifica" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">${ICON_EDIT}</button>
@@ -1941,6 +2015,7 @@ function openNuovaSquadraAibModal() {
     setupSquadraAibAssociazioneField();
     document.getElementById('aib-squadra-nome').value = '';
     document.getElementById('aib-squadra-stato').value = 'Operativa';
+    document.getElementById('aib-squadra-disponibile-fino').value = '';
     if (!isSegreteria()) document.getElementById('aib-squadra-associazione').value = 'G.C. Massa di Somma';
     populateSquadraAibModalOptions([], []);
     toggleModal('modal-squadra-aib', true);
@@ -1955,6 +2030,7 @@ function openEditSquadraAibModal(id) {
     setupSquadraAibAssociazioneField();
     document.getElementById('aib-squadra-nome').value = squadra.nome || '';
     document.getElementById('aib-squadra-stato').value = squadra.stato || 'Operativa';
+    document.getElementById('aib-squadra-disponibile-fino').value = normalizeTimeValue(squadra.disponibileFino);
     if (!isSegreteria()) document.getElementById('aib-squadra-associazione').value = squadra.associazione_appartenenza || 'G.C. Massa di Somma';
     populateSquadraAibModalOptions(squadra.mezziIds || [], squadra.volontariIds || []);
     toggleModal('modal-squadra-aib', true);
@@ -1969,9 +2045,18 @@ async function saveSquadraAib(event) {
     const mezziIds = collectCheckedValues('aib-squadra-mezzi-check');
     const volontariIds = collectCheckedValues('aib-squadra-volontari-check');
     const stato = document.getElementById('aib-squadra-stato').value;
+    const disponibileFino = document.getElementById('aib-squadra-disponibile-fino').value;
 
     if (!associazione) {
         showToast('Dati incompleti', 'Associazione non configurata.');
+        return;
+    }
+    if (!disponibileFino) {
+        showToast('Dati incompleti', 'Inserisci la fine disponibilità della squadra.');
+        return;
+    }
+    if (isTimeValuePassedToday(disponibileFino)) {
+        showToast('Fine disponibilità non valida', 'La fine disponibilità deve essere successiva all\'orario attuale.');
         return;
     }
     if (mezziIds.length === 0 || volontariIds.length === 0) {
@@ -1992,6 +2077,7 @@ async function saveSquadraAib(event) {
         mezzi_ids: mezziIds,
         volontari_ids: volontariIds,
         stato,
+        disponibile_fino: disponibileFino,
     };
 
     try {
@@ -3746,6 +3832,11 @@ window.addEventListener("DOMContentLoaded", async () => {
     supabase.auth.onAuthStateChange(async (event) => {
         if (event === 'SIGNED_OUT') {
             currentUserProfile = null;
+            volontari = [];
+            mezzi = [];
+            servizi = [];
+            squadreAib = [];
+            stopSquadreAibScadenzaTimer();
             await showLogin();
         }
     });
