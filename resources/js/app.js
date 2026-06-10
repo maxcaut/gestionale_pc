@@ -962,6 +962,15 @@ function toggleServizioAibFields() {
     populateServizioSquadreAibOptions(collectCheckedValues('s-aib-squadre-check'));
 }
 
+function toggleProtocolloRegionaleField() {
+    const richiedente = document.getElementById('s-richiedente')?.value ?? '';
+    const block = document.getElementById('s-protocollo-regionale-block');
+    const input = document.getElementById('s-protocollo-regionale');
+    const show = richiedente === 'SORU';
+    if (block) block.classList.toggle('hidden', !show);
+    if (input && !show) input.value = '';
+}
+
 function setServizioAibFormData(serv) {
     resetServizioAibFields();
     if (!serv || !isAntincendioBoschivo(serv.tipo)) return;
@@ -1028,6 +1037,7 @@ function mapServizioRow(s) {
         art39: s.art39 || 'Si',
         note: s.note,
         altriEnti: s.altri_enti_coinvolti,
+        protocolloRegionale: s.protocollo_regionale || '',
         stato: s.stato,
         oraArrivoIncendio: s.ora_arrivo_incendio || '',
         oraFineIntervento: s.ora_fine_intervento || '',
@@ -2856,6 +2866,8 @@ function filterServizioVolontariList() {
 
 function resetServizioLocationFields() {
     document.getElementById("s-richiedente").value = "SORU";
+    document.getElementById("s-protocollo-regionale").value = "";
+    toggleProtocolloRegionaleField();
     document.getElementById("s-lat").value = "";
     document.getElementById("s-lng").value = "";
     document.getElementById("s-indirizzo").value = "";
@@ -2922,6 +2934,8 @@ function openEditServizioModal(id) {
     populateServizioModalOptions(serv.mezziIds || [], serv.volontariIds || [], serv.volontariArt39 || {}, serv.art39 || 'Si', serv.carrelliTrainanti || {});
 
     document.getElementById("s-richiedente").value = serv.richiedente || "SORU";
+    document.getElementById("s-protocollo-regionale").value = serv.protocolloRegionale || "";
+    toggleProtocolloRegionaleField();
     document.getElementById("s-tipo").value = serv.tipo;
     document.getElementById("s-art39").value = serv.art39 || "Si";
     document.getElementById("s-data").value = toDatetimeLocalValue(serv.data);
@@ -3695,6 +3709,9 @@ async function saveServizio(event) {
     }
 
     const richiedente = document.getElementById("s-richiedente").value;
+    const protocolloRegionale = richiedente === "SORU"
+        ? document.getElementById("s-protocollo-regionale").value.trim()
+        : "";
     const tipo = document.getElementById("s-tipo").value;
     const art39 = document.getElementById("s-art39").value;
     const data = document.getElementById("s-data").value;
@@ -3787,6 +3804,7 @@ async function saveServizio(event) {
 
     const payload = {
         richiedente,
+        protocollo_regionale: protocolloRegionale || null,
         tipo,
         data,
         latitudine,
@@ -4338,6 +4356,7 @@ window.populateSquadraAibModalOptions = populateSquadraAibModalOptions;
 window.openNuovoServizioModal = openNuovoServizioModal;
 window.openEditServizioModal = openEditServizioModal;
 window.toggleServizioSquadraAibDetails = toggleServizioSquadraAibDetails;
+window.toggleProtocolloRegionaleField = toggleProtocolloRegionaleField;
 window.filterServizioMezziList = filterServizioMezziList;
 window.filterServizioVolontariList = filterServizioVolontariList;
 window.openViewServizioModal = openViewServizioModal;

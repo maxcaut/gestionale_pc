@@ -772,7 +772,7 @@
             <form id="form-servizio" onsubmit="saveServizio(event)" class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Richiedente <span class="text-amber-500">*</span></label>
-                    <select id="s-richiedente" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                    <select id="s-richiedente" required onchange="toggleProtocolloRegionaleField()" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
                         <option value="SORU">SORU</option>
                         <option value="SOPI">SOPI</option>
                         <option value="COORDINAMENTO VESUVIUS">COORDINAMENTO VESUVIUS</option>
@@ -783,6 +783,11 @@
                         <option value="PRIVATO">PRIVATO</option> 
                         <option value="ALTRO COORDINAMENTO">ALTRO COORDINAMENTO</option>   
                     </select>
+                </div>
+
+                <div id="s-protocollo-regionale-block" class="hidden">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Protocollo Regionale</label>
+                    <input type="text" id="s-protocollo-regionale" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors" placeholder="Inserisci il numero di protocollo regionale">
                 </div>
 
                 <div>
