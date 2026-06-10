@@ -722,6 +722,7 @@ let serviziMap = null;
 let serviziMapMarkersLayer = null;
 let serviziMapRoadLayer = null;
 let serviziMapSatelliteLayer = null;
+let serviziMapMunicipalityLayer = null;
 let serviziMapActiveBaseLayer = "road";
 const geocodeCache = new Map();
 let serviziMapUpdateToken = 0;
@@ -3182,6 +3183,10 @@ function ensureServiziMap() {
         attribution: 'Tiles &copy; Esri'
     });
 
+    serviziMapMunicipalityLayer = L.tileLayer("https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png", {
+        attribution: '&copy; OpenStreetMap France | &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    });
+
     const mapTypeControl = L.control({ position: "topright" });
     mapTypeControl.onAdd = () => {
         const container = L.DomUtil.create("div", "servizi-map-type-control");
@@ -3189,17 +3194,31 @@ function ensureServiziMap() {
         const options = L.DomUtil.create("div", "servizi-map-type-options", container);
         const roadButton = L.DomUtil.create("button", "", options);
         const satelliteButton = L.DomUtil.create("button", "", options);
+        const municipalityButton = L.DomUtil.create("button", "", options);
+        const baseLayers = {
+            road: serviziMapRoadLayer,
+            satellite: serviziMapSatelliteLayer,
+            municipality: serviziMapMunicipalityLayer,
+        };
+        const baseLayerLabels = {
+            road: "Mappa stradale",
+            satellite: "Mappa satellite",
+            municipality: "Mappa per comuni",
+        };
 
         activeButton.type = "button";
         roadButton.type = "button";
         satelliteButton.type = "button";
-        roadButton.textContent = "Mappa stradale";
-        satelliteButton.textContent = "Mappa satellite";
+        municipalityButton.type = "button";
+        roadButton.textContent = baseLayerLabels.road;
+        satelliteButton.textContent = baseLayerLabels.satellite;
+        municipalityButton.textContent = baseLayerLabels.municipality;
 
         const updateControl = () => {
-            activeButton.textContent = serviziMapActiveBaseLayer === "road" ? "Mappa stradale" : "Mappa satellite";
+            activeButton.textContent = baseLayerLabels[serviziMapActiveBaseLayer];
             roadButton.classList.toggle("is-active", serviziMapActiveBaseLayer === "road");
             satelliteButton.classList.toggle("is-active", serviziMapActiveBaseLayer === "satellite");
+            municipalityButton.classList.toggle("is-active", serviziMapActiveBaseLayer === "municipality");
         };
 
         const setBaseLayer = (layer) => {
@@ -3208,8 +3227,8 @@ function ensureServiziMap() {
                 return;
             }
 
-            serviziMap.removeLayer(layer === "road" ? serviziMapSatelliteLayer : serviziMapRoadLayer);
-            serviziMap.addLayer(layer === "road" ? serviziMapRoadLayer : serviziMapSatelliteLayer);
+            serviziMap.removeLayer(baseLayers[serviziMapActiveBaseLayer]);
+            serviziMap.addLayer(baseLayers[layer]);
             serviziMapActiveBaseLayer = layer;
             container.classList.remove("is-open");
             updateControl();
@@ -3220,6 +3239,7 @@ function ensureServiziMap() {
         });
         roadButton.addEventListener("click", () => setBaseLayer("road"));
         satelliteButton.addEventListener("click", () => setBaseLayer("satellite"));
+        municipalityButton.addEventListener("click", () => setBaseLayer("municipality"));
 
         L.DomEvent.disableClickPropagation(container);
         L.DomEvent.disableScrollPropagation(container);
