@@ -149,7 +149,9 @@
     </style>
 </head>
 <body>
-    @php($protocolloRegionale = trim((string) ($servizio['protocollo_regionale'] ?? $servizio['protocolloRegionale'] ?? '')))
+    @php
+        $protocolloRegionale = trim((string) ($servizio['protocollo_regionale'] ?? $servizio['protocolloRegionale'] ?? ''));
+    @endphp
     <div class="protocollo">
         <div>Protocollo {{ $servizio['id'] ?? '' }}</div>
         @if ($protocolloRegionale !== '')
@@ -380,7 +382,7 @@
         <thead>
             <tr>
                 <th style="width: 70%; font-weight: bold;" class="section-title">Considerazioni e Note <span style="font-weight: normal; text-transform: none;">(relazione sintetica sul servizio erogato)</span></th>
-                <th style="width: 30%; font-size: 10px; class="section-title">Orario Di Fine<br>Intervento</th>
+                <th style="width: 30%; font-size: 10px;" class="section-title">Orario Di Fine<br>Intervento</th>
             </tr>
         </thead>
         <tbody>

@@ -3951,6 +3951,7 @@ async function exportServizioPdf(id, template = 'riepilogo-intervento') {
                     data: serv.data,
                     note: serv.note || '',
                     richiedente: serv.richiedente || '',
+                    protocollo_regionale: serv.protocolloRegionale || '',
                     indirizzo: serv.indirizzo || '',
                     altriEnti: serv.altriEnti || '',
                     stato: serv.stato,

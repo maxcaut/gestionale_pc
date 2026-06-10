@@ -339,7 +339,9 @@
         </tr>
     </table>
 
-    @php($protocolloRegionale = trim((string) ($servizio['protocollo_regionale'] ?? $servizio['protocolloRegionale'] ?? '')))
+    @php
+        $protocolloRegionale = trim((string) ($servizio['protocollo_regionale'] ?? $servizio['protocolloRegionale'] ?? ''));
+    @endphp
     <div class="protocollo">
         <div>protocollo {{ $servizio['id'] ?? '' }}</div>
         @if ($protocolloRegionale !== '')
