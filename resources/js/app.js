@@ -2237,6 +2237,13 @@ function renderVolontari() {
         const fotoHtml = v.foto_url
             ? `<img src="${escapeAttr(v.foto_url)}" alt="Foto ${escapeAttr(`${v.nome} ${v.cognome}`)}" class="h-full w-full object-cover">`
             : escapeHtml(initials);
+        const volontarioPdfBtn = v.censito === false
+            ? `<button onclick="exportVolontarioPdf('${escapeAttr(v.id)}')" title="Genera PDF" class="p-2 hover:bg-amber-950/30 rounded-lg text-slate-400 hover:text-amber-500 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+               </button>`
+            : '';
 
         tbody.innerHTML += `
             <tr class="hover:bg-slate-800/10 transition-colors">
@@ -2266,6 +2273,7 @@ function renderVolontari() {
                 </td>
                 <td class="py-4 px-6 text-right">
                     <div class="inline-flex gap-2">
+                        ${volontarioPdfBtn}
                         <button onclick="openEditVolontarioModal('${v.id}')" title="Modifica dati" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-all">
                             ${ICON_EDIT}
                         </button>
@@ -2284,6 +2292,74 @@ function renderVolontari() {
             </tr>
         `;
     });
+}
+
+async function exportVolontarioPdf(id) {
+    const volontario = volontari.find(v => v.id === id);
+    if (!volontario) return;
+
+    if (volontario.censito !== false) {
+        showToast("Export non disponibile", "Il PDF può essere generato solo per volontari non censiti.");
+        return;
+    }
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    try {
+        const response = await fetch('/volontari/pdf', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/pdf',
+                'X-CSRF-TOKEN': csrfToken || '',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({
+                volontario: {
+                    id: volontario.id,
+                    nome: volontario.nome,
+                    cognome: volontario.cognome,
+                    cf: volontario.cf || '',
+                    data_nascita: volontario.data_nascita || '',
+                    luogo_nascita: volontario.luogo_nascita || '',
+                    comune_residenza: volontario.comune_residenza || '',
+                    via_residenza: volontario.via_residenza || '',
+                    telefono: volontario.telefono || '',
+                    ruolo: volontario.ruolo || '',
+                    stato: volontario.stato || '',
+                    associazione_appartenenza: volontario.associazione_appartenenza || '',
+                    censito: volontario.censito,
+                },
+            }),
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || 'Errore durante la generazione del PDF');
+        }
+
+        const blob = await response.blob();
+        const disposition = response.headers.get('Content-Disposition');
+        let filename = `volontario-non-censito.pdf`;
+        if (disposition) {
+            const match = disposition.match(/filename="?([^";]+)"?/);
+            if (match) filename = match[1];
+        }
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+
+        showToast("PDF generato", "Il PDF del volontario è stato scaricato.");
+    } catch (err) {
+        console.error("Errore export PDF volontario:", err);
+        showToast("Errore export PDF", err.message || "Impossibile generare il file PDF.");
+    }
 }
 
 function openNuovoVolontarioModal() {
@@ -4853,6 +4929,7 @@ window.saveVolontario = saveVolontario;
 window.toggleVolontarioStato = toggleVolontarioStato;
 window.deleteVolontario = deleteVolontario;
 window.renderVolontari = renderVolontari;
+window.exportVolontarioPdf = exportVolontarioPdf;
 window.openNuovoMezzoModal = openNuovoMezzoModal;
 window.openEditMezzoModal = openEditMezzoModal;
 window.saveMezzo = saveMezzo;
