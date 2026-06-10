@@ -156,6 +156,32 @@
         $anno = $dataIntervento['anno'] ?? '____________';
         $volontari = array_values($equipaggio ?? []);
         $veicoli = array_values($mezzi ?? []);
+        $veicoliById = [];
+        foreach ($veicoli as $veicolo) {
+            if (!empty($veicolo['id'])) {
+                $veicoliById[$veicolo['id']] = $veicolo;
+            }
+        }
+        $carrelliTrainanti = $servizio['carrelli_trainanti'] ?? [];
+        $mezzoLabel = static function (?array $veicolo) use ($veicoliById, $carrelliTrainanti): string {
+            if (!$veicolo) {
+                return '';
+            }
+
+            $label = (string) ($veicolo['modello'] ?? '');
+            if (($veicolo['tipo'] ?? '') !== 'Carrello appendice') {
+                return $label;
+            }
+
+            $trainanteId = $carrelliTrainanti[$veicolo['id'] ?? ''] ?? null;
+            $trainante = $trainanteId ? ($veicoliById[$trainanteId] ?? null) : null;
+            if (!$trainante) {
+                return $label;
+            }
+
+            $trainanteLabel = trim(($trainante['modello'] ?? '').' ['.($trainante['targa'] ?? '').']');
+            return trim($label.' - Trainante: '.$trainanteLabel);
+        };
         $ceduo = $superficieCeduo ?? [];
         $altoFusto = $superficieAltoFusto ?? [];
         $nonBoscato = $superficieNonBoscato ?? [];
@@ -334,11 +360,11 @@
         </thead>
         <tbody>
             <tr>
-                <td class="input-space-sm"><span style="margin-left: 5px;">1</span> {{ $veicoli[0]['modello'] ?? '' }}</td>
+                <td class="input-space-sm"><span style="margin-left: 5px;">1</span> {{ $mezzoLabel($veicoli[0] ?? null) }}</td>
                 <td>{{ $veicoli[0]['targa'] ?? '' }}</td>
             </tr>
             <tr>
-                <td class="input-space-sm"><span style="margin-left: 5px;">2</span> {{ $veicoli[1]['modello'] ?? '' }}</td>
+                <td class="input-space-sm"><span style="margin-left: 5px;">2</span> {{ $mezzoLabel($veicoli[1] ?? null) }}</td>
                 <td>{{ $veicoli[1]['targa'] ?? '' }}</td>
             </tr>
         </tbody>

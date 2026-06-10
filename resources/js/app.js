@@ -3871,6 +3871,7 @@ async function exportServizioPdf(id, template = 'riepilogo-intervento') {
                     tipologia_aib: serv.tipologiaAib || '',
                     volontariIds: serv.volontariIds || [],
                     volontari_art39: serv.volontariArt39 || {},
+                    carrelli_trainanti: serv.carrelliTrainanti || {},
                     oraArrivoIncendio: serv.oraArrivoIncendio || '',
                     oraFineIntervento: serv.oraFineIntervento || '',
                     oraRientroSede: serv.oraRientroSede || '',
@@ -3879,6 +3880,7 @@ async function exportServizioPdf(id, template = 'riepilogo-intervento') {
                     superficieNonBoscato: serv.superficieNonBoscato || {},
                 },
                 mezzi: mezziExport.map(m => ({
+                    id: m.id,
                     modello: m.modello,
                     targa: m.targa,
                     tipo: m.tipo,

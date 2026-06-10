@@ -178,6 +178,28 @@
         $anno = $dateParts[2] ?? '____________';
         $volontari = array_values($equipaggio);
         $veicoli = array_values($mezzi ?? []);
+        $veicoliById = [];
+        foreach ($veicoli as $veicolo) {
+            if (!empty($veicolo['id'])) {
+                $veicoliById[$veicolo['id']] = $veicolo;
+            }
+        }
+        $carrelliTrainanti = $servizio['carrelli_trainanti'] ?? [];
+        $mezzoLabel = static function (array $veicolo) use ($veicoliById, $carrelliTrainanti): string {
+            $label = (string) ($veicolo['modello'] ?? '');
+            if (($veicolo['tipo'] ?? '') !== 'Carrello appendice') {
+                return $label;
+            }
+
+            $trainanteId = $carrelliTrainanti[$veicolo['id'] ?? ''] ?? null;
+            $trainante = $trainanteId ? ($veicoliById[$trainanteId] ?? null) : null;
+            if (!$trainante) {
+                return $label;
+            }
+
+            $trainanteLabel = trim(($trainante['modello'] ?? '').' ['.($trainante['targa'] ?? '').']');
+            return trim($label.' - Trainante: '.$trainanteLabel);
+        };
 
         $logoSx = public_path('img/modello-logo-0.png');
         $logoDx = public_path('img/modello-logo-1.png');
@@ -289,7 +311,7 @@
                 @forelse ($veicoli as $veicolo)
                     <tr class="data-row">
                         <td>{{ $veicolo['tipo'] ?? '' }}</td>
-                        <td>{{ $veicolo['modello'] ?? '' }}</td>
+                        <td>{{ $mezzoLabel($veicolo) }}</td>
                         <td>{{ $veicolo['targa'] ?? '' }}</td>
                     </tr>
                 @empty
