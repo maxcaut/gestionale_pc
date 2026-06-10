@@ -15,6 +15,10 @@ const MEZZO_STATO_MANUTENZIONE = "In manutenzione";
 const VOLONTARI_FOTO_BUCKET = "volontari-foto";
 const VOLONTARI_FOTO_MAX_SIZE = 5 * 1024 * 1024;
 const VOLONTARI_FOTO_ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const VOLONTARI_PATENTI_BUCKET = "volontari-patenti";
+const VOLONTARI_PATENTI_MAX_SIZE = 10 * 1024 * 1024;
+const VOLONTARI_PATENTI_ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+const VOLONTARI_PATENTI_OPTIONS = ["A", "B", "C", "D", "E", "MMT", "Patente Nautica"];
 
 // --- PROFILO UTENTE (ruolo + associazione) ---
 let currentUserProfile = null;
@@ -704,10 +708,10 @@ async function handleLogout() {
 
 // --- MEMORIA DATI INITIALI (MOCK DATABASE) ---
 const DEFAULT_VOLONTARI = [
-    { id: "v1", nome: "Mario", cognome: "Rossi", data_nascita: "1980-01-01", luogo_nascita: "Roma", cf: "RSSMRA80A01H501U", comune_residenza: "Massa di Somma", via_residenza: "Via Roma", censito: false, matricola_regionale: null, ruolo: "Coordinatore", qualifica_antincendio: [], qualifiche_coordinamento: [], telefono: "3331234567", stato: "Operativo", associazione_appartenenza: "G.C. Massa di Somma" },
-    { id: "v2", nome: "Laura", cognome: "Bianchi", data_nascita: "1985-02-01", luogo_nascita: "Roma", cf: "BNCLRA85B41H501X", comune_residenza: "Cercola", via_residenza: "Via Napoli", censito: false, matricola_regionale: null, ruolo: "Volontario", qualifica_antincendio: [], qualifiche_coordinamento: [], telefono: "3459876543", stato: "Operativo", associazione_appartenenza: "G.C. Cercola" },
-    { id: "v3", nome: "Giuseppe", cognome: "Verdi", data_nascita: "1978-03-12", luogo_nascita: "Roma", cf: "VRDGPP78C12H501Z", comune_residenza: "Massa di Somma", via_residenza: "Via Vesuvio", censito: false, matricola_regionale: null, ruolo: "Volontario", qualifica_antincendio: [], qualifiche_coordinamento: [], telefono: "3287654321", stato: "In riposo", associazione_appartenenza: "G.C. Massa di Somma" },
-    { id: "v4", nome: "Anna", cognome: "Neri", data_nascita: "1990-04-10", luogo_nascita: "Roma", cf: "NRANNA90D50H501W", comune_residenza: "Pomigliano", via_residenza: "Via Nazionale", censito: false, matricola_regionale: null, ruolo: "Volontario", qualifica_antincendio: [], qualifiche_coordinamento: [], telefono: "3394567890", stato: "Operativo", associazione_appartenenza: "Save Me" }
+    { id: "v1", nome: "Mario", cognome: "Rossi", data_nascita: "1980-01-01", luogo_nascita: "Roma", cf: "RSSMRA80A01H501U", comune_residenza: "Massa di Somma", via_residenza: "Via Roma", censito: false, matricola_regionale: null, ruolo: "Coordinatore", qualifica_antincendio: [], qualifiche_coordinamento: [], patenti: [], patenti_files: {}, telefono: "3331234567", stato: "Operativo", associazione_appartenenza: "G.C. Massa di Somma" },
+    { id: "v2", nome: "Laura", cognome: "Bianchi", data_nascita: "1985-02-01", luogo_nascita: "Roma", cf: "BNCLRA85B41H501X", comune_residenza: "Cercola", via_residenza: "Via Napoli", censito: false, matricola_regionale: null, ruolo: "Volontario", qualifica_antincendio: [], qualifiche_coordinamento: [], patenti: [], patenti_files: {}, telefono: "3459876543", stato: "Operativo", associazione_appartenenza: "G.C. Cercola" },
+    { id: "v3", nome: "Giuseppe", cognome: "Verdi", data_nascita: "1978-03-12", luogo_nascita: "Roma", cf: "VRDGPP78C12H501Z", comune_residenza: "Massa di Somma", via_residenza: "Via Vesuvio", censito: false, matricola_regionale: null, ruolo: "Volontario", qualifica_antincendio: [], qualifiche_coordinamento: [], patenti: [], patenti_files: {}, telefono: "3287654321", stato: "In riposo", associazione_appartenenza: "G.C. Massa di Somma" },
+    { id: "v4", nome: "Anna", cognome: "Neri", data_nascita: "1990-04-10", luogo_nascita: "Roma", cf: "NRANNA90D50H501W", comune_residenza: "Pomigliano", via_residenza: "Via Nazionale", censito: false, matricola_regionale: null, ruolo: "Volontario", qualifica_antincendio: [], qualifiche_coordinamento: [], patenti: [], patenti_files: {}, telefono: "3394567890", stato: "Operativo", associazione_appartenenza: "Save Me" }
 ];
 
 const DEFAULT_MEZZI = [
@@ -818,6 +822,50 @@ function resetVolontarioFotoField() {
     if (current) current.innerText = "";
 }
 
+function resetVolontarioPatentiFields() {
+    setCheckedValues("v-patenti", []);
+    document.querySelectorAll("[data-patente-file-input]").forEach(input => {
+        input.value = "";
+    });
+    document.querySelectorAll("[data-patente-current]").forEach(el => {
+        el.innerText = "";
+    });
+    toggleVolontarioPatentiFiles();
+}
+
+function getVolontarioPatentiFilesMap(volontario = null) {
+    const files = volontario?.patenti_files || {};
+    return files && typeof files === "object" && !Array.isArray(files) ? files : {};
+}
+
+function toggleVolontarioPatentiFiles() {
+    const selected = new Set(collectCheckedValues("v-patenti"));
+    const wrap = document.getElementById("v-patenti-files-wrap");
+    if (wrap) wrap.classList.toggle("hidden", selected.size === 0);
+
+    document.querySelectorAll("[data-patente-file]").forEach(row => {
+        const patente = row.dataset.patenteFile;
+        const show = selected.has(patente);
+        row.classList.toggle("hidden", !show);
+        const input = row.querySelector("[data-patente-file-input]");
+        if (input && !show) input.value = "";
+    });
+}
+
+function setVolontarioPatentiFields(volontario = null) {
+    setCheckedValues("v-patenti", volontario?.patenti || []);
+    document.querySelectorAll("[data-patente-file-input]").forEach(input => {
+        input.value = "";
+    });
+
+    const files = getVolontarioPatentiFilesMap(volontario);
+    document.querySelectorAll("[data-patente-current]").forEach(el => {
+        const patente = el.dataset.patenteCurrent;
+        el.innerText = files[patente] ? "File patente gia caricato." : "";
+    });
+    toggleVolontarioPatentiFiles();
+}
+
 function setVolontarioFotoPreview(volontario = null, previewUrl = null) {
     const preview = document.getElementById("v-foto-preview");
     const current = document.getElementById("v-foto-current");
@@ -854,6 +902,34 @@ function validateVolontarioFotoFile(file) {
     return null;
 }
 
+function getSelectedVolontarioPatentiFiles() {
+    const files = {};
+    VOLONTARI_PATENTI_OPTIONS.forEach(patente => {
+        const input = document.querySelector(`[data-patente-file-input="${CSS.escape(patente)}"]`);
+        if (input?.files?.[0]) files[patente] = input.files[0];
+    });
+    return files;
+}
+
+function validateVolontarioPatenteFile(file) {
+    if (!file) return null;
+    if (!VOLONTARI_PATENTI_ALLOWED_TYPES.includes(file.type)) {
+        return "Le patenti devono essere PDF, JPG, PNG o WebP.";
+    }
+    if (file.size > VOLONTARI_PATENTI_MAX_SIZE) {
+        return "Ogni file patente non puo superare 10 MB.";
+    }
+    return null;
+}
+
+function validateVolontarioPatentiFiles(filesByPatente) {
+    for (const [patente, file] of Object.entries(filesByPatente || {})) {
+        const validationError = validateVolontarioPatenteFile(file);
+        if (validationError) return `${patente}: ${validationError}`;
+    }
+    return null;
+}
+
 function getVolontarioFotoPath(volontarioId, file) {
     const extensionByType = {
         "image/jpeg": "jpg",
@@ -862,6 +938,18 @@ function getVolontarioFotoPath(volontarioId, file) {
     };
     const extension = extensionByType[file.type] || "jpg";
     return `${volontarioId}/foto.${extension}`;
+}
+
+function getVolontarioPatentePath(volontarioId, patente, file) {
+    const extensionByType = {
+        "application/pdf": "pdf",
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+    };
+    const safePatente = String(patente).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const extension = extensionByType[file.type] || "pdf";
+    return `${volontarioId}/patenti/${safePatente}.${extension}`;
 }
 
 async function uploadVolontarioFoto(volontarioId, file, previousPath = null) {
@@ -883,6 +971,51 @@ async function uploadVolontarioFoto(volontarioId, file, previousPath = null) {
     }
 
     return path;
+}
+
+async function uploadVolontarioPatentiFiles(volontarioId, selectedPatenti, filesByPatente, previousFiles = {}) {
+    const selected = new Set(selectedPatenti || []);
+    const nextFiles = {};
+    const pathsToRemove = [];
+
+    for (const patente of selected) {
+        const file = filesByPatente?.[patente] || null;
+        if (!file) {
+            if (previousFiles[patente]) nextFiles[patente] = previousFiles[patente];
+            continue;
+        }
+
+        const validationError = validateVolontarioPatenteFile(file);
+        if (validationError) throw new Error(`${patente}: ${validationError}`);
+
+        const path = getVolontarioPatentePath(volontarioId, patente, file);
+        const { error } = await supabase.storage
+            .from(VOLONTARI_PATENTI_BUCKET)
+            .upload(path, file, {
+                cacheControl: "3600",
+                contentType: file.type,
+                upsert: true,
+            });
+        if (error) throw error;
+
+        if (previousFiles[patente] && previousFiles[patente] !== path) {
+            pathsToRemove.push(previousFiles[patente]);
+        }
+        nextFiles[patente] = path;
+    }
+
+    Object.entries(previousFiles || {}).forEach(([patente, path]) => {
+        if (!selected.has(patente) && path) pathsToRemove.push(path);
+    });
+
+    if (pathsToRemove.length > 0) {
+        const { error } = await supabase.storage
+            .from(VOLONTARI_PATENTI_BUCKET)
+            .remove([...new Set(pathsToRemove)]);
+        if (error) console.error("File patente non rimossi:", error);
+    }
+
+    return nextFiles;
 }
 
 async function attachVolontariFotoUrls(list) {
@@ -1407,6 +1540,7 @@ function toggleModal(modalId, show) {
         if (form) form.reset();
         toggleVolontarioMatricolaField();
         resetVolontarioFotoField();
+        resetVolontarioPatentiFields();
         resetEditState();
         resetCapoSquadraServizioFormRestrictions();
         resetSalaOperativaServizioFormRestrictions();
@@ -2088,6 +2222,7 @@ function renderVolontari() {
 function openNuovoVolontarioModal() {
     resetEditState();
     resetVolontarioFotoField();
+    resetVolontarioPatentiFields();
     setModalFormMode('modal-volontario', { title: 'Aggiungi Nuovo Volontario', submitText: 'Registra' });
     toggleVolontarioMatricolaField();
     setupVolontarioAssociazioneField();
@@ -2114,6 +2249,7 @@ function openEditVolontarioModal(id) {
     document.getElementById("v-ruolo").value = vol.ruolo;
     setCheckedValues("v-qualifica-antincendio", vol.qualifica_antincendio || []);
     setCheckedValues("v-qualifiche-coordinamento", vol.qualifiche_coordinamento || []);
+    setVolontarioPatentiFields(vol);
     document.getElementById("v-stato").value = vol.stato;
     document.getElementById("v-telefono").value = vol.telefono;
     setupVolontarioAssociazioneField();
@@ -2162,17 +2298,24 @@ async function saveVolontario(event) {
     const ruolo = document.getElementById("v-ruolo").value;
     const qualifica_antincendio = collectCheckedValues("v-qualifica-antincendio");
     const qualifiche_coordinamento = collectCheckedValues("v-qualifiche-coordinamento");
+    const patenti = collectCheckedValues("v-patenti");
+    const patentiFiles = getSelectedVolontarioPatentiFiles();
     const stato = document.getElementById("v-stato").value;
     const telefono = document.getElementById("v-telefono").value;
     const associazione_appartenenza = getVolontarioAssociazioneValue();
     const fotoFile = getSelectedVolontarioFotoFile();
     const fotoValidationError = validateVolontarioFotoFile(fotoFile);
+    const patentiValidationError = validateVolontarioPatentiFiles(patentiFiles);
     if (!associazione_appartenenza) {
         showToast("Errore", "Associazione non configurata per questo account.");
         return;
     }
     if (fotoValidationError) {
         showToast("Foto non valida", fotoValidationError);
+        return;
+    }
+    if (patentiValidationError) {
+        showToast("File patente non valido", patentiValidationError);
         return;
     }
 
@@ -2189,6 +2332,7 @@ async function saveVolontario(event) {
         ruolo,
         qualifica_antincendio,
         qualifiche_coordinamento,
+        patenti,
         stato,
         telefono,
         associazione_appartenenza
@@ -2196,10 +2340,16 @@ async function saveVolontario(event) {
 
     try {
         if (editingVolontarioId) {
+            const currentVolontario = volontari.find(v => v.id === editingVolontarioId);
             if (fotoFile) {
-                const currentVolontario = volontari.find(v => v.id === editingVolontarioId);
                 payload.foto_path = await uploadVolontarioFoto(editingVolontarioId, fotoFile, currentVolontario?.foto_path || null);
             }
+            payload.patenti_files = await uploadVolontarioPatentiFiles(
+                editingVolontarioId,
+                patenti,
+                patentiFiles,
+                getVolontarioPatentiFilesMap(currentVolontario)
+            );
 
             const { error } = await supabase.from('volontari').update(payload).eq('id', editingVolontarioId);
             if (error) throw error;
@@ -2217,6 +2367,14 @@ async function saveVolontario(event) {
                     .update({ foto_path: fotoPath })
                     .eq('id', newVolontario.id);
                 if (fotoUpdateError) throw fotoUpdateError;
+            }
+            if (patenti.length > 0) {
+                const patenti_files = await uploadVolontarioPatentiFiles(newVolontario.id, patenti, patentiFiles, {});
+                const { error: patentiUpdateError } = await supabase
+                    .from('volontari')
+                    .update({ patenti_files })
+                    .eq('id', newVolontario.id);
+                if (patentiUpdateError) throw patentiUpdateError;
             }
 
             toggleModal('modal-volontario', false);
@@ -2269,6 +2427,15 @@ async function deleteVolontario(id) {
                     .remove([vol.foto_path]);
                 if (storageError) {
                     console.error("Volontario eliminato, ma foto non rimossa:", storageError);
+                }
+            }
+            const patentePaths = Object.values(getVolontarioPatentiFilesMap(vol)).filter(Boolean);
+            if (patentePaths.length > 0) {
+                const { error: patentiStorageError } = await supabase.storage
+                    .from(VOLONTARI_PATENTI_BUCKET)
+                    .remove(patentePaths);
+                if (patentiStorageError) {
+                    console.error("Volontario eliminato, ma file patenti non rimossi:", patentiStorageError);
                 }
             }
 
@@ -4580,6 +4747,7 @@ async function deleteProfilo(id, ruolo) {
 window.switchTab = switchTab;
 window.toggleModal = toggleModal;
 window.toggleVolontarioMatricolaField = toggleVolontarioMatricolaField;
+window.toggleVolontarioPatentiFiles = toggleVolontarioPatentiFiles;
 window.previewVolontarioFoto = previewVolontarioFoto;
 window.openNuovoVolontarioModal = openNuovoVolontarioModal;
 window.openEditVolontarioModal = openEditVolontarioModal;

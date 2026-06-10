@@ -50,6 +50,8 @@ ALTER TABLE volontari ADD COLUMN IF NOT EXISTS matricola_regionale TEXT;
 ALTER TABLE volontari ADD COLUMN IF NOT EXISTS qualifica_antincendio TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE volontari ADD COLUMN IF NOT EXISTS qualifiche_coordinamento TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE volontari ADD COLUMN IF NOT EXISTS foto_path TEXT;
+ALTER TABLE volontari ADD COLUMN IF NOT EXISTS patenti TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE volontari ADD COLUMN IF NOT EXISTS patenti_files JSONB NOT NULL DEFAULT '{}'::jsonb;
 
 -- 5. Profili utente + RLS: eseguire supabase/migrations/001_profiles_rls_volontari.sql
 --    Guida completa: docs/SUPABASE_SETUP.md
