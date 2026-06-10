@@ -701,6 +701,7 @@
                             <option value="Ambulanza">Ambulanza</option>
                             <option value="Autobotte">Autobotte</option>
                             <option value="Unità Mobile">Unità Mobile</option>
+                            <option value="Carrello appendice">Carrello appendice</option>
                         </select>
                     </div>
                     <div>
@@ -937,6 +938,7 @@
                     <div id="s-mezzi-list" class="bg-slate-950 border border-slate-800 rounded-xl p-4 max-h-40 overflow-y-auto space-y-2">
                         <!-- Popolato dinamicamente con i mezzi registrati -->
                     </div>
+                    <div id="s-carrelli-trainanti-list" class="hidden mt-3 bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3"></div>
                     <p class="text-[10px] text-slate-500 mt-1 font-medium">Seleziona uno o più mezzi disponibili da assegnare al servizio.</p>
                 </div>
 

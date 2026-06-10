@@ -9,6 +9,9 @@ const supabaseKey = window.laravelConfig?.supabaseKey || import.meta.env.VITE_SU
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+const TIPO_FUORISTRADA = "Fuoristrada";
+const TIPO_CARRELLO_APPENDICE = "Carrello appendice";
+
 // --- PROFILO UTENTE (ruolo + associazione) ---
 let currentUserProfile = null;
 
@@ -96,6 +99,14 @@ function getMezzoAssociazioneValue() {
         return getUserAssociazione();
     }
     return document.getElementById('m-associazione')?.value || null;
+}
+
+function isCarrelloAppendice(mezzo) {
+    return mezzo?.tipo === TIPO_CARRELLO_APPENDICE;
+}
+
+function isFuoristrada(mezzo) {
+    return mezzo?.tipo === TIPO_FUORISTRADA;
 }
 
 function roleRequiresAssociazione(ruolo) {
@@ -958,6 +969,7 @@ function mapServizioRow(s) {
         mezziIds: Array.isArray(s.mezzi_ids) && s.mezzi_ids.length > 0
             ? s.mezzi_ids
             : (s.mezzo_id ? [s.mezzo_id] : []),
+        carrelliTrainanti: s.carrelli_trainanti || {},
         volontariIds: s.volontari_ids || [],
         volontariArt39: s.volontari_art39 || {},
         art39: s.art39 || 'Si',
@@ -1148,6 +1160,7 @@ async function initializeDefaultData() {
             longitudine: s.longitudine,
             indirizzo_intervento: s.indirizzo,
             mezzi_ids: s.mezziIds,
+            carrelli_trainanti: {},
             volontari_ids: s.volontariIds,
             note: s.note,
             altri_enti_coinvolti: s.altriEnti,
@@ -2002,12 +2015,14 @@ function renderMezzi() {
         }
 
         let iconSvg = "";
-        if (m.tipo === "Fuoristrada") {
+        if (m.tipo === TIPO_FUORISTRADA) {
             iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-amber-500"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177V3.75A1.125 1.125 0 0013.125 2.625h-2.25a1.125 1.125 0 00-1.125 1.125v11.177M14.25 7.5H9.75M16.5 18.75a1.875 1.875 0 11-3.75 0m3.75 0a1.875 1.875 0 00-3.75 0m-9.75 0h9.75" /></svg>`;
         } else if (m.tipo === "Ambulanza") {
             iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-amber-500"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
         } else if (m.tipo === "Autobotte") {
             iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-amber-500"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a3 3 0 116 0 3 3 0 01-6 0zm13.5 0a3 3 0 116 0 3 3 0 01-6 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 7.5h12m-9-3h6m-12 12V6a1 1 0 011-1h11a1 1 0 011 1v10.5m-15 0H21" /></svg>`;
+        } else if (m.tipo === TIPO_CARRELLO_APPENDICE) {
+            iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-amber-500"><path stroke-linecap="round" stroke-linejoin="round" d="M3 14.25h10.5m0 0v-5.5a1 1 0 011-1h2.75c.46 0 .86.31.97.76l1.45 5.74M13.5 14.25h7.25m-15.5 3a1.75 1.75 0 103.5 0 1.75 1.75 0 00-3.5 0zm11 0a1.75 1.75 0 103.5 0 1.75 1.75 0 00-3.5 0zM3 10.5h10.5M3 17.25h2.25m3.5 0h7.5m3.5 0H21" /></svg>`;
         } else {
             iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-amber-500"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10M21 16V10a2 2 0 00-2-2h-4.25m-.75 0H14M16.5 13H21" /></svg>`;
         }
@@ -2202,7 +2217,7 @@ function populateSquadraAibModalOptions(selectedMezziIds = null, selectedVolonta
     if (!mezziBox || !volontariBox) return;
 
     const mezziDisponibili = getDB('pc_mezzi')
-        .filter(m => m.associazione_appartenenza === associazione && (m.stato === 'Disponibile' || selectedMezzi.has(m.id)));
+        .filter(m => m.associazione_appartenenza === associazione && !isCarrelloAppendice(m) && (m.stato === 'Disponibile' || selectedMezzi.has(m.id)));
     const volontariOperativi = getDB('pc_volontari')
         .filter(v => v.associazione_appartenenza === associazione && (v.stato === 'Operativo' || selectedVolontari.has(v.id)));
 
@@ -2356,7 +2371,10 @@ async function saveSquadraAib(event) {
         return;
     }
 
-    const validMezzi = mezziIds.every(id => mezzi.find(m => m.id === id)?.associazione_appartenenza === associazione);
+    const validMezzi = mezziIds.every(id => {
+        const mezzo = mezzi.find(m => m.id === id);
+        return mezzo?.associazione_appartenenza === associazione && !isCarrelloAppendice(mezzo);
+    });
     const validVolontari = volontariIds.every(id => volontari.find(v => v.id === id)?.associazione_appartenenza === associazione);
     if (!validMezzi || !validVolontari) {
         showToast('Associazione non valida', 'Mezzi e volontari devono appartenere alla stessa organizzazione della squadra.');
@@ -2408,7 +2426,81 @@ async function deleteSquadraAib(id) {
 }
 
 // --- SEZIONE 4: SERVIZI (CRUD & VIEW) ---
-function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariIds = [], selectedVolontariArt39 = {}, servizioArt39 = 'Si') {
+function getSelectedServizioMezziIds() {
+    return collectCheckedValues('s-mezzi-check');
+}
+
+function renderServizioCarrelliTrainantiOptions(selectedCarrelliTrainanti = null) {
+    const box = document.getElementById('s-carrelli-trainanti-list');
+    if (!box) return;
+
+    if (selectedCarrelliTrainanti === null) {
+        selectedCarrelliTrainanti = {};
+        box.querySelectorAll('select[name="s-carrello-trainante"]').forEach(select => {
+            if (select.dataset.carrelloId && select.value) {
+                selectedCarrelliTrainanti[select.dataset.carrelloId] = select.value;
+            }
+        });
+    }
+
+    const mezziList = getDB("pc_mezzi");
+    const selectedIds = getSelectedServizioMezziIds();
+    const selectedIdSet = new Set(selectedIds);
+    const carrelli = selectedIds
+        .map(id => mezziList.find(m => m.id === id))
+        .filter(isCarrelloAppendice);
+    const trainanti = selectedIds
+        .map(id => mezziList.find(m => m.id === id))
+        .filter(m => isFuoristrada(m) && !isCarrelloAppendice(m));
+
+    if (carrelli.length === 0) {
+        box.classList.add('hidden');
+        box.innerHTML = '';
+        return;
+    }
+
+    box.classList.remove('hidden');
+    const options = trainanti.map(m => `<option value="${m.id}">${m.modello} [${m.targa}]</option>`).join('');
+    box.innerHTML = carrelli.map(carrello => {
+        const selectedTrainante = selectedIdSet.has(selectedCarrelliTrainanti?.[carrello.id])
+            ? selectedCarrelliTrainanti[carrello.id]
+            : '';
+        return `
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">${carrello.modello} [${carrello.targa}]</label>
+                <select name="s-carrello-trainante" data-carrello-id="${carrello.id}" class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                    <option value="">Seleziona fuoristrada</option>
+                    ${options}
+                </select>
+            </div>
+        `;
+    }).join('');
+
+    box.querySelectorAll('select[name="s-carrello-trainante"]').forEach(select => {
+        select.value = selectedCarrelliTrainanti?.[select.dataset.carrelloId] || '';
+        if (!selectedIdSet.has(select.value)) select.value = '';
+    });
+}
+
+function collectServizioCarrelliTrainanti(mezziIds) {
+    const selectedIdSet = new Set(mezziIds || []);
+    const carrelliIds = (mezziIds || []).filter(id => isCarrelloAppendice(mezzi.find(m => m.id === id)));
+    const result = {};
+
+    for (const carrelloId of carrelliIds) {
+        const select = document.querySelector(`select[name="s-carrello-trainante"][data-carrello-id="${carrelloId}"]`);
+        const trainanteId = select?.value || '';
+        const trainante = mezzi.find(m => m.id === trainanteId);
+        if (!trainanteId || !selectedIdSet.has(trainanteId) || !isFuoristrada(trainante)) {
+            return { valid: false, value: {}, message: 'Seleziona un fuoristrada trainante per ogni carrello appendice.' };
+        }
+        result[carrelloId] = trainanteId;
+    }
+
+    return { valid: true, value: result };
+}
+
+function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariIds = [], selectedVolontariArt39 = {}, servizioArt39 = 'Si', selectedCarrelliTrainanti = {}) {
     const mezziList = getDB("pc_mezzi");
     const volontariList = getDB("pc_volontari");
 
@@ -2429,7 +2521,7 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
         const searchText = (m.targa || "").toLowerCase();
         return `
             <label data-mezzo-search="${searchText}" class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
-                <input type="checkbox" name="s-mezzi-check" value="${m.id}" ${checked} class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
+                <input type="checkbox" name="s-mezzi-check" value="${m.id}" ${checked} onchange="renderServizioCarrelliTrainantiOptions()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
                 <span class="text-xs ${fontClass}">${m.modello} [${m.targa}] (${m.tipo})${m.associazione_appartenenza ? ` · ${m.associazione_appartenenza}` : ''}${extra}</span>
             </label>
         `;
@@ -2448,6 +2540,7 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
     if (mezziList.length === 0) {
         mezziBox.innerHTML = `<p class="text-xs text-slate-500 p-2 text-center">Nessun mezzo registrato!</p>`;
     }
+    renderServizioCarrelliTrainantiOptions(selectedCarrelliTrainanti);
 
     const volontariBox = document.getElementById("s-volontari-list");
     volontariBox.innerHTML = "";
@@ -2758,7 +2851,7 @@ function openEditServizioModal(id) {
     editingServizioId = id;
     setModalFormMode('modal-servizio', { title: 'Modifica Servizio / Missione', submitText: 'Salva modifiche' });
 
-    populateServizioModalOptions(serv.mezziIds || [], serv.volontariIds || [], serv.volontariArt39 || {}, serv.art39 || 'Si');
+    populateServizioModalOptions(serv.mezziIds || [], serv.volontariIds || [], serv.volontariArt39 || {}, serv.art39 || 'Si', serv.carrelliTrainanti || {});
 
     document.getElementById("s-richiedente").value = serv.richiedente || "SORU";
     document.getElementById("s-tipo").value = serv.tipo;
@@ -2808,7 +2901,7 @@ function servizioViewField(label, value, options = {}) {
     `;
 }
 
-function formatServizioViewMezzi(mezziIds) {
+function formatServizioViewMezzi(mezziIds, carrelliTrainanti = {}) {
     const mezziList = getDB('pc_mezzi');
     const assigned = (mezziIds || [])
         .map(id => mezziList.find(m => m.id === id))
@@ -2820,7 +2913,7 @@ function formatServizioViewMezzi(mezziIds) {
 
     return assigned.map(m => `
         <span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">
-            ${m.modello} [${m.targa}] (${m.tipo})${m.associazione_appartenenza ? ` · ${m.associazione_appartenenza}` : ''}
+            ${m.modello} [${m.targa}] (${m.tipo})${m.associazione_appartenenza ? ` · ${m.associazione_appartenenza}` : ''}${isCarrelloAppendice(m) && carrelliTrainanti[m.id] ? ` · Trainante: ${mezziList.find(trainante => trainante.id === carrelliTrainanti[m.id])?.targa || '—'}` : ''}
         </span>
     `).join('');
 }
@@ -2909,7 +3002,7 @@ function buildServizioViewHtml(serv) {
             ${servizioViewField('Indirizzo Intervento', serv.indirizzo)}
             <div>
                 <p class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Mezzi di Soccorso assegnati</p>
-                <div class="flex flex-wrap">${formatServizioViewMezzi(serv.mezziIds)}</div>
+                <div class="flex flex-wrap">${formatServizioViewMezzi(serv.mezziIds, serv.carrelliTrainanti || {})}</div>
             </div>
             <div>
                 <p class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Equipaggio Volontari assegnati</p>
@@ -3459,6 +3552,11 @@ async function saveServizio(event) {
         const mezziCheckboxes = document.querySelectorAll('input[name="s-mezzi-check"]:checked');
         const mezziIds = [];
         mezziCheckboxes.forEach(cb => mezziIds.push(cb.value));
+        const carrelliTrainantiResult = collectServizioCarrelliTrainanti(mezziIds);
+        if (!carrelliTrainantiResult.valid) {
+            showToast('Trainante mancante', carrelliTrainantiResult.message);
+            return;
+        }
 
         const volontariCheckboxes = document.querySelectorAll('input[name="s-volontari-check"]:checked');
         const volontariIds = [];
@@ -3478,6 +3576,7 @@ async function saveServizio(event) {
         try {
             const { error } = await supabase.from('servizi').update({
                 mezzi_ids: mezziIds,
+                carrelli_trainanti: carrelliTrainantiResult.value,
                 volontari_ids: volontariIds,
                 volontari_art39: volontariArt39,
             }).eq('id', editingServizioId);
@@ -3541,6 +3640,7 @@ async function saveServizio(event) {
     const mezziCheckboxes = document.querySelectorAll('input[name="s-mezzi-check"]:checked');
     let mezziIds = [];
     mezziCheckboxes.forEach(cb => mezziIds.push(cb.value));
+    let carrelliTrainanti = {};
 
     const volontariCheckboxes = document.querySelectorAll('input[name="s-volontari-check"]:checked');
     let volontariIds = [];
@@ -3563,6 +3663,7 @@ async function saveServizio(event) {
             const resources = getServizioSquadreAibResources(squadreAibIds);
             mezziIds = resources.mezziIds;
             volontariIds = resources.volontariIds;
+            carrelliTrainanti = {};
             if (mezziIds.length === 0 || volontariIds.length === 0) {
                 alert("Attenzione: le squadre A.I.B. selezionate non hanno mezzi o volontari associati.");
                 return;
@@ -3572,15 +3673,24 @@ async function saveServizio(event) {
             mezziIds = existingServizio?.mezziIds || [];
             volontariIds = existingServizio?.volontariIds || [];
             volontariArt39 = existingServizio?.volontariArt39 || {};
+            carrelliTrainanti = existingServizio?.carrelliTrainanti || {};
             squadreAibIds = [];
         } else {
             mezziIds = [];
             volontariIds = [];
             volontariArt39 = {};
+            carrelliTrainanti = {};
             squadreAibIds = [];
         }
     } else {
         squadreAibIds = isAntincendioBoschivo(tipo) ? squadreAibIds : [];
+        const carrelliTrainantiResult = collectServizioCarrelliTrainanti(mezziIds);
+        if (!carrelliTrainantiResult.valid) {
+            showToast('Trainante mancante', carrelliTrainantiResult.message);
+            return;
+        }
+        carrelliTrainanti = carrelliTrainantiResult.value;
+
         if (isAntincendioBoschivo(tipo) && mezziIds.length === 0) {
             alert("Attenzione: devi assegnare almeno un mezzo al servizio!");
             return;
@@ -3615,6 +3725,7 @@ async function saveServizio(event) {
         longitudine,
         indirizzo_intervento: indirizzo || null,
         mezzi_ids: mezziIds,
+        carrelli_trainanti: carrelliTrainanti,
         volontari_ids: volontariIds,
         volontari_art39: volontariArt39,
         squadre_aib_ids: squadreAibIds,
@@ -4147,6 +4258,7 @@ window.saveMezzo = saveMezzo;
 window.toggleMezzoStato = toggleMezzoStato;
 window.deleteMezzo = deleteMezzo;
 window.renderMezzi = renderMezzi;
+window.renderServizioCarrelliTrainantiOptions = renderServizioCarrelliTrainantiOptions;
 window.openNuovaSquadraAibModal = openNuovaSquadraAibModal;
 window.openEditSquadraAibModal = openEditSquadraAibModal;
 window.saveSquadraAib = saveSquadraAib;

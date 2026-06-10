@@ -582,6 +582,9 @@ CREATE POLICY "mezzi_select"
 ALTER TABLE public.mezzi
     ADD COLUMN IF NOT EXISTS associazione_appartenenza TEXT;
 
+ALTER TABLE public.servizi
+    ADD COLUMN IF NOT EXISTS carrelli_trainanti JSONB NOT NULL DEFAULT '{}';
+
 DROP POLICY IF EXISTS "mezzi_select" ON public.mezzi;
 DROP POLICY IF EXISTS "mezzi_insert_master" ON public.mezzi;
 DROP POLICY IF EXISTS "mezzi_update_master" ON public.mezzi;

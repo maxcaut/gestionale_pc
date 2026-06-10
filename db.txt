@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS servizi (
     tipo TEXT NOT NULL,
     data TEXT NOT NULL,
     mezzi_ids TEXT[] NOT NULL DEFAULT '{}',
+    carrelli_trainanti JSONB NOT NULL DEFAULT '{}',
     volontari_ids TEXT[] NOT NULL DEFAULT '{}',
     art39 TEXT NOT NULL DEFAULT 'Si',
     note TEXT,
