@@ -972,6 +972,24 @@ function getMezzoScadenzaManutenzioneReasons(mezzo) {
         .map(item => item.reason);
 }
 
+function getMezzoScadenzaAvvisoReasons(mezzo) {
+    const today = getTodayDateOnly();
+    const millisecondsPerDay = 24 * 60 * 60 * 1000;
+    const scadenze = [
+        { date: parseDateOnly(mezzo?.scadenza_rca), label: 'RCA' },
+        { date: parseDateOnly(mezzo?.scadenza_revisione), label: 'Revisione' },
+    ].filter(item => item.date && item.date > today)
+        .map(item => ({
+            ...item,
+            daysLeft: Math.ceil((item.date - today) / millisecondsPerDay),
+        }))
+        .filter(item => item.daysLeft <= 30);
+
+    return scadenze
+        .sort((a, b) => a.date - b.date)
+        .map(item => `${item.label} scadrà fra ${item.daysLeft} ${item.daysLeft === 1 ? 'giorno' : 'giorni'}`);
+}
+
 async function updateMezziScaduti() {
     const scaduti = mezzi.filter(m =>
         canManageMezzo(m)
@@ -2307,6 +2325,10 @@ function renderMezzi() {
         const motivoManutenzioneHtml = motiviManutenzione.length > 0
             ? `<div class="mb-4 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs font-bold text-rose-300">${motiviManutenzione.join('<br>')}</div>`
             : '';
+        const avvisiScadenza = getMezzoScadenzaAvvisoReasons(m);
+        const avvisoScadenzaHtml = avvisiScadenza.length > 0
+            ? `<div class="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-300">${avvisiScadenza.join('<br>')}</div>`
+            : '';
 
         let iconSvg = "";
         if (m.tipo === TIPO_FUORISTRADA) {
@@ -2339,6 +2361,7 @@ function renderMezzi() {
                     </div>
 
                     ${motivoManutenzioneHtml}
+                    ${avvisoScadenzaHtml}
                 </div>
 
                 <div class="border-t border-slate-800/80 pt-4 mt-2 flex items-center justify-between">
