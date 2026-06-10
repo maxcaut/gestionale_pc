@@ -503,7 +503,18 @@
             </div>
             <!-- Modal Form -->
             <form id="form-volontario" onsubmit="saveVolontario(event)" class="p-6 space-y-4 overflow-y-auto">
-                <div class="grid grid-cols-2 gap-4">
+                
+                <div class="flex items-center gap-4">
+                    <div id="v-foto-preview" class="h-16 w-16 rounded-full bg-slate-950 border border-slate-800 flex items-center justify-center overflow-hidden text-sm font-bold text-amber-500 shrink-0">--</div>
+                        <div class="min-w-0 flex-1">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Foto volontario</label>
+                            <input type="file" id="v-foto" accept="image/jpeg,image/png,image/webp" onchange="previewVolontarioFoto()" class="block w-full text-sm text-slate-300 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-800 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-slate-200 hover:file:bg-slate-700">
+                            <p id="v-foto-current" class="text-[10px] text-slate-500 mt-1 font-medium"></p>
+                        </div>
+                </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                    
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Nome <span class="text-amber-500">*</span></label>
                         <input type="text" id="v-nome" required placeholder="Es. Mario" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
@@ -530,6 +541,7 @@
                     <input type="text" id="v-cf" required placeholder="Es. RSSMRA80A01H501U" class="w-full uppercase bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
                 </div>
 
+               
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Comune di residenza <span class="text-amber-500">*</span></label>

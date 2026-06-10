@@ -12,6 +12,9 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 const TIPO_FUORISTRADA = "Fuoristrada";
 const TIPO_CARRELLO_APPENDICE = "Carrello appendice";
 const MEZZO_STATO_MANUTENZIONE = "In manutenzione";
+const VOLONTARI_FOTO_BUCKET = "volontari-foto";
+const VOLONTARI_FOTO_MAX_SIZE = 5 * 1024 * 1024;
+const VOLONTARI_FOTO_ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 // --- PROFILO UTENTE (ruolo + associazione) ---
 let currentUserProfile = null;
@@ -157,7 +160,7 @@ async function enrichVolontariFromServizi(serviziList) {
     const { data, error } = await supabase.from('volontari').select('*').in('id', missingIds);
     if (error) throw error;
     if (data?.length) {
-        volontari = applyVolontariScope([...volontari, ...data]);
+        volontari = await attachVolontariFotoUrls(applyVolontariScope([...volontari, ...data]));
     }
 }
 
@@ -773,6 +776,10 @@ function escapeHtml(value) {
         .replaceAll("'", '&#039;');
 }
 
+function escapeAttr(value) {
+    return escapeHtml(value);
+}
+
 function isTimeValuePassedToday(value) {
     const normalized = normalizeTimeValue(value);
     if (!normalized) return false;
@@ -789,6 +796,113 @@ function resetEditState() {
     editingMezzoId = null;
     editingServizioId = null;
     editingSquadraAibId = null;
+}
+
+function getVolontarioInitials(volontario = {}) {
+    const nome = volontario.nome || "";
+    const cognome = volontario.cognome || "";
+    return `${nome.charAt(0)}${cognome.charAt(0)}`.toUpperCase() || "--";
+}
+
+function resetVolontarioFotoField() {
+    const input = document.getElementById("v-foto");
+    const preview = document.getElementById("v-foto-preview");
+    const current = document.getElementById("v-foto-current");
+
+    if (input) input.value = "";
+    if (preview) {
+        preview.innerHTML = "--";
+        preview.classList.remove("bg-cover", "bg-center");
+        preview.style.backgroundImage = "";
+    }
+    if (current) current.innerText = "";
+}
+
+function setVolontarioFotoPreview(volontario = null, previewUrl = null) {
+    const preview = document.getElementById("v-foto-preview");
+    const current = document.getElementById("v-foto-current");
+    if (!preview) return;
+
+    const initials = getVolontarioInitials(volontario || {});
+    preview.classList.remove("bg-cover", "bg-center");
+    preview.style.backgroundImage = "";
+
+    if (previewUrl) {
+        preview.innerHTML = "";
+        preview.style.backgroundImage = `url("${previewUrl.replaceAll('"', '%22')}")`;
+        preview.classList.add("bg-cover", "bg-center");
+        if (current) current.innerText = "Foto attuale caricata.";
+        return;
+    }
+
+    preview.innerHTML = escapeHtml(initials);
+    if (current) current.innerText = volontario?.foto_path ? "Foto presente, anteprima non disponibile." : "";
+}
+
+function getSelectedVolontarioFotoFile() {
+    return document.getElementById("v-foto")?.files?.[0] || null;
+}
+
+function validateVolontarioFotoFile(file) {
+    if (!file) return null;
+    if (!VOLONTARI_FOTO_ALLOWED_TYPES.includes(file.type)) {
+        return "La foto deve essere JPG, PNG o WebP.";
+    }
+    if (file.size > VOLONTARI_FOTO_MAX_SIZE) {
+        return "La foto non può superare 5 MB.";
+    }
+    return null;
+}
+
+function getVolontarioFotoPath(volontarioId, file) {
+    const extensionByType = {
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+    };
+    const extension = extensionByType[file.type] || "jpg";
+    return `${volontarioId}/foto.${extension}`;
+}
+
+async function uploadVolontarioFoto(volontarioId, file, previousPath = null) {
+    const validationError = validateVolontarioFotoFile(file);
+    if (validationError) throw new Error(validationError);
+
+    const path = getVolontarioFotoPath(volontarioId, file);
+    const { error } = await supabase.storage
+        .from(VOLONTARI_FOTO_BUCKET)
+        .upload(path, file, {
+            cacheControl: "3600",
+            contentType: file.type,
+            upsert: true,
+        });
+    if (error) throw error;
+
+    if (previousPath && previousPath !== path) {
+        await supabase.storage.from(VOLONTARI_FOTO_BUCKET).remove([previousPath]);
+    }
+
+    return path;
+}
+
+async function attachVolontariFotoUrls(list) {
+    const paths = [...new Set((list || []).map(v => v.foto_path).filter(Boolean))];
+    if (paths.length === 0) return list || [];
+
+    const { data, error } = await supabase.storage
+        .from(VOLONTARI_FOTO_BUCKET)
+        .createSignedUrls(paths, 60 * 60);
+
+    if (error) {
+        console.error("Errore creazione URL foto volontari:", error);
+        return list || [];
+    }
+
+    const urlByPath = new Map((data || []).map(item => [item.path, item.signedUrl]));
+    return (list || []).map(v => ({
+        ...v,
+        foto_url: v.foto_path ? urlByPath.get(v.foto_path) || null : null,
+    }));
 }
 
 function setModalFormMode(modalId, { title, submitText }) {
@@ -1124,7 +1238,7 @@ async function fetchDataFromSupabase() {
             const volResponse = await volQuery;
 
             if (volResponse.error) throw volResponse.error;
-            volontari = applyVolontariScope(volResponse.data || []);
+            volontari = await attachVolontariFotoUrls(applyVolontariScope(volResponse.data || []));
         }
 
         if (canAccessMezzi() || canLoadServizi()) {
@@ -1274,6 +1388,7 @@ function toggleModal(modalId, show) {
         const form = modal.querySelector("form");
         if (form) form.reset();
         toggleVolontarioMatricolaField();
+        resetVolontarioFotoField();
         resetEditState();
         resetCapoSquadraServizioFormRestrictions();
         resetSalaOperativaServizioFormRestrictions();
@@ -1851,13 +1966,16 @@ function renderVolontari() {
         else if (v.stato === "In riposo") badgeClass = "bg-slate-800 text-slate-400 border-slate-700";
         else badgeClass = "bg-rose-500/10 text-rose-400 border-rose-500/20";
 
-        const initials = `${v.nome.charAt(0)}${v.cognome.charAt(0)}`.toUpperCase();
+        const initials = getVolontarioInitials(v);
+        const fotoHtml = v.foto_url
+            ? `<img src="${escapeAttr(v.foto_url)}" alt="Foto ${escapeAttr(`${v.nome} ${v.cognome}`)}" class="h-full w-full object-cover">`
+            : escapeHtml(initials);
 
         tbody.innerHTML += `
             <tr class="hover:bg-slate-800/10 transition-colors">
                 <td class="py-4 px-6 flex items-center gap-3">
                     <div class="h-10 w-10 rounded-full bg-slate-800 border border-slate-700/60 flex items-center justify-center font-bold text-amber-500 text-sm shrink-0">
-                        ${initials}
+                        ${fotoHtml}
                     </div>
                     <div>
                         <p class="font-bold text-white text-base">${v.nome} ${v.cognome}</p>
@@ -1903,6 +2021,7 @@ function renderVolontari() {
 
 function openNuovoVolontarioModal() {
     resetEditState();
+    resetVolontarioFotoField();
     setModalFormMode('modal-volontario', { title: 'Aggiungi Nuovo Volontario', submitText: 'Registra' });
     toggleVolontarioMatricolaField();
     setupVolontarioAssociazioneField();
@@ -1935,8 +2054,32 @@ function openEditVolontarioModal(id) {
     if (hasMasterAccess()) {
         document.getElementById("v-associazione").value = vol.associazione_appartenenza || "G.C. Massa di Somma";
     }
+    document.getElementById("v-foto").value = "";
+    setVolontarioFotoPreview(vol, vol.foto_url);
 
     toggleModal('modal-volontario', true);
+}
+
+function previewVolontarioFoto() {
+    const file = getSelectedVolontarioFotoFile();
+    const vol = editingVolontarioId ? volontari.find(v => v.id === editingVolontarioId) : null;
+
+    if (!file) {
+        setVolontarioFotoPreview(vol, vol?.foto_url || null);
+        return;
+    }
+
+    const validationError = validateVolontarioFotoFile(file);
+    if (validationError) {
+        showToast("Foto non valida", validationError);
+        document.getElementById("v-foto").value = "";
+        setVolontarioFotoPreview(vol, vol?.foto_url || null);
+        return;
+    }
+
+    setVolontarioFotoPreview(vol, URL.createObjectURL(file));
+    const current = document.getElementById("v-foto-current");
+    if (current) current.innerText = "Nuova foto selezionata.";
 }
 
 async function saveVolontario(event) {
@@ -1956,8 +2099,14 @@ async function saveVolontario(event) {
     const stato = document.getElementById("v-stato").value;
     const telefono = document.getElementById("v-telefono").value;
     const associazione_appartenenza = getVolontarioAssociazioneValue();
+    const fotoFile = getSelectedVolontarioFotoFile();
+    const fotoValidationError = validateVolontarioFotoFile(fotoFile);
     if (!associazione_appartenenza) {
         showToast("Errore", "Associazione non configurata per questo account.");
+        return;
+    }
+    if (fotoValidationError) {
+        showToast("Foto non valida", fotoValidationError);
         return;
     }
 
@@ -1981,6 +2130,11 @@ async function saveVolontario(event) {
 
     try {
         if (editingVolontarioId) {
+            if (fotoFile) {
+                const currentVolontario = volontari.find(v => v.id === editingVolontarioId);
+                payload.foto_path = await uploadVolontarioFoto(editingVolontarioId, fotoFile, currentVolontario?.foto_path || null);
+            }
+
             const { error } = await supabase.from('volontari').update(payload).eq('id', editingVolontarioId);
             if (error) throw error;
             toggleModal('modal-volontario', false);
@@ -1989,6 +2143,16 @@ async function saveVolontario(event) {
             const newVolontario = { id: "v_" + Date.now(), ...payload };
             const { error } = await supabase.from('volontari').insert([newVolontario]);
             if (error) throw error;
+
+            if (fotoFile) {
+                const fotoPath = await uploadVolontarioFoto(newVolontario.id, fotoFile);
+                const { error: fotoUpdateError } = await supabase
+                    .from('volontari')
+                    .update({ foto_path: fotoPath })
+                    .eq('id', newVolontario.id);
+                if (fotoUpdateError) throw fotoUpdateError;
+            }
+
             toggleModal('modal-volontario', false);
             showToast("Volontario Registrato", `${nome} ${cognome} è stato inserito con successo.`);
         }
@@ -2026,11 +2190,21 @@ async function toggleVolontarioStato(id) {
 async function deleteVolontario(id) {
     if (confirm("Sei sicuro di voler eliminare questo volontario? Questa azione è irreversibile.")) {
         try {
+            const vol = volontari.find(v => v.id === id);
             const { error } = await supabase
                 .from('volontari')
                 .delete()
                 .eq('id', id);
             if (error) throw error;
+
+            if (vol?.foto_path) {
+                const { error: storageError } = await supabase.storage
+                    .from(VOLONTARI_FOTO_BUCKET)
+                    .remove([vol.foto_path]);
+                if (storageError) {
+                    console.error("Volontario eliminato, ma foto non rimossa:", storageError);
+                }
+            }
 
             showToast("Volontario Rimosso", "Il volontario è stato eliminato dal sistema.");
             await fetchDataFromSupabase();
@@ -4335,6 +4509,7 @@ async function deleteProfilo(id, ruolo) {
 window.switchTab = switchTab;
 window.toggleModal = toggleModal;
 window.toggleVolontarioMatricolaField = toggleVolontarioMatricolaField;
+window.previewVolontarioFoto = previewVolontarioFoto;
 window.openNuovoVolontarioModal = openNuovoVolontarioModal;
 window.openEditVolontarioModal = openEditVolontarioModal;
 window.saveVolontario = saveVolontario;

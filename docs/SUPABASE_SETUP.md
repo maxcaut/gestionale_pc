@@ -6,6 +6,7 @@
 2. Incolla ed esegui `supabase/migrations/001_profiles_rls_volontari.sql`.
 3. Incolla ed esegui `supabase/migrations/002_profiles_admin_rls.sql` (schermata **Utenti** nell’app).
 4. Incolla ed esegui `supabase/migrations/003_capo_squadra.sql` (ruolo **Capo Squadra** / Sala operativa).
+5. Esegui anche le migration successive in ordine numerico, inclusa `supabase/migrations/023_volontari_foto_storage.sql` per bucket Storage e foto volontari.
 
 Aggiungi nel `.env` Laravel la chiave **service_role** (Settings → API → `service_role`, solo server):
 
@@ -13,7 +14,7 @@ Aggiungi nel `.env` Laravel la chiave **service_role** (Settings → API → `se
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 ```
 
-Verifica in **Table Editor** che esista la tabella `profiles` e che su `volontari` ci sia la colonna `associazione_appartenenza`.
+Verifica in **Table Editor** che esista la tabella `profiles`, che su `volontari` ci siano `associazione_appartenenza` e `foto_path`, e che in **Storage** esista il bucket privato `volontari-foto`.
 
 ## 2. Crea gli utenti in Authentication
 
