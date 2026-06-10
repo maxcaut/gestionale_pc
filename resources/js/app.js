@@ -720,6 +720,9 @@ const MASSA_DI_SOMMA_CENTER = [40.850, 14.342];
 const MASSA_DI_SOMMA_ZOOM = 11;
 let serviziMap = null;
 let serviziMapMarkersLayer = null;
+let serviziMapRoadLayer = null;
+let serviziMapSatelliteLayer = null;
+let serviziMapActiveBaseLayer = "road";
 const geocodeCache = new Map();
 let serviziMapUpdateToken = 0;
 let pdfExportProgressTimer = null;
@@ -3171,9 +3174,60 @@ function ensureServiziMap() {
         zoomControl: true
     }).setView(MASSA_DI_SOMMA_CENTER, MASSA_DI_SOMMA_ZOOM);
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    serviziMapRoadLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(serviziMap);
+
+    serviziMapSatelliteLayer = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+        attribution: 'Tiles &copy; Esri'
+    });
+
+    const mapTypeControl = L.control({ position: "topright" });
+    mapTypeControl.onAdd = () => {
+        const container = L.DomUtil.create("div", "servizi-map-type-control");
+        const activeButton = L.DomUtil.create("button", "servizi-map-type-active", container);
+        const options = L.DomUtil.create("div", "servizi-map-type-options", container);
+        const roadButton = L.DomUtil.create("button", "", options);
+        const satelliteButton = L.DomUtil.create("button", "", options);
+
+        activeButton.type = "button";
+        roadButton.type = "button";
+        satelliteButton.type = "button";
+        roadButton.textContent = "Mappa stradale";
+        satelliteButton.textContent = "Mappa satellite";
+
+        const updateControl = () => {
+            activeButton.textContent = serviziMapActiveBaseLayer === "road" ? "Mappa stradale" : "Mappa satellite";
+            roadButton.classList.toggle("is-active", serviziMapActiveBaseLayer === "road");
+            satelliteButton.classList.toggle("is-active", serviziMapActiveBaseLayer === "satellite");
+        };
+
+        const setBaseLayer = (layer) => {
+            if (layer === serviziMapActiveBaseLayer) {
+                container.classList.remove("is-open");
+                return;
+            }
+
+            serviziMap.removeLayer(layer === "road" ? serviziMapSatelliteLayer : serviziMapRoadLayer);
+            serviziMap.addLayer(layer === "road" ? serviziMapRoadLayer : serviziMapSatelliteLayer);
+            serviziMapActiveBaseLayer = layer;
+            container.classList.remove("is-open");
+            updateControl();
+        };
+
+        activeButton.addEventListener("click", () => {
+            container.classList.toggle("is-open");
+        });
+        roadButton.addEventListener("click", () => setBaseLayer("road"));
+        satelliteButton.addEventListener("click", () => setBaseLayer("satellite"));
+
+        L.DomEvent.disableClickPropagation(container);
+        L.DomEvent.disableScrollPropagation(container);
+        updateControl();
+
+        return container;
+    };
+    mapTypeControl.addTo(serviziMap);
 
     serviziMapMarkersLayer = L.layerGroup().addTo(serviziMap);
 }

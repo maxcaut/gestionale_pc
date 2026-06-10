@@ -64,6 +64,101 @@
     color: #fbbf24;
 }
 
+.servizi-map-type-control {
+    position: relative;
+    font-family: inherit;
+}
+
+.servizi-map-type-active,
+.servizi-map-type-options button {
+    border: 0;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.servizi-map-type-active {
+    position: relative;
+    min-width: 9.75rem;
+    min-height: 2.35rem;
+    padding: 0 2.1rem 0 0.85rem;
+    background: rgba(15, 23, 42, 0.94);
+    border: 1px solid rgba(51, 65, 85, 0.9);
+    border-radius: 0.75rem;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28);
+    color: #fbbf24;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: left;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.servizi-map-type-active::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 0.85rem;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-right: 2px solid #94a3b8;
+    border-bottom: 2px solid #94a3b8;
+    transform: translateY(-65%) rotate(45deg);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.servizi-map-type-control.is-open .servizi-map-type-active::after {
+    border-color: #fbbf24;
+    transform: translateY(-35%) rotate(225deg);
+}
+
+.servizi-map-type-active:hover,
+.servizi-map-type-control.is-open .servizi-map-type-active {
+    background: rgba(51, 65, 85, 0.72);
+    border-color: rgba(245, 158, 11, 0.42);
+}
+
+.servizi-map-type-options {
+    display: none;
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    right: 0;
+    min-width: 9.75rem;
+    padding: 0.3rem;
+    background: rgba(15, 23, 42, 0.96);
+    border: 1px solid rgba(51, 65, 85, 0.9);
+    border-radius: 0.75rem;
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.32);
+}
+
+.servizi-map-type-control.is-open .servizi-map-type-options {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.servizi-map-type-options button {
+    min-height: 2rem;
+    padding: 0 0.65rem;
+    border-radius: 0.5rem;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.servizi-map-type-options button:hover {
+    background: rgba(51, 65, 85, 0.72);
+    color: #e2e8f0;
+}
+
+.servizi-map-type-options button.is-active {
+    background: rgba(245, 158, 11, 0.16);
+    color: #fbbf24;
+}
+
 .servizi-map .leaflet-control-attribution {
     background: rgba(15, 23, 42, 0.85);
     color: #64748b;
