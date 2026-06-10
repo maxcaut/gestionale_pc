@@ -1802,6 +1802,40 @@ function renderStatisticheNonCalcolabili(serviziList) {
     `).join('');
 }
 
+function renderStatisticheSoruSenzaProtocollo(serviziSenzaProtocollo, total) {
+    const countEl = document.getElementById('statistiche-soru-senza-protocollo-count');
+    const totalEl = document.getElementById('statistiche-soru-totale-count');
+    const listEl = document.getElementById('statistiche-soru-senza-protocollo-list');
+    if (!countEl || !totalEl || !listEl) return;
+
+    countEl.textContent = serviziSenzaProtocollo.length;
+    totalEl.textContent = total;
+
+    if (serviziSenzaProtocollo.length === 0) {
+        listEl.innerHTML = '<div class="rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-slate-400">Nessun servizio SORU senza protocollo regionale.</div>';
+        return;
+    }
+
+    listEl.innerHTML = serviziSenzaProtocollo.map(servizio => {
+        const editId = escapeAttr(JSON.stringify(servizio.id));
+        return `
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950 px-4 py-3">
+            <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-sm font-bold text-white">${escapeHtml(servizio.id)}</span>
+                    <span class="rounded-lg border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-300">${escapeHtml(servizio.stato || 'Senza stato')}</span>
+                </div>
+                <div class="mt-1 text-sm text-slate-300 truncate">${escapeHtml(servizio.tipo || 'Senza tipologia')}</div>
+                <div class="mt-1 text-xs text-slate-500">${escapeHtml(formatServizioDataPianificata(servizio.data))}</div>
+            </div>
+            <button type="button" onclick="openEditServizioModal(${editId})" class="shrink-0 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition-all shadow-md shadow-amber-500/10">
+                Modifica
+            </button>
+        </div>
+    `;
+    }).join('');
+}
+
 function getStatisticheData() {
     const volontariList = getDB('pc_volontari');
     const mezziList = getDB('pc_mezzi');
@@ -1812,8 +1846,17 @@ function getStatisticheData() {
     const mezziStats = new Map();
     const tipologieStats = new Map();
     const nonCalcolabili = [];
+    let soruTotale = 0;
+    const soruSenzaProtocollo = [];
 
     serviziList.forEach(servizio => {
+        if (servizio.richiedente === 'SORU') {
+            soruTotale += 1;
+            if (!String(servizio.protocolloRegionale || '').trim()) {
+                soruSenzaProtocollo.push(servizio);
+            }
+        }
+
         if (servizio.stato !== 'Completato') return;
 
         const hours = getServizioDurationHours(servizio);
@@ -1849,6 +1892,8 @@ function getStatisticheData() {
         mezziStats: [...mezziStats.values()].sort(byLabelAndTipologia),
         tipologieStats: [...tipologieStats.values()].sort(byTipologia),
         nonCalcolabili,
+        soruTotale,
+        soruSenzaProtocollo,
     };
 }
 
@@ -1913,6 +1958,8 @@ function renderStatistiche() {
         mezziStats,
         tipologieStats,
         nonCalcolabili,
+        soruTotale,
+        soruSenzaProtocollo,
     } = getStatisticheData();
 
     renderStatisticheGroupedTable(
@@ -1931,6 +1978,7 @@ function renderStatistiche() {
         'Nessuna ora per tipologia calcolabile.',
         2
     );
+    renderStatisticheSoruSenzaProtocollo(soruSenzaProtocollo, soruTotale);
     renderStatisticheNonCalcolabili(nonCalcolabili);
 }
 
