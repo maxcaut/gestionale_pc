@@ -653,61 +653,56 @@
 
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Patente</label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
-                            <input type="checkbox" name="v-patenti" value="A" onchange="toggleVolontarioPatentiFiles()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
-                            A
-                        </label>
-                        <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
-                            <input type="checkbox" name="v-patenti" value="B" onchange="toggleVolontarioPatentiFiles()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
-                            B
-                        </label>
-                        <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
-                            <input type="checkbox" name="v-patenti" value="C" onchange="toggleVolontarioPatentiFiles()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
-                            C
-                        </label>
-                        <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
-                            <input type="checkbox" name="v-patenti" value="D" onchange="toggleVolontarioPatentiFiles()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
-                            D
-                        </label>
-                        <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
-                            <input type="checkbox" name="v-patenti" value="E" onchange="toggleVolontarioPatentiFiles()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
-                            E
-                        </label>
-                        <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
-                            <input type="checkbox" name="v-patenti" value="MMT" onchange="toggleVolontarioPatentiFiles()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
-                            MMT (Movimento terra)
-                        </label>
-                        <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm sm:col-span-2">
-                            <input type="checkbox" name="v-patenti" value="Patente Nautica" onchange="toggleVolontarioPatentiFiles()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
-                            Patente Nautica
-                        </label>
+                    <select id="v-patente-presente" onchange="toggleVolontarioPatentiPresence()" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                        <option value="No">No</option>
+                        <option value="Si">Si</option>
+                    </select>
+                    <div id="v-patenti-fields-wrap" class="hidden mt-3 space-y-3">
+                        <div>
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">A, B, C, D, E</p>
+                            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                                <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
+                                    <input type="checkbox" name="v-patenti" value="A" onchange="toggleVolontarioPatentiFiles()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                                    A
+                                </label>
+                                <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
+                                    <input type="checkbox" name="v-patenti" value="B" onchange="toggleVolontarioPatentiFiles()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                                    B
+                                </label>
+                                <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
+                                    <input type="checkbox" name="v-patenti" value="C" onchange="toggleVolontarioPatentiFiles()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                                    C
+                                </label>
+                                <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
+                                    <input type="checkbox" name="v-patenti" value="D" onchange="toggleVolontarioPatentiFiles()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                                    D
+                                </label>
+                                <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
+                                    <input type="checkbox" name="v-patenti" value="E" onchange="toggleVolontarioPatentiFiles()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                                    E
+                                </label>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">MMT</p>
+                            <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
+                                <input type="checkbox" name="v-patenti" value="MMT" onchange="toggleVolontarioPatentiFiles()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                                MMT (Movimento terra)
+                            </label>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Patente nautica</p>
+                            <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
+                                <input type="checkbox" name="v-patenti" value="Patente Nautica" onchange="toggleVolontarioPatentiFiles()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                                Patente Nautica
+                            </label>
+                        </div>
                     </div>
                     <div id="v-patenti-files-wrap" class="hidden mt-3 space-y-3">
-                        <div data-patente-file="A" class="hidden">
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">File patente A</label>
-                            <input type="file" data-patente-file-input="A" accept="application/pdf,image/jpeg,image/png,image/webp" class="block w-full text-sm text-slate-300 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-800 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-slate-200 hover:file:bg-slate-700">
-                            <p data-patente-current="A" class="text-[10px] text-slate-500 mt-1 font-medium"></p>
-                        </div>
-                        <div data-patente-file="B" class="hidden">
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">File patente B</label>
-                            <input type="file" data-patente-file-input="B" accept="application/pdf,image/jpeg,image/png,image/webp" class="block w-full text-sm text-slate-300 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-800 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-slate-200 hover:file:bg-slate-700">
-                            <p data-patente-current="B" class="text-[10px] text-slate-500 mt-1 font-medium"></p>
-                        </div>
-                        <div data-patente-file="C" class="hidden">
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">File patente C</label>
-                            <input type="file" data-patente-file-input="C" accept="application/pdf,image/jpeg,image/png,image/webp" class="block w-full text-sm text-slate-300 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-800 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-slate-200 hover:file:bg-slate-700">
-                            <p data-patente-current="C" class="text-[10px] text-slate-500 mt-1 font-medium"></p>
-                        </div>
-                        <div data-patente-file="D" class="hidden">
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">File patente D</label>
-                            <input type="file" data-patente-file-input="D" accept="application/pdf,image/jpeg,image/png,image/webp" class="block w-full text-sm text-slate-300 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-800 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-slate-200 hover:file:bg-slate-700">
-                            <p data-patente-current="D" class="text-[10px] text-slate-500 mt-1 font-medium"></p>
-                        </div>
-                        <div data-patente-file="E" class="hidden">
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">File patente E</label>
-                            <input type="file" data-patente-file-input="E" accept="application/pdf,image/jpeg,image/png,image/webp" class="block w-full text-sm text-slate-300 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-800 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-slate-200 hover:file:bg-slate-700">
-                            <p data-patente-current="E" class="text-[10px] text-slate-500 mt-1 font-medium"></p>
+                        <div data-patente-file="Patenti A-B-C-D-E" class="hidden">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">File patenti A, B, C, D, E</label>
+                            <input type="file" data-patente-file-input="Patenti A-B-C-D-E" accept="application/pdf,image/jpeg,image/png,image/webp" class="block w-full text-sm text-slate-300 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-800 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-slate-200 hover:file:bg-slate-700">
+                            <p data-patente-current="Patenti A-B-C-D-E" class="text-[10px] text-slate-500 mt-1 font-medium"></p>
                         </div>
                         <div data-patente-file="MMT" class="hidden">
                             <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">File patente MMT</label>

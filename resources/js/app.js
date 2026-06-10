@@ -19,6 +19,8 @@ const VOLONTARI_PATENTI_BUCKET = "volontari-patenti";
 const VOLONTARI_PATENTI_MAX_SIZE = 10 * 1024 * 1024;
 const VOLONTARI_PATENTI_ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
 const VOLONTARI_PATENTI_OPTIONS = ["A", "B", "C", "D", "E", "MMT", "Patente Nautica"];
+const VOLONTARI_PATENTI_AUTO_OPTIONS = ["A", "B", "C", "D", "E"];
+const VOLONTARI_PATENTI_AUTO_FILE_KEY = "Patenti A-B-C-D-E";
 const VOLONTARI_CARTA_IDENTITA_BUCKET = "volontari-carte-identita";
 const VOLONTARI_CARTA_IDENTITA_MAX_SIZE = 10 * 1024 * 1024;
 const VOLONTARI_CARTA_IDENTITA_ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
@@ -842,6 +844,8 @@ function resetVolontarioCartaIdentitaField() {
 }
 
 function resetVolontarioPatentiFields() {
+    const presenzaSelect = document.getElementById("v-patente-presente");
+    if (presenzaSelect) presenzaSelect.value = "No";
     setCheckedValues("v-patenti", []);
     document.querySelectorAll("[data-patente-file-input]").forEach(input => {
         input.value = "";
@@ -857,14 +861,36 @@ function getVolontarioPatentiFilesMap(volontario = null) {
     return files && typeof files === "object" && !Array.isArray(files) ? files : {};
 }
 
+function getVolontarioPatentiAutoFilePath(files = {}) {
+    if (files[VOLONTARI_PATENTI_AUTO_FILE_KEY]) return files[VOLONTARI_PATENTI_AUTO_FILE_KEY];
+    return VOLONTARI_PATENTI_AUTO_OPTIONS.map(patente => files[patente]).find(Boolean) || null;
+}
+
+function toggleVolontarioPatentiPresence() {
+    const hasPatente = document.getElementById("v-patente-presente")?.value === "Si";
+    const fieldsWrap = document.getElementById("v-patenti-fields-wrap");
+    if (fieldsWrap) fieldsWrap.classList.toggle("hidden", !hasPatente);
+
+    if (!hasPatente) {
+        setCheckedValues("v-patenti", []);
+        document.querySelectorAll("[data-patente-file-input]").forEach(input => {
+            input.value = "";
+        });
+    }
+
+    toggleVolontarioPatentiFiles();
+}
+
 function toggleVolontarioPatentiFiles() {
+    const hasPatente = document.getElementById("v-patente-presente")?.value === "Si";
     const selected = new Set(collectCheckedValues("v-patenti"));
+    const hasAutoPatente = VOLONTARI_PATENTI_AUTO_OPTIONS.some(patente => selected.has(patente));
     const wrap = document.getElementById("v-patenti-files-wrap");
-    if (wrap) wrap.classList.toggle("hidden", selected.size === 0);
+    if (wrap) wrap.classList.toggle("hidden", !hasPatente || selected.size === 0);
 
     document.querySelectorAll("[data-patente-file]").forEach(row => {
         const patente = row.dataset.patenteFile;
-        const show = selected.has(patente);
+        const show = hasPatente && (patente === VOLONTARI_PATENTI_AUTO_FILE_KEY ? hasAutoPatente : selected.has(patente));
         row.classList.toggle("hidden", !show);
         const input = row.querySelector("[data-patente-file-input]");
         if (input && !show) input.value = "";
@@ -872,7 +898,10 @@ function toggleVolontarioPatentiFiles() {
 }
 
 function setVolontarioPatentiFields(volontario = null) {
-    setCheckedValues("v-patenti", volontario?.patenti || []);
+    const patenti = volontario?.patenti || [];
+    const presenzaSelect = document.getElementById("v-patente-presente");
+    if (presenzaSelect) presenzaSelect.value = patenti.length > 0 ? "Si" : "No";
+    setCheckedValues("v-patenti", patenti);
     document.querySelectorAll("[data-patente-file-input]").forEach(input => {
         input.value = "";
     });
@@ -880,9 +909,10 @@ function setVolontarioPatentiFields(volontario = null) {
     const files = getVolontarioPatentiFilesMap(volontario);
     document.querySelectorAll("[data-patente-current]").forEach(el => {
         const patente = el.dataset.patenteCurrent;
-        el.innerText = files[patente] ? "File patente gia caricato." : "";
+        const hasFile = patente === VOLONTARI_PATENTI_AUTO_FILE_KEY ? getVolontarioPatentiAutoFilePath(files) : files[patente];
+        el.innerText = hasFile ? "File patente gia caricato." : "";
     });
-    toggleVolontarioPatentiFiles();
+    toggleVolontarioPatentiPresence();
 }
 
 function setVolontarioFotoPreview(volontario = null, previewUrl = null) {
@@ -938,9 +968,9 @@ function validateVolontarioCartaIdentitaFile(file) {
 
 function getSelectedVolontarioPatentiFiles() {
     const files = {};
-    VOLONTARI_PATENTI_OPTIONS.forEach(patente => {
-        const input = document.querySelector(`[data-patente-file-input="${CSS.escape(patente)}"]`);
-        if (input?.files?.[0]) files[patente] = input.files[0];
+    document.querySelectorAll("[data-patente-file-input]").forEach(input => {
+        const patente = input.dataset.patenteFileInput;
+        if (patente && input.files?.[0]) files[patente] = input.files[0];
     });
     return files;
 }
@@ -1041,13 +1071,22 @@ async function uploadVolontarioCartaIdentita(volontarioId, file, previousPath = 
 
 async function uploadVolontarioPatentiFiles(volontarioId, selectedPatenti, filesByPatente, previousFiles = {}) {
     const selected = new Set(selectedPatenti || []);
+    const hasAutoPatente = VOLONTARI_PATENTI_AUTO_OPTIONS.some(patente => selected.has(patente));
+    const selectedFileKeys = [
+        ...(hasAutoPatente ? [VOLONTARI_PATENTI_AUTO_FILE_KEY] : []),
+        ...["MMT", "Patente Nautica"].filter(patente => selected.has(patente)),
+    ];
     const nextFiles = {};
     const pathsToRemove = [];
 
-    for (const patente of selected) {
+    for (const patente of selectedFileKeys) {
         const file = filesByPatente?.[patente] || null;
+        const previousPath = patente === VOLONTARI_PATENTI_AUTO_FILE_KEY
+            ? getVolontarioPatentiAutoFilePath(previousFiles)
+            : previousFiles[patente];
+
         if (!file) {
-            if (previousFiles[patente]) nextFiles[patente] = previousFiles[patente];
+            if (previousPath) nextFiles[patente] = previousPath;
             continue;
         }
 
@@ -1064,14 +1103,16 @@ async function uploadVolontarioPatentiFiles(volontarioId, selectedPatenti, files
             });
         if (error) throw error;
 
-        if (previousFiles[patente] && previousFiles[patente] !== path) {
-            pathsToRemove.push(previousFiles[patente]);
+        if (previousPath && previousPath !== path) {
+            pathsToRemove.push(previousPath);
         }
         nextFiles[patente] = path;
     }
 
     Object.entries(previousFiles || {}).forEach(([patente, path]) => {
-        if (!selected.has(patente) && path) pathsToRemove.push(path);
+        const isKeptFileKey = selectedFileKeys.includes(patente);
+        const isKeptPath = Object.values(nextFiles).includes(path);
+        if (!isKeptFileKey && !isKeptPath && path) pathsToRemove.push(path);
     });
 
     if (pathsToRemove.length > 0) {
@@ -2447,7 +2488,8 @@ async function saveVolontario(event) {
     const ruolo = document.getElementById("v-ruolo").value;
     const qualifica_antincendio = collectCheckedValues("v-qualifica-antincendio");
     const qualifiche_coordinamento = collectCheckedValues("v-qualifiche-coordinamento");
-    const patenti = collectCheckedValues("v-patenti");
+    const patentePresente = document.getElementById("v-patente-presente")?.value === "Si";
+    const patenti = patentePresente ? collectCheckedValues("v-patenti") : [];
     const patentiFiles = getSelectedVolontarioPatentiFiles();
     const stato = document.getElementById("v-stato").value;
     const telefono = document.getElementById("v-telefono").value;
@@ -4925,6 +4967,7 @@ async function deleteProfilo(id, ruolo) {
 window.switchTab = switchTab;
 window.toggleModal = toggleModal;
 window.toggleVolontarioMatricolaField = toggleVolontarioMatricolaField;
+window.toggleVolontarioPatentiPresence = toggleVolontarioPatentiPresence;
 window.toggleVolontarioPatentiFiles = toggleVolontarioPatentiFiles;
 window.previewVolontarioFoto = previewVolontarioFoto;
 window.openNuovoVolontarioModal = openNuovoVolontarioModal;
