@@ -20,6 +20,7 @@ class ServizioPdfController extends Controller
             'servizio.tipologia_aib' => 'nullable|string',
             'servizio.note' => 'nullable|string',
             'servizio.richiedente' => 'nullable|string',
+            'servizio.protocollo_regionale' => 'nullable|string',
             'servizio.indirizzo' => 'nullable|string',
             'servizio.altriEnti' => 'nullable|string',
             'servizio.oraArrivoIncendio' => 'nullable|string',

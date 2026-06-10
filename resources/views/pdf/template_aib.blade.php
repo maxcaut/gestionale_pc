@@ -149,7 +149,13 @@
     </style>
 </head>
 <body>
-    <div class="protocollo">Protocollo {{ $servizio['id'] ?? '' }}</div>
+    @php($protocolloRegionale = trim((string) ($servizio['protocollo_regionale'] ?? $servizio['protocolloRegionale'] ?? '')))
+    <div class="protocollo">
+        <div>Protocollo {{ $servizio['id'] ?? '' }}</div>
+        @if ($protocolloRegionale !== '')
+            <div>Protocollo regionale {{ $protocolloRegionale }}</div>
+        @endif
+    </div>
 @php
         $giorno = $dataIntervento['giorno'] ?? '________';
         $mese = $dataIntervento['mese'] ?? '________';
