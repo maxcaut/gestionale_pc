@@ -713,10 +713,10 @@ async function handleLogout() {
 
 // --- MEMORIA DATI INITIALI (MOCK DATABASE) ---
 const DEFAULT_VOLONTARI = [
-    { id: "v1", nome: "Mario", cognome: "Rossi", data_nascita: "1980-01-01", luogo_nascita: "Roma", cf: "RSSMRA80A01H501U", comune_residenza: "Massa di Somma", via_residenza: "Via Roma", censito: false, matricola_regionale: null, ruolo: "Coordinatore", qualifica_antincendio: [], qualifiche_coordinamento: [], patenti: [], patenti_files: {}, telefono: "3331234567", stato: "Operativo", associazione_appartenenza: "G.C. Massa di Somma" },
-    { id: "v2", nome: "Laura", cognome: "Bianchi", data_nascita: "1985-02-01", luogo_nascita: "Roma", cf: "BNCLRA85B41H501X", comune_residenza: "Cercola", via_residenza: "Via Napoli", censito: false, matricola_regionale: null, ruolo: "Volontario", qualifica_antincendio: [], qualifiche_coordinamento: [], patenti: [], patenti_files: {}, telefono: "3459876543", stato: "Operativo", associazione_appartenenza: "G.C. Cercola" },
-    { id: "v3", nome: "Giuseppe", cognome: "Verdi", data_nascita: "1978-03-12", luogo_nascita: "Roma", cf: "VRDGPP78C12H501Z", comune_residenza: "Massa di Somma", via_residenza: "Via Vesuvio", censito: false, matricola_regionale: null, ruolo: "Volontario", qualifica_antincendio: [], qualifiche_coordinamento: [], patenti: [], patenti_files: {}, telefono: "3287654321", stato: "In riposo", associazione_appartenenza: "G.C. Massa di Somma" },
-    { id: "v4", nome: "Anna", cognome: "Neri", data_nascita: "1990-04-10", luogo_nascita: "Roma", cf: "NRANNA90D50H501W", comune_residenza: "Pomigliano", via_residenza: "Via Nazionale", censito: false, matricola_regionale: null, ruolo: "Volontario", qualifica_antincendio: [], qualifiche_coordinamento: [], patenti: [], patenti_files: {}, telefono: "3394567890", stato: "Operativo", associazione_appartenenza: "Save Me" }
+    { id: "v1", nome: "Mario", cognome: "Rossi", data_nascita: "1980-01-01", luogo_nascita: "Roma", cf: "RSSMRA80A01H501U", comune_residenza: "Massa di Somma", via_residenza: "Via Roma", censito: false, matricola_regionale: null, ruolo: "Coordinatore", qualifica_antincendio: [], qualifiche_coordinamento: [], qualifica_antincendio_date: {}, qualifiche_coordinamento_date: {}, patenti: [], patenti_files: {}, telefono: "3331234567", stato: "Operativo", associazione_appartenenza: "G.C. Massa di Somma" },
+    { id: "v2", nome: "Laura", cognome: "Bianchi", data_nascita: "1985-02-01", luogo_nascita: "Roma", cf: "BNCLRA85B41H501X", comune_residenza: "Cercola", via_residenza: "Via Napoli", censito: false, matricola_regionale: null, ruolo: "Volontario", qualifica_antincendio: [], qualifiche_coordinamento: [], qualifica_antincendio_date: {}, qualifiche_coordinamento_date: {}, patenti: [], patenti_files: {}, telefono: "3459876543", stato: "Operativo", associazione_appartenenza: "G.C. Cercola" },
+    { id: "v3", nome: "Giuseppe", cognome: "Verdi", data_nascita: "1978-03-12", luogo_nascita: "Roma", cf: "VRDGPP78C12H501Z", comune_residenza: "Massa di Somma", via_residenza: "Via Vesuvio", censito: false, matricola_regionale: null, ruolo: "Volontario", qualifica_antincendio: [], qualifiche_coordinamento: [], qualifica_antincendio_date: {}, qualifiche_coordinamento_date: {}, patenti: [], patenti_files: {}, telefono: "3287654321", stato: "In riposo", associazione_appartenenza: "G.C. Massa di Somma" },
+    { id: "v4", nome: "Anna", cognome: "Neri", data_nascita: "1990-04-10", luogo_nascita: "Roma", cf: "NRANNA90D50H501W", comune_residenza: "Pomigliano", via_residenza: "Via Nazionale", censito: false, matricola_regionale: null, ruolo: "Volontario", qualifica_antincendio: [], qualifiche_coordinamento: [], qualifica_antincendio_date: {}, qualifiche_coordinamento_date: {}, patenti: [], patenti_files: {}, telefono: "3394567890", stato: "Operativo", associazione_appartenenza: "Save Me" }
 ];
 
 const DEFAULT_MEZZI = [
@@ -1161,6 +1161,141 @@ function setCheckedValues(name, values = []) {
     document.querySelectorAll(`input[name="${name}"]`).forEach(input => {
         input.checked = selected.has(input.value);
     });
+}
+
+function getQualificationDateMap(value) {
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function addYearsToDate(date, years) {
+    const result = new Date(date);
+    result.setFullYear(result.getFullYear() + years);
+    return result;
+}
+
+function parseLocalDate(value) {
+    if (!value) return null;
+    const parts = String(value).split('-').map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function isQualificaAntincendioS(qualifica) {
+    return String(qualifica || '').trim().toUpperCase() === 'S';
+}
+
+function getQualificationValidityYears(type, qualifica) {
+    return type === 'antincendio' && isQualificaAntincendioS(qualifica) ? 1 : 2;
+}
+
+function getExpiredVolunteerQualifications(volontario = {}) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const groups = [
+        {
+            label: 'Antincendio',
+            type: 'antincendio',
+            values: volontario.qualifica_antincendio || [],
+            dates: getQualificationDateMap(volontario.qualifica_antincendio_date),
+        },
+        {
+            label: 'Coordinamento',
+            type: 'coordinamento',
+            values: volontario.qualifiche_coordinamento || [],
+            dates: getQualificationDateMap(volontario.qualifiche_coordinamento_date),
+        },
+    ];
+
+    return groups.flatMap(group => group.values
+        .map(qualifica => {
+            const achievedAt = parseLocalDate(group.dates[qualifica]);
+            if (!achievedAt) return null;
+
+            const expiresAt = addYearsToDate(achievedAt, getQualificationValidityYears(group.type, qualifica));
+            expiresAt.setHours(0, 0, 0, 0);
+            if (expiresAt > today) return null;
+
+            return {
+                label: group.label,
+                qualifica,
+            };
+        })
+        .filter(Boolean));
+}
+
+function renderVolunteerQualificationExpiryHtml(volontario) {
+    const expired = getExpiredVolunteerQualifications(volontario);
+    if (expired.length === 0) return '';
+
+    return `
+        <div class="mt-2 flex flex-wrap gap-1.5">
+            ${expired.map(item => `
+                <span class="inline-flex items-center rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-300">
+                    ${escapeHtml(item.label)} ${escapeHtml(item.qualifica)} scaduta
+                </span>
+            `).join('')}
+        </div>
+    `;
+}
+
+function renderQualificationDateFields(name, containerId, dateMap = {}) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const selected = collectCheckedValues(name);
+    const currentDates = {
+        ...getQualificationDateMap(dateMap),
+        ...collectQualificationDateMap(containerId, selected, false),
+    };
+
+    if (selected.length === 0) {
+        container.innerHTML = '';
+        container.classList.add('hidden');
+        return;
+    }
+
+    container.classList.remove('hidden');
+    container.innerHTML = selected.map(qualifica => `
+        <div>
+            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Data conseguimento ${escapeHtml(qualifica)} <span class="text-amber-500">*</span></label>
+            <input type="date" data-qualification-date="${escapeAttr(qualifica)}" value="${escapeAttr(currentDates[qualifica] || '')}" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+        </div>
+    `).join('');
+}
+
+function collectQualificationDateMap(containerId, selectedValues, requireDates = true) {
+    const container = document.getElementById(containerId);
+    const selected = Array.isArray(selectedValues) ? selectedValues : [];
+    const dates = {};
+    if (!container) return dates;
+
+    const inputs = Array.from(container.querySelectorAll('input[data-qualification-date]'));
+    selected.forEach(qualifica => {
+        const input = inputs.find(item => item.dataset.qualificationDate === qualifica);
+        const value = input?.value || '';
+        if (value) dates[qualifica] = value;
+        if (requireDates && input) input.required = true;
+    });
+
+    return dates;
+}
+
+function renderVolontarioQualificationDateFields(volontario = {}) {
+    renderQualificationDateFields(
+        'v-qualifica-antincendio',
+        'v-qualifica-antincendio-date-fields',
+        volontario.qualifica_antincendio_date || {}
+    );
+    renderQualificationDateFields(
+        'v-qualifiche-coordinamento',
+        'v-qualifiche-coordinamento-date-fields',
+        volontario.qualifiche_coordinamento_date || {}
+    );
+}
+
+function resetVolontarioQualificationDateFields() {
+    renderVolontarioQualificationDateFields({});
 }
 
 function toggleVolontarioMatricolaField() {
@@ -1649,6 +1784,7 @@ function toggleModal(modalId, show) {
         resetVolontarioFotoField();
         resetVolontarioCartaIdentitaField();
         resetVolontarioPatentiFields();
+        resetVolontarioQualificationDateFields();
         resetEditState();
         resetCapoSquadraServizioFormRestrictions();
         resetSalaOperativaServizioFormRestrictions();
@@ -2278,6 +2414,7 @@ function renderVolontari() {
         const fotoHtml = v.foto_url
             ? `<img src="${escapeAttr(v.foto_url)}" alt="Foto ${escapeAttr(`${v.nome} ${v.cognome}`)}" class="h-full w-full object-cover">`
             : escapeHtml(initials);
+        const qualificationExpiryHtml = renderVolunteerQualificationExpiryHtml(v);
         const volontarioPdfBtn = v.censito === false
             ? `<button onclick="exportVolontarioPdf('${escapeAttr(v.id)}')" title="Genera PDF" class="p-2 hover:bg-amber-950/30 rounded-lg text-slate-400 hover:text-amber-500 transition-all">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
@@ -2294,6 +2431,7 @@ function renderVolontari() {
                     </div>
                     <div>
                         <p class="font-bold text-white text-base">${v.nome} ${v.cognome}</p>
+                        ${qualificationExpiryHtml}
                     </div>
                 </td>
                 <td class="py-4 px-6 text-slate-300 font-mono text-xs uppercase">${v.cf}</td>
@@ -2412,6 +2550,7 @@ function openNuovoVolontarioModal() {
     resetVolontarioFotoField();
     resetVolontarioCartaIdentitaField();
     resetVolontarioPatentiFields();
+    resetVolontarioQualificationDateFields();
     setModalFormMode('modal-volontario', { title: 'Aggiungi Nuovo Volontario', submitText: 'Registra' });
     toggleVolontarioMatricolaField();
     setupVolontarioAssociazioneField();
@@ -2438,6 +2577,7 @@ function openEditVolontarioModal(id) {
     document.getElementById("v-ruolo").value = vol.ruolo;
     setCheckedValues("v-qualifica-antincendio", vol.qualifica_antincendio || []);
     setCheckedValues("v-qualifiche-coordinamento", vol.qualifiche_coordinamento || []);
+    renderVolontarioQualificationDateFields(vol);
     setVolontarioPatentiFields(vol);
     document.getElementById("v-stato").value = vol.stato;
     document.getElementById("v-telefono").value = vol.telefono;
@@ -2488,6 +2628,8 @@ async function saveVolontario(event) {
     const ruolo = document.getElementById("v-ruolo").value;
     const qualifica_antincendio = collectCheckedValues("v-qualifica-antincendio");
     const qualifiche_coordinamento = collectCheckedValues("v-qualifiche-coordinamento");
+    const qualifica_antincendio_date = collectQualificationDateMap("v-qualifica-antincendio-date-fields", qualifica_antincendio);
+    const qualifiche_coordinamento_date = collectQualificationDateMap("v-qualifiche-coordinamento-date-fields", qualifiche_coordinamento);
     const patentePresente = document.getElementById("v-patente-presente")?.value === "Si";
     const patenti = patentePresente ? collectCheckedValues("v-patenti") : [];
     const patentiFiles = getSelectedVolontarioPatentiFiles();
@@ -2502,6 +2644,14 @@ async function saveVolontario(event) {
     const currentVolontario = editingVolontarioId ? volontari.find(v => v.id === editingVolontarioId) : null;
     if (!associazione_appartenenza) {
         showToast("Errore", "Associazione non configurata per questo account.");
+        return;
+    }
+    if (qualifica_antincendio.some(qualifica => !qualifica_antincendio_date[qualifica])) {
+        showToast("Dati incompleti", "Inserisci la data conseguimento per ogni qualifica antincendio selezionata.");
+        return;
+    }
+    if (qualifiche_coordinamento.some(qualifica => !qualifiche_coordinamento_date[qualifica])) {
+        showToast("Dati incompleti", "Inserisci la data conseguimento per ogni qualifica coordinamento selezionata.");
         return;
     }
     if (fotoValidationError) {
@@ -2534,6 +2684,8 @@ async function saveVolontario(event) {
         ruolo,
         qualifica_antincendio,
         qualifiche_coordinamento,
+        qualifica_antincendio_date,
+        qualifiche_coordinamento_date,
         patenti,
         stato,
         telefono,
@@ -4967,6 +5119,7 @@ async function deleteProfilo(id, ruolo) {
 window.switchTab = switchTab;
 window.toggleModal = toggleModal;
 window.toggleVolontarioMatricolaField = toggleVolontarioMatricolaField;
+window.renderVolontarioQualificationDateFields = renderVolontarioQualificationDateFields;
 window.toggleVolontarioPatentiPresence = toggleVolontarioPatentiPresence;
 window.toggleVolontarioPatentiFiles = toggleVolontarioPatentiFiles;
 window.previewVolontarioFoto = previewVolontarioFoto;

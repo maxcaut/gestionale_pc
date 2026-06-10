@@ -599,56 +599,58 @@
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Qualifica Antincendio</label>
                     <div class="grid grid-cols-5 gap-2">
                         <label class="flex items-center justify-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold">
-                            <input type="checkbox" name="v-qualifica-antincendio" value="P" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            <input type="checkbox" name="v-qualifica-antincendio" value="P" onchange="renderVolontarioQualificationDateFields()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
                             P
                         </label>
                         <label class="flex items-center justify-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold">
-                            <input type="checkbox" name="v-qualifica-antincendio" value="L" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            <input type="checkbox" name="v-qualifica-antincendio" value="L" onchange="renderVolontarioQualificationDateFields()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
                             L
                         </label>
                         <label class="flex items-center justify-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold">
-                            <input type="checkbox" name="v-qualifica-antincendio" value="S" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            <input type="checkbox" name="v-qualifica-antincendio" value="S" onchange="renderVolontarioQualificationDateFields()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
                             S
                         </label>
                         <label class="flex items-center justify-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold">
-                            <input type="checkbox" name="v-qualifica-antincendio" value="D" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            <input type="checkbox" name="v-qualifica-antincendio" value="D" onchange="renderVolontarioQualificationDateFields()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
                             D
                         </label>
                         <label class="flex items-center justify-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold">
-                            <input type="checkbox" name="v-qualifica-antincendio" value="CS" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            <input type="checkbox" name="v-qualifica-antincendio" value="CS" onchange="renderVolontarioQualificationDateFields()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
                             CS
                         </label>
                     </div>
+                    <div id="v-qualifica-antincendio-date-fields" class="hidden mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Qualifiche Coordinamento</label>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
-                            <input type="checkbox" name="v-qualifiche-coordinamento" value="Corso Base Coordinamento" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            <input type="checkbox" name="v-qualifiche-coordinamento" value="Corso Base Coordinamento" onchange="renderVolontarioQualificationDateFields()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
                             Corso Base Coordinamento
                         </label>
                         <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
-                            <input type="checkbox" name="v-qualifiche-coordinamento" value="Idrogeologico" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            <input type="checkbox" name="v-qualifiche-coordinamento" value="Idrogeologico" onchange="renderVolontarioQualificationDateFields()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
                             Idrogeologico
                         </label>
                         <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
-                            <input type="checkbox" name="v-qualifiche-coordinamento" value="Segreteria" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            <input type="checkbox" name="v-qualifiche-coordinamento" value="Segreteria" onchange="renderVolontarioQualificationDateFields()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
                             Segreteria
                         </label>
                         <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
-                            <input type="checkbox" name="v-qualifiche-coordinamento" value="Logistica" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            <input type="checkbox" name="v-qualifiche-coordinamento" value="Logistica" onchange="renderVolontarioQualificationDateFields()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
                             Logistica
                         </label>
                         <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
-                            <input type="checkbox" name="v-qualifiche-coordinamento" value="Sanitario" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            <input type="checkbox" name="v-qualifiche-coordinamento" value="Sanitario" onchange="renderVolontarioQualificationDateFields()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
                             Sanitario
                         </label>
                         <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
-                            <input type="checkbox" name="v-qualifiche-coordinamento" value="telecomunicazioni" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            <input type="checkbox" name="v-qualifiche-coordinamento" value="telecomunicazioni" onchange="renderVolontarioQualificationDateFields()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
                             telecomunicazioni
                         </label>
                     </div>
+                    <div id="v-qualifiche-coordinamento-date-fields" class="hidden mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                 </div>
 
                 <div>
