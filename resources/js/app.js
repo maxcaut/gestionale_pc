@@ -19,6 +19,9 @@ const VOLONTARI_PATENTI_BUCKET = "volontari-patenti";
 const VOLONTARI_PATENTI_MAX_SIZE = 10 * 1024 * 1024;
 const VOLONTARI_PATENTI_ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
 const VOLONTARI_PATENTI_OPTIONS = ["A", "B", "C", "D", "E", "MMT", "Patente Nautica"];
+const VOLONTARI_CARTA_IDENTITA_BUCKET = "volontari-carte-identita";
+const VOLONTARI_CARTA_IDENTITA_MAX_SIZE = 10 * 1024 * 1024;
+const VOLONTARI_CARTA_IDENTITA_ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
 
 // --- PROFILO UTENTE (ruolo + associazione) ---
 let currentUserProfile = null;
@@ -822,6 +825,22 @@ function resetVolontarioFotoField() {
     if (current) current.innerText = "";
 }
 
+function setVolontarioCartaIdentitaField(volontario = null) {
+    const input = document.getElementById("v-carta-identita");
+    const current = document.getElementById("v-carta-identita-current");
+    if (input) {
+        input.value = "";
+        input.required = !volontario?.carta_identita_path;
+    }
+    if (current) {
+        current.innerText = volontario?.carta_identita_path ? "Carta d'identita gia caricata." : "";
+    }
+}
+
+function resetVolontarioCartaIdentitaField() {
+    setVolontarioCartaIdentitaField(null);
+}
+
 function resetVolontarioPatentiFields() {
     setCheckedValues("v-patenti", []);
     document.querySelectorAll("[data-patente-file-input]").forEach(input => {
@@ -891,6 +910,10 @@ function getSelectedVolontarioFotoFile() {
     return document.getElementById("v-foto")?.files?.[0] || null;
 }
 
+function getSelectedVolontarioCartaIdentitaFile() {
+    return document.getElementById("v-carta-identita")?.files?.[0] || null;
+}
+
 function validateVolontarioFotoFile(file) {
     if (!file) return null;
     if (!VOLONTARI_FOTO_ALLOWED_TYPES.includes(file.type)) {
@@ -898,6 +921,17 @@ function validateVolontarioFotoFile(file) {
     }
     if (file.size > VOLONTARI_FOTO_MAX_SIZE) {
         return "La foto non può superare 5 MB.";
+    }
+    return null;
+}
+
+function validateVolontarioCartaIdentitaFile(file) {
+    if (!file) return null;
+    if (!VOLONTARI_CARTA_IDENTITA_ALLOWED_TYPES.includes(file.type)) {
+        return "La carta d'identita deve essere PDF, JPG, PNG o WebP.";
+    }
+    if (file.size > VOLONTARI_CARTA_IDENTITA_MAX_SIZE) {
+        return "La carta d'identita non puo superare 10 MB.";
     }
     return null;
 }
@@ -940,6 +974,17 @@ function getVolontarioFotoPath(volontarioId, file) {
     return `${volontarioId}/foto.${extension}`;
 }
 
+function getVolontarioCartaIdentitaPath(volontarioId, file) {
+    const extensionByType = {
+        "application/pdf": "pdf",
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+    };
+    const extension = extensionByType[file.type] || "pdf";
+    return `${volontarioId}/carta-identita.${extension}`;
+}
+
 function getVolontarioPatentePath(volontarioId, patente, file) {
     const extensionByType = {
         "application/pdf": "pdf",
@@ -968,6 +1013,27 @@ async function uploadVolontarioFoto(volontarioId, file, previousPath = null) {
 
     if (previousPath && previousPath !== path) {
         await supabase.storage.from(VOLONTARI_FOTO_BUCKET).remove([previousPath]);
+    }
+
+    return path;
+}
+
+async function uploadVolontarioCartaIdentita(volontarioId, file, previousPath = null) {
+    const validationError = validateVolontarioCartaIdentitaFile(file);
+    if (validationError) throw new Error(validationError);
+
+    const path = getVolontarioCartaIdentitaPath(volontarioId, file);
+    const { error } = await supabase.storage
+        .from(VOLONTARI_CARTA_IDENTITA_BUCKET)
+        .upload(path, file, {
+            cacheControl: "3600",
+            contentType: file.type,
+            upsert: true,
+        });
+    if (error) throw error;
+
+    if (previousPath && previousPath !== path) {
+        await supabase.storage.from(VOLONTARI_CARTA_IDENTITA_BUCKET).remove([previousPath]);
     }
 
     return path;
@@ -1540,6 +1606,7 @@ function toggleModal(modalId, show) {
         if (form) form.reset();
         toggleVolontarioMatricolaField();
         resetVolontarioFotoField();
+        resetVolontarioCartaIdentitaField();
         resetVolontarioPatentiFields();
         resetEditState();
         resetCapoSquadraServizioFormRestrictions();
@@ -2222,6 +2289,7 @@ function renderVolontari() {
 function openNuovoVolontarioModal() {
     resetEditState();
     resetVolontarioFotoField();
+    resetVolontarioCartaIdentitaField();
     resetVolontarioPatentiFields();
     setModalFormMode('modal-volontario', { title: 'Aggiungi Nuovo Volontario', submitText: 'Registra' });
     toggleVolontarioMatricolaField();
@@ -2258,6 +2326,7 @@ function openEditVolontarioModal(id) {
     }
     document.getElementById("v-foto").value = "";
     setVolontarioFotoPreview(vol, vol.foto_url);
+    setVolontarioCartaIdentitaField(vol);
 
     toggleModal('modal-volontario', true);
 }
@@ -2304,14 +2373,25 @@ async function saveVolontario(event) {
     const telefono = document.getElementById("v-telefono").value;
     const associazione_appartenenza = getVolontarioAssociazioneValue();
     const fotoFile = getSelectedVolontarioFotoFile();
+    const cartaIdentitaFile = getSelectedVolontarioCartaIdentitaFile();
     const fotoValidationError = validateVolontarioFotoFile(fotoFile);
+    const cartaIdentitaValidationError = validateVolontarioCartaIdentitaFile(cartaIdentitaFile);
     const patentiValidationError = validateVolontarioPatentiFiles(patentiFiles);
+    const currentVolontario = editingVolontarioId ? volontari.find(v => v.id === editingVolontarioId) : null;
     if (!associazione_appartenenza) {
         showToast("Errore", "Associazione non configurata per questo account.");
         return;
     }
     if (fotoValidationError) {
         showToast("Foto non valida", fotoValidationError);
+        return;
+    }
+    if (cartaIdentitaValidationError) {
+        showToast("Carta d'identita non valida", cartaIdentitaValidationError);
+        return;
+    }
+    if (!cartaIdentitaFile && !currentVolontario?.carta_identita_path) {
+        showToast("Dati incompleti", "Allega la copia della carta d'identita.");
         return;
     }
     if (patentiValidationError) {
@@ -2340,9 +2420,11 @@ async function saveVolontario(event) {
 
     try {
         if (editingVolontarioId) {
-            const currentVolontario = volontari.find(v => v.id === editingVolontarioId);
             if (fotoFile) {
                 payload.foto_path = await uploadVolontarioFoto(editingVolontarioId, fotoFile, currentVolontario?.foto_path || null);
+            }
+            if (cartaIdentitaFile) {
+                payload.carta_identita_path = await uploadVolontarioCartaIdentita(editingVolontarioId, cartaIdentitaFile, currentVolontario?.carta_identita_path || null);
             }
             payload.patenti_files = await uploadVolontarioPatentiFiles(
                 editingVolontarioId,
@@ -2367,6 +2449,14 @@ async function saveVolontario(event) {
                     .update({ foto_path: fotoPath })
                     .eq('id', newVolontario.id);
                 if (fotoUpdateError) throw fotoUpdateError;
+            }
+            if (cartaIdentitaFile) {
+                const cartaIdentitaPath = await uploadVolontarioCartaIdentita(newVolontario.id, cartaIdentitaFile);
+                const { error: cartaIdentitaUpdateError } = await supabase
+                    .from('volontari')
+                    .update({ carta_identita_path: cartaIdentitaPath })
+                    .eq('id', newVolontario.id);
+                if (cartaIdentitaUpdateError) throw cartaIdentitaUpdateError;
             }
             if (patenti.length > 0) {
                 const patenti_files = await uploadVolontarioPatentiFiles(newVolontario.id, patenti, patentiFiles, {});
@@ -2427,6 +2517,14 @@ async function deleteVolontario(id) {
                     .remove([vol.foto_path]);
                 if (storageError) {
                     console.error("Volontario eliminato, ma foto non rimossa:", storageError);
+                }
+            }
+            if (vol?.carta_identita_path) {
+                const { error: cartaIdentitaStorageError } = await supabase.storage
+                    .from(VOLONTARI_CARTA_IDENTITA_BUCKET)
+                    .remove([vol.carta_identita_path]);
+                if (cartaIdentitaStorageError) {
+                    console.error("Volontario eliminato, ma carta d'identita non rimossa:", cartaIdentitaStorageError);
                 }
             }
             const patentePaths = Object.values(getVolontarioPatentiFilesMap(vol)).filter(Boolean);

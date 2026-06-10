@@ -553,6 +553,12 @@
                     </div>
                 </div>
 
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Carta d'identita <span class="text-amber-500">*</span></label>
+                    <input type="file" id="v-carta-identita" required accept="application/pdf,image/jpeg,image/png,image/webp" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-amber-500 file:text-slate-950 file:font-bold file:text-xs hover:file:bg-amber-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                    <p id="v-carta-identita-current" class="mt-1 text-[11px] text-slate-500"></p>
+                </div>
+
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Censito? <span class="text-amber-500">*</span></label>
