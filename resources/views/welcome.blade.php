@@ -74,11 +74,39 @@
         </div>
     </div>
 
+    <!-- Modal scelta documento volontario -->
+    <div id="modal-volontario-documenti" class="fixed inset-0 z-[55] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl slide-in">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-amber-500">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12s-3.75 6.75-9.75 6.75S2.25 12 2.25 12z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Scegli file
+                </h3>
+                <button type="button" onclick="closeVolontarioDocumentiModal()" class="text-slate-400 hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-3">
+                <p class="text-sm text-slate-400 mb-4">Seleziona quale file visualizzare per questo volontario.</p>
+                <div id="volontario-documenti-options" class="space-y-3"></div>
+            </div>
+            <div class="px-6 pb-6 flex gap-3">
+                <button type="button" onclick="closeVolontarioDocumentiModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">Annulla</button>
+                <button type="button" onclick="downloadVolontarioDocumenti()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-sm transition-colors">Scarica</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Overlay generazione PDF -->
     <div id="pdf-export-overlay" class="fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden" aria-live="polite" aria-busy="true">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-            <p class="text-sm font-semibold text-white mb-1">Generazione PDF in corso</p>
-            <p class="text-xs text-slate-500 mb-4">Attendere il completamento del download...</p>
+            <p id="pdf-export-progress-title" class="text-sm font-semibold text-white mb-1">Generazione PDF in corso</p>
+            <p id="pdf-export-progress-description" class="text-xs text-slate-500 mb-4">Attendere il completamento del download...</p>
             <div class="h-2 bg-slate-800 rounded-full overflow-hidden">
                 <div id="pdf-export-progress-bar" class="h-full bg-amber-500 rounded-full transition-[width] duration-300 ease-out" style="width: 0%"></div>
             </div>

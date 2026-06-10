@@ -757,6 +757,7 @@ const geocodeCache = new Map();
 let serviziMapUpdateToken = 0;
 let pdfExportProgressTimer = null;
 let pendingPdfServizioId = null;
+let pendingVolontarioDocumentiId = null;
 let squadreAibScadenzaTimer = null;
 
 const ICON_EDIT = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>`;
@@ -864,6 +865,32 @@ function getVolontarioPatentiFilesMap(volontario = null) {
 function getVolontarioPatentiAutoFilePath(files = {}) {
     if (files[VOLONTARI_PATENTI_AUTO_FILE_KEY]) return files[VOLONTARI_PATENTI_AUTO_FILE_KEY];
     return VOLONTARI_PATENTI_AUTO_OPTIONS.map(patente => files[patente]).find(Boolean) || null;
+}
+
+function getVolontarioDocumentiCaricati(volontario = null) {
+    const documenti = [];
+    if (volontario?.carta_identita_path) {
+        documenti.push({
+            label: "Carta d'identita",
+            description: "Documento di identita caricato.",
+            bucket: VOLONTARI_CARTA_IDENTITA_BUCKET,
+            path: volontario.carta_identita_path,
+        });
+    }
+
+    const patentiFiles = getVolontarioPatentiFilesMap(volontario);
+    Object.entries(patentiFiles).filter(([, path]) => Boolean(path)).forEach(([patente, path]) => {
+        documenti.push({
+            label: patente,
+            description: "File patente caricato.",
+            bucket: VOLONTARI_PATENTI_BUCKET,
+            path,
+        });
+    });
+
+    return documenti.filter((documento, index, list) =>
+        list.findIndex(item => item.bucket === documento.bucket && item.path === documento.path) === index
+    );
 }
 
 function toggleVolontarioPatentiPresence() {
@@ -2422,6 +2449,14 @@ function renderVolontari() {
                     </svg>
                </button>`
             : '';
+        const documentiBtn = getVolontarioDocumentiCaricati(v).length > 0
+            ? `<button onclick="visualizzaDocumentiVolontario('${escapeAttr(v.id)}')" title="Visualizza file caricati" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12s-3.75 6.75-9.75 6.75S2.25 12 2.25 12z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+               </button>`
+            : '';
 
         tbody.innerHTML += `
             <tr class="hover:bg-slate-800/10 transition-colors">
@@ -2453,6 +2488,7 @@ function renderVolontari() {
                 <td class="py-4 px-6 text-right">
                     <div class="inline-flex gap-2">
                         ${volontarioPdfBtn}
+                        ${documentiBtn}
                         <button onclick="openEditVolontarioModal('${v.id}')" title="Modifica dati" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-all">
                             ${ICON_EDIT}
                         </button>
@@ -2542,6 +2578,280 @@ async function exportVolontarioPdf(id) {
         console.error("Errore export PDF volontario:", err);
         showToast("Errore export PDF", err.message || "Impossibile generare il file PDF.");
         hidePdfExportProgress(false);
+    }
+}
+
+async function visualizzaDocumentiVolontario(id) {
+    const volontario = volontari.find(v => v.id === id);
+    if (!volontario) return;
+
+    const documenti = getVolontarioDocumentiCaricati(volontario);
+    if (documenti.length === 0) {
+        showToast("Nessun file", "Non ci sono file caricati per questo volontario.");
+        return;
+    }
+
+    pendingVolontarioDocumentiId = id;
+    renderVolontarioDocumentiOptions(documenti);
+    toggleModal('modal-volontario-documenti', true);
+}
+
+function renderVolontarioDocumentiOptions(documenti = []) {
+    const wrap = document.getElementById("volontario-documenti-options");
+    if (!wrap) return;
+
+    const buttons = documenti.map((documento, index) => `
+        <div class="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 rounded-xl p-4 transition-all group flex items-center gap-3">
+            <input type="checkbox" data-volontario-documento-check value="${index}" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 shrink-0">
+            <button type="button" onclick="confirmVolontarioDocumento(${index})" class="min-w-0 flex-1 text-left">
+                <p class="font-bold text-white group-hover:text-amber-500 transition-colors">${escapeHtml(documento.label)}</p>
+                <p class="text-xs text-slate-500 mt-1">${escapeHtml(documento.description)}</p>
+            </button>
+        </div>
+    `);
+
+    wrap.innerHTML = buttons.join("");
+}
+
+function closeVolontarioDocumentiModal() {
+    pendingVolontarioDocumentiId = null;
+    toggleModal('modal-volontario-documenti', false);
+}
+
+async function getVolontarioDocumentoSignedUrl(documento) {
+    const { data, error } = await supabase.storage
+        .from(documento.bucket)
+        .createSignedUrl(documento.path, 60 * 10);
+
+    if (error) throw error;
+    return data.signedUrl;
+}
+
+function getVolontarioDocumentoFilename(documento) {
+    const filename = String(documento.path || "").split("/").filter(Boolean).pop();
+    return filename || `${documento.label}.pdf`;
+}
+
+function getSafeFilenamePart(value) {
+    return String(value || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+}
+
+function getVolontarioDocumentiZipFilename(volontario = {}) {
+    const nominativo = [volontario.nome, volontario.cognome]
+        .map(getSafeFilenamePart)
+        .filter(Boolean)
+        .join("-");
+
+    return `documenti-volontario-${nominativo || volontario.id || "selezionato"}.zip`;
+}
+
+function getUniqueVolontarioDocumentoFilename(documento, usedNames) {
+    const filename = getVolontarioDocumentoFilename(documento);
+    if (!usedNames.has(filename)) {
+        usedNames.add(filename);
+        return filename;
+    }
+
+    const dotIndex = filename.lastIndexOf(".");
+    const name = dotIndex > 0 ? filename.slice(0, dotIndex) : filename;
+    const extension = dotIndex > 0 ? filename.slice(dotIndex) : "";
+    let counter = 2;
+    let uniqueName = `${name}-${counter}${extension}`;
+
+    while (usedNames.has(uniqueName)) {
+        counter += 1;
+        uniqueName = `${name}-${counter}${extension}`;
+    }
+
+    usedNames.add(uniqueName);
+    return uniqueName;
+}
+
+function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+}
+
+function getCrc32Table() {
+    if (window.__crc32Table) return window.__crc32Table;
+
+    window.__crc32Table = Array.from({ length: 256 }, (_, index) => {
+        let crc = index;
+        for (let bit = 0; bit < 8; bit += 1) {
+            crc = (crc & 1) ? (0xedb88320 ^ (crc >>> 1)) : (crc >>> 1);
+        }
+        return crc >>> 0;
+    });
+
+    return window.__crc32Table;
+}
+
+function crc32(buffer) {
+    const table = getCrc32Table();
+    const bytes = new Uint8Array(buffer);
+    let crc = 0xffffffff;
+
+    for (const byte of bytes) {
+        crc = table[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+    }
+
+    return (crc ^ 0xffffffff) >>> 0;
+}
+
+function zipHeader(size) {
+    return new Uint8Array(size);
+}
+
+function createVolontarioDocumentiZip(files) {
+    const encoder = new TextEncoder();
+    const localParts = [];
+    const centralParts = [];
+    let offset = 0;
+
+    files.forEach(file => {
+        const nameBytes = encoder.encode(file.name);
+        const bytes = new Uint8Array(file.buffer);
+        const crc = crc32(file.buffer);
+
+        const localHeader = zipHeader(30 + nameBytes.length);
+        const localView = new DataView(localHeader.buffer);
+        localView.setUint32(0, 0x04034b50, true);
+        localView.setUint16(4, 20, true);
+        localView.setUint16(6, 0, true);
+        localView.setUint16(8, 0, true);
+        localView.setUint16(10, 0, true);
+        localView.setUint16(12, 0, true);
+        localView.setUint32(14, crc, true);
+        localView.setUint32(18, bytes.length, true);
+        localView.setUint32(22, bytes.length, true);
+        localView.setUint16(26, nameBytes.length, true);
+        localView.setUint16(28, 0, true);
+        localHeader.set(nameBytes, 30);
+
+        localParts.push(localHeader, bytes);
+
+        const centralHeader = zipHeader(46 + nameBytes.length);
+        const centralView = new DataView(centralHeader.buffer);
+        centralView.setUint32(0, 0x02014b50, true);
+        centralView.setUint16(4, 20, true);
+        centralView.setUint16(6, 20, true);
+        centralView.setUint16(8, 0, true);
+        centralView.setUint16(10, 0, true);
+        centralView.setUint16(12, 0, true);
+        centralView.setUint16(14, 0, true);
+        centralView.setUint32(16, crc, true);
+        centralView.setUint32(20, bytes.length, true);
+        centralView.setUint32(24, bytes.length, true);
+        centralView.setUint16(28, nameBytes.length, true);
+        centralView.setUint16(30, 0, true);
+        centralView.setUint16(32, 0, true);
+        centralView.setUint16(34, 0, true);
+        centralView.setUint16(36, 0, true);
+        centralView.setUint32(38, 0, true);
+        centralView.setUint32(42, offset, true);
+        centralHeader.set(nameBytes, 46);
+
+        centralParts.push(centralHeader);
+        offset += localHeader.length + bytes.length;
+    });
+
+    const centralSize = centralParts.reduce((total, part) => total + part.length, 0);
+    const endHeader = zipHeader(22);
+    const endView = new DataView(endHeader.buffer);
+    endView.setUint32(0, 0x06054b50, true);
+    endView.setUint16(4, 0, true);
+    endView.setUint16(6, 0, true);
+    endView.setUint16(8, files.length, true);
+    endView.setUint16(10, files.length, true);
+    endView.setUint32(12, centralSize, true);
+    endView.setUint32(16, offset, true);
+    endView.setUint16(20, 0, true);
+
+    return new Blob([...localParts, ...centralParts, endHeader], { type: "application/zip" });
+}
+
+async function confirmVolontarioDocumento(index) {
+    const volontario = volontari.find(v => v.id === pendingVolontarioDocumentiId);
+    const documento = getVolontarioDocumentiCaricati(volontario)[index];
+    if (!documento) return;
+
+    const tab = window.open("about:blank", "_blank");
+    if (!tab) {
+        showToast("Popup bloccato", "Consenti l'apertura della nuova scheda per visualizzare il file.");
+        return;
+    }
+
+    try {
+        const signedUrl = await getVolontarioDocumentoSignedUrl(documento);
+        closeVolontarioDocumentiModal();
+        tab.location.href = signedUrl;
+    } catch (err) {
+        console.error("Errore apertura documento volontario:", err);
+        tab.close();
+        showToast("Errore", "Impossibile visualizzare il file caricato.");
+    }
+}
+
+async function downloadVolontarioDocumenti() {
+    const volontario = volontari.find(v => v.id === pendingVolontarioDocumentiId);
+    const documenti = getVolontarioDocumentiCaricati(volontario);
+    const selectedIndexes = Array.from(document.querySelectorAll("[data-volontario-documento-check]:checked"))
+        .map(input => Number(input.value))
+        .filter(index => Number.isInteger(index));
+    const selectedDocumenti = selectedIndexes.map(index => documenti[index]).filter(Boolean);
+    if (selectedDocumenti.length === 0) {
+        showToast("Nessun file selezionato", "Seleziona almeno un file da scaricare.");
+        return;
+    }
+
+    try {
+        showPdfExportProgress("Preparazione download", "Attendere la preparazione dei file selezionati...");
+
+        if (selectedDocumenti.length === 1) {
+            const signedUrl = await getVolontarioDocumentoSignedUrl(selectedDocumenti[0]);
+            const response = await fetch(signedUrl);
+            if (!response.ok) throw new Error("Download file non riuscito.");
+
+            const blob = await response.blob();
+            downloadBlob(blob, getVolontarioDocumentoFilename(selectedDocumenti[0]));
+        } else {
+            const usedNames = new Set();
+            const files = [];
+
+            for (const documento of selectedDocumenti) {
+                const signedUrl = await getVolontarioDocumentoSignedUrl(documento);
+                const response = await fetch(signedUrl);
+                if (!response.ok) throw new Error("Download file non riuscito.");
+
+                files.push({
+                    name: getUniqueVolontarioDocumentoFilename(documento, usedNames),
+                    buffer: await response.arrayBuffer(),
+                });
+            }
+
+            const zip = createVolontarioDocumentiZip(files);
+            downloadBlob(zip, getVolontarioDocumentiZipFilename(volontario));
+        }
+
+        closeVolontarioDocumentiModal();
+        hidePdfExportProgress(true);
+        showToast("Download avviato", "Download dei file caricati avviato.");
+    } catch (err) {
+        console.error("Errore download documenti volontario:", err);
+        hidePdfExportProgress(false);
+        showToast("Errore", "Impossibile scaricare i file caricati.");
     }
 }
 
@@ -4052,9 +4362,11 @@ function addServizioMapMarker(servizio, lat, lng) {
         .addTo(serviziMapMarkersLayer);
 }
 
-function showPdfExportProgress() {
+function showPdfExportProgress(title = "Generazione PDF in corso", description = "Attendere il completamento del download...") {
     const overlay = document.getElementById("pdf-export-overlay");
     const bar = document.getElementById("pdf-export-progress-bar");
+    const titleEl = document.getElementById("pdf-export-progress-title");
+    const descriptionEl = document.getElementById("pdf-export-progress-description");
     if (!overlay || !bar) return;
 
     if (pdfExportProgressTimer) {
@@ -4062,6 +4374,8 @@ function showPdfExportProgress() {
         pdfExportProgressTimer = null;
     }
 
+    if (titleEl) titleEl.innerText = title;
+    if (descriptionEl) descriptionEl.innerText = description;
     overlay.classList.remove("hidden");
     bar.style.width = "0%";
 
@@ -4075,6 +4389,8 @@ function showPdfExportProgress() {
 function hidePdfExportProgress(success) {
     const overlay = document.getElementById("pdf-export-overlay");
     const bar = document.getElementById("pdf-export-progress-bar");
+    const titleEl = document.getElementById("pdf-export-progress-title");
+    const descriptionEl = document.getElementById("pdf-export-progress-description");
     if (!overlay || !bar) return;
 
     if (pdfExportProgressTimer) {
@@ -4090,6 +4406,8 @@ function hidePdfExportProgress(success) {
     setTimeout(() => {
         overlay.classList.add("hidden");
         bar.style.width = "0%";
+        if (titleEl) titleEl.innerText = "Generazione PDF in corso";
+        if (descriptionEl) descriptionEl.innerText = "Attendere il completamento del download...";
     }, delay);
 }
 
@@ -5130,6 +5448,10 @@ window.toggleVolontarioStato = toggleVolontarioStato;
 window.deleteVolontario = deleteVolontario;
 window.renderVolontari = renderVolontari;
 window.exportVolontarioPdf = exportVolontarioPdf;
+window.visualizzaDocumentiVolontario = visualizzaDocumentiVolontario;
+window.closeVolontarioDocumentiModal = closeVolontarioDocumentiModal;
+window.confirmVolontarioDocumento = confirmVolontarioDocumento;
+window.downloadVolontarioDocumenti = downloadVolontarioDocumenti;
 window.openNuovoMezzoModal = openNuovoMezzoModal;
 window.openEditMezzoModal = openEditMezzoModal;
 window.saveMezzo = saveMezzo;
