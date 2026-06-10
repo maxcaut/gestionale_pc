@@ -343,9 +343,9 @@
         $protocolloRegionale = trim((string) ($servizio['protocollo_regionale'] ?? $servizio['protocolloRegionale'] ?? ''));
     @endphp
     <div class="protocollo">
-        <div>protocollo {{ $servizio['id'] ?? '' }}</div>
+        <div>Protocollo Coordinamento Vesuvius: {{ $servizio['id'] ?? '' }}</div>
         @if ($protocolloRegionale !== '')
-            <div>protocollo regionale {{ $protocolloRegionale }}</div>
+            <div>Protocollo Regionale: {{ $protocolloRegionale }}</div>
         @endif
     </div>
 </body>
