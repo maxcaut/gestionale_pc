@@ -2305,6 +2305,8 @@ async function exportVolontarioPdf(id) {
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
+    showPdfExportProgress();
+
     try {
         const response = await fetch('/volontari/pdf', {
             method: 'POST',
@@ -2356,9 +2358,11 @@ async function exportVolontarioPdf(id) {
         URL.revokeObjectURL(url);
 
         showToast("PDF generato", "Il PDF del volontario è stato scaricato.");
+        hidePdfExportProgress(true);
     } catch (err) {
         console.error("Errore export PDF volontario:", err);
         showToast("Errore export PDF", err.message || "Impossibile generare il file PDF.");
+        hidePdfExportProgress(false);
     }
 }
 
