@@ -11,6 +11,7 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 
 const TIPO_FUORISTRADA = "Fuoristrada";
 const TIPO_CARRELLO_APPENDICE = "Carrello appendice";
+const MEZZO_STATO_MANUTENZIONE = "In manutenzione";
 
 // --- PROFILO UTENTE (ruolo + associazione) ---
 let currentUserProfile = null;
@@ -65,6 +66,11 @@ function canAccessMezzi() {
 
 function canSeeAllMezzi() {
     return hasMasterAccess() || isSalaOperativa();
+}
+
+function canManageMezzo(mezzo = null) {
+    if (hasMasterAccess()) return true;
+    return isSegreteria() && (!mezzo || mezzo.associazione_appartenenza === getUserAssociazione());
 }
 
 function shouldFilterMezziQueryByAssociazione() {
@@ -824,6 +830,53 @@ function getDB(table) {
 }
 
 // Funzione helper per caricare dati da Supabase in modo asincrono
+function parseDateOnly(value) {
+    if (!value) return null;
+    const [year, month, day] = String(value).split('-').map(Number);
+    if (!year || !month || !day) return null;
+    return new Date(year, month - 1, day);
+}
+
+function getTodayDateOnly() {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function getMezzoScadenzaManutenzioneReasons(mezzo) {
+    const today = getTodayDateOnly();
+    const scadenze = [
+        { date: parseDateOnly(mezzo?.scadenza_rca), reason: 'RCA scaduta' },
+        { date: parseDateOnly(mezzo?.scadenza_revisione), reason: 'Revisione scaduta' },
+    ].filter(item => item.date && item.date <= today);
+
+    if (scadenze.length === 0) return [];
+
+    scadenze.sort((a, b) => a.date - b.date);
+    const firstExpiredDate = scadenze[0].date.getTime();
+    return scadenze
+        .filter(item => item.date.getTime() === firstExpiredDate)
+        .map(item => item.reason);
+}
+
+async function updateMezziScaduti() {
+    const scaduti = mezzi.filter(m =>
+        canManageMezzo(m)
+        && m.stato !== MEZZO_STATO_MANUTENZIONE
+        && getMezzoScadenzaManutenzioneReasons(m).length > 0
+    );
+
+    if (scaduti.length === 0) return;
+
+    const ids = scaduti.map(m => m.id);
+    const { error } = await supabase
+        .from('mezzi')
+        .update({ stato: MEZZO_STATO_MANUTENZIONE })
+        .in('id', ids);
+    if (error) throw error;
+
+    mezzi = mezzi.map(m => ids.includes(m.id) ? { ...m, stato: MEZZO_STATO_MANUTENZIONE } : m);
+}
+
 const AIB_TIPO_SERVIZIO = 'Antincendio Boschivo';
 
 const AIB_SUPERFICIE_FIELDS = {
@@ -1091,6 +1144,7 @@ async function fetchDataFromSupabase() {
 
                 mezzi = applyMezziScope(mezResponse.data || []);
                 servizi = (serResponse.data || []).map(mapServizioRow);
+                await updateMezziScaduti();
                 await enrichMezziFromServizi(servizi);
                 await enrichVolontariFromServizi(servizi);
             } else if (canAccessMezzi()) {
@@ -1099,6 +1153,7 @@ async function fetchDataFromSupabase() {
                 if (mezResponse.error) throw mezResponse.error;
 
                 mezzi = applyMezziScope(mezResponse.data || []);
+                await updateMezziScaduti();
                 servizi = [];
             } else {
                 mezzi = [];
@@ -2014,6 +2069,13 @@ function renderMezzi() {
             indicatorColor = "bg-rose-500";
         }
 
+        const motiviManutenzione = m.stato === MEZZO_STATO_MANUTENZIONE
+            ? getMezzoScadenzaManutenzioneReasons(m)
+            : [];
+        const motivoManutenzioneHtml = motiviManutenzione.length > 0
+            ? `<div class="mb-4 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs font-bold text-rose-300">${motiviManutenzione.join('<br>')}</div>`
+            : '';
+
         let iconSvg = "";
         if (m.tipo === TIPO_FUORISTRADA) {
             iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-amber-500"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177V3.75A1.125 1.125 0 0013.125 2.625h-2.25a1.125 1.125 0 00-1.125 1.125v11.177M14.25 7.5H9.75M16.5 18.75a1.875 1.875 0 11-3.75 0m3.75 0a1.875 1.875 0 00-3.75 0m-9.75 0h9.75" /></svg>`;
@@ -2043,6 +2105,8 @@ function renderMezzi() {
                     <div class="mb-4">
                         <div class="targa-italiana text-sm py-1 font-mono">${m.targa}</div>
                     </div>
+
+                    ${motivoManutenzioneHtml}
                 </div>
 
                 <div class="border-t border-slate-800/80 pt-4 mt-2 flex items-center justify-between">
@@ -2089,6 +2153,8 @@ function openEditMezzoModal(id) {
     document.getElementById("m-targa").value = mezzo.targa;
     document.getElementById("m-tipo").value = mezzo.tipo;
     document.getElementById("m-stato").value = mezzo.stato;
+    document.getElementById("m-scadenza-rca").value = mezzo.scadenza_rca || "";
+    document.getElementById("m-scadenza-revisione").value = mezzo.scadenza_revisione || "";
     setupMezzoAssociazioneField();
     const mAssocSelect = document.getElementById("m-associazione");
     if (mAssocSelect) {
@@ -2104,6 +2170,8 @@ async function saveMezzo(event) {
     const targa = document.getElementById("m-targa").value.toUpperCase();
     const tipo = document.getElementById("m-tipo").value;
     const stato = document.getElementById("m-stato").value;
+    const scadenza_rca = document.getElementById("m-scadenza-rca").value;
+    const scadenza_revisione = document.getElementById("m-scadenza-revisione").value;
     const associazione_appartenenza = getMezzoAssociazioneValue();
 
     if (!associazione_appartenenza) {
@@ -2111,7 +2179,7 @@ async function saveMezzo(event) {
         return;
     }
 
-    const payload = { modello, targa, tipo, stato, associazione_appartenenza };
+    const payload = { modello, targa, tipo, stato, associazione_appartenenza, scadenza_rca, scadenza_revisione };
 
     try {
         if (editingMezzoId) {

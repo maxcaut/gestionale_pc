@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS mezzi (
     targa TEXT NOT NULL UNIQUE,
     tipo TEXT NOT NULL,
     stato TEXT NOT NULL,
+    scadenza_rca DATE,
+    scadenza_revisione DATE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

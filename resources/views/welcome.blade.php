@@ -714,6 +714,17 @@
                     </div>
                 </div>
 
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Scadenza RCA <span class="text-amber-500">*</span></label>
+                        <input type="date" id="m-scadenza-rca" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Scadenza Revisione <span class="text-amber-500">*</span></label>
+                        <input type="date" id="m-scadenza-revisione" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                    </div>
+                </div>
+
                 <div id="m-associazione-select-wrap">
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Associazione di appartenenza <span class="text-amber-500">*</span></label>
                     <select id="m-associazione" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
