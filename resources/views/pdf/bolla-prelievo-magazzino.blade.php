@@ -18,6 +18,12 @@
             border-bottom: 2px solid #111827;
             padding-bottom: 14px;
             margin-bottom: 18px;
+            display: table;
+            width: 100%;
+        }
+        .header-text {
+            display: table-cell;
+            vertical-align: middle;
         }
         .title {
             margin: 0 0 5px;
@@ -102,12 +108,22 @@
             font-size: 9px;
             text-align: right;
         }
+        .logo{
+            height: 60px;
+            width: 60px;
+            
+            display: table-cell;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1 class="title">Bolla di prelievo</h1>
-        <p class="subtitle">Transazione magazzino aperta</p>
+        <img class="logo" src="img/logo-regione.png" alt="">
+        <div class="header-text">
+            <h1 class="title">Bolla di prelievo</h1>
+            <p class="subtitle">Transazione magazzino aperta</p>
+        </div>
     </div>
 
     <table class="meta">
