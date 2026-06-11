@@ -21,6 +21,7 @@ class VolontarioPdfController extends Controller
             'volontario.comune_residenza' => 'nullable|string',
             'volontario.via_residenza' => 'nullable|string',
             'volontario.telefono' => 'nullable|string',
+            'volontario.email' => 'nullable|email',
             'volontario.ruolo' => 'nullable|string',
             'volontario.stato' => 'nullable|string',
             'volontario.associazione_appartenenza' => 'nullable|string',

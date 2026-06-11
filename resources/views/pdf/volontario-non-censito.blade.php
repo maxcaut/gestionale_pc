@@ -301,7 +301,7 @@
             </tr>
             <tr>
                 <td class="label">E-MAIL</td>
-                <td></td>
+                <td>{{ $field('email') }}</td>
             </tr>
         </table>
 

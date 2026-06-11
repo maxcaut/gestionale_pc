@@ -3033,6 +3033,7 @@ async function exportVolontarioPdf(id) {
                     comune_residenza: volontario.comune_residenza || '',
                     via_residenza: volontario.via_residenza || '',
                     telefono: volontario.telefono || '',
+                    email: volontario.email || '',
                     ruolo: volontario.ruolo || '',
                     stato: volontario.stato || '',
                     associazione_appartenenza: volontario.associazione_appartenenza || '',
@@ -3385,6 +3386,7 @@ function openEditVolontarioModal(id) {
     setVolontarioPatentiFields(vol);
     document.getElementById("v-stato").value = vol.stato;
     document.getElementById("v-telefono").value = vol.telefono;
+    document.getElementById("v-email").value = vol.email || "";
     setupVolontarioAssociazioneField();
     if (hasMasterAccess()) {
         document.getElementById("v-associazione").value = vol.associazione_appartenenza || "G.C. Massa di Somma";
@@ -3442,6 +3444,7 @@ async function saveVolontario(event) {
     const patentiFiles = getSelectedVolontarioPatentiFiles();
     const stato = document.getElementById("v-stato").value;
     const telefono = document.getElementById("v-telefono").value;
+    const email = document.getElementById("v-email").value;
     const associazione_appartenenza = getVolontarioAssociazioneValue();
     const fotoFile = getSelectedVolontarioFotoFile();
     const cartaIdentitaFile = getSelectedVolontarioCartaIdentitaFile();
@@ -3501,6 +3504,7 @@ async function saveVolontario(event) {
         patenti,
         stato,
         telefono,
+        email,
         associazione_appartenenza
     };
 

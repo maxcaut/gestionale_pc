@@ -1001,6 +1001,11 @@
                     <input type="tel" id="v-telefono" required placeholder="Es. 3331234567" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
                 </div>
 
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Email</label>
+                    <input type="email" id="v-email" placeholder="Es. mario.rossi@email.it" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                </div>
+
                 <div id="v-associazione-select-wrap">
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Associazione di appartenenza <span class="text-amber-500">*</span></label>
                     <select id="v-associazione" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
