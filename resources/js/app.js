@@ -801,6 +801,15 @@ function escapeAttr(value) {
     return escapeHtml(value);
 }
 
+function escapeXml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&apos;');
+}
+
 function isTimeValuePassedToday(value) {
     const normalized = normalizeTimeValue(value);
     if (!normalized) return false;
@@ -2549,6 +2558,67 @@ function renderStatistiche() {
 }
 
 // --- SEZIONE 2: VOLONTARI (CRUD & VIEW) ---
+function createExcelXmlWorksheet(sheetName, headers, rows) {
+    const rowXml = [
+        headers,
+        ...rows,
+    ].map(row => `
+        <Row>${row.map(value => `<Cell><Data ss:Type="String">${escapeXml(value)}</Data></Cell>`).join('')}</Row>
+    `).join('');
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+    xmlns:o="urn:schemas-microsoft-com:office:office"
+    xmlns:x="urn:schemas-microsoft-com:office:excel"
+    xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+    <Worksheet ss:Name="${escapeXml(sheetName)}">
+        <Table>${rowXml}</Table>
+    </Worksheet>
+</Workbook>`;
+}
+
+function exportVolontariNonCensiti() {
+    if (!canAccessVolontari()) return;
+
+    const headers = [
+        'Associazione di appartenenza',
+        'Cognome',
+        'Nome',
+        'Data Nascita',
+        'Città nascita',
+        'Codice Fiscale',
+        'Indirizzo Residenza',
+        'Città Residenza',
+        'Numero cellulare',
+    ];
+    const rows = getDB("pc_volontari")
+        .filter(v => v.censito === false)
+        .sort((a, b) => String(a.cognome || '').localeCompare(String(b.cognome || ''), 'it')
+            || String(a.nome || '').localeCompare(String(b.nome || ''), 'it'))
+        .map(v => [
+            v.associazione_appartenenza || '',
+            v.cognome || '',
+            v.nome || '',
+            v.data_nascita || '',
+            v.luogo_nascita || '',
+            v.cf || '',
+            v.via_residenza || '',
+            v.comune_residenza || '',
+            v.telefono || '',
+        ]);
+
+    if (rows.length === 0) {
+        showToast("Nessun volontario", "Non ci sono volontari non censiti da esportare.");
+        return;
+    }
+
+    const xml = createExcelXmlWorksheet('Volontari non censiti', headers, rows);
+    const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    downloadBlob(blob, `volontari-non-censiti-${new Date().toISOString().slice(0, 10)}.xls`);
+    showToast("Export completato", "Il file Excel dei volontari non censiti è stato scaricato.");
+}
+
 function renderVolontari() {
     const volontari = getDB("pc_volontari");
     const tbody = document.getElementById("volontari-table-body");
@@ -5872,6 +5942,7 @@ window.saveVolontario = saveVolontario;
 window.toggleVolontarioStato = toggleVolontarioStato;
 window.deleteVolontario = deleteVolontario;
 window.renderVolontari = renderVolontari;
+window.exportVolontariNonCensiti = exportVolontariNonCensiti;
 window.exportVolontarioPdf = exportVolontarioPdf;
 window.visualizzaDocumentiVolontario = visualizzaDocumentiVolontario;
 window.closeVolontarioDocumentiModal = closeVolontarioDocumentiModal;
