@@ -1113,7 +1113,7 @@ function getVolontarioDocumentiCaricati(volontario = null) {
     if (volontario?.allegato_v_path) {
         documenti.push({
             label: "ALLEGATO V",
-            description: "ALLEGATO V caricato.",
+            description: "ALLEGATO V Firmato caricato.",
             bucket: VOLONTARI_ALLEGATO_V_BUCKET,
             path: volontario.allegato_v_path,
         });
