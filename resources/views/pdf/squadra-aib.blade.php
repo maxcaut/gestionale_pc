@@ -204,6 +204,10 @@
             margin: 0 2px;
         }
 
+        .logo-right2{
+            width: 38px;
+        }
+
         .footer-line {
             border-top: 1px solid #999;
             margin: 0 38px 5px;
@@ -368,7 +372,7 @@
             <img src="{{ $logoRegione }}" alt="" class="footer-logo">
         @endif
         @if (is_file($logoDx))
-            <img src="{{ $logoDx }}" alt="" class="footer-logo">
+            <img src="{{ $logoDx }}" alt="" class="footer-logo logo-right2">
         @endif
     </div>
     <div class="footer-line"></div>
