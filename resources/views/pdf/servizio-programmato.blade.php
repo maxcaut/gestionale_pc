@@ -29,12 +29,12 @@
         .logo {
             position: absolute;
             top: 4px;
-            width: 42px;
-            height: 42px;
+            width: 65px;
+            height: 65px;
             object-fit: contain;
         }
         .logo-left { left: 10px; }
-        .logo-right { right: 10px; }
+        .logo-right { right: 10px; width: 80px; }
         .ente { font-size: 14px; text-transform: uppercase; }
         .coord { margin-top: 6px; font-size: 14px; }
         .bar {
