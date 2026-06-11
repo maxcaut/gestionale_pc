@@ -1235,3 +1235,14 @@ CREATE POLICY "volontari_patenti_delete"
             )
         )
     );
+
+
+-- ============================================================================
+-- supabase/migrations/029_servizi_volontari_mezzi.sql
+-- ============================================================================
+-- Mezzo assegnato per ogni volontario dell'intervento
+
+ALTER TABLE public.servizi
+    ADD COLUMN IF NOT EXISTS volontari_mezzi jsonb DEFAULT '{}'::jsonb;
+
+COMMENT ON COLUMN public.servizi.volontari_mezzi IS 'Mappa volontario_id -> mezzo_id per assegnazione equipaggio ai mezzi';

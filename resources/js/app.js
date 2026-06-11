@@ -302,7 +302,7 @@ function applyCapoSquadraServizioFormRestrictions() {
         markCapoSquadraReadonlyHint(display);
     }
 
-    document.querySelectorAll('#s-mezzi-list input[type="checkbox"], #s-volontari-list input[type="checkbox"], #s-volontari-list select[name="s-volontari-art39"]').forEach(control => {
+    document.querySelectorAll('#s-mezzi-list input[type="checkbox"], #s-volontari-list input[type="checkbox"], #s-volontari-list select[name="s-volontari-art39"], #s-volontari-list select[name="s-volontari-mezzo"]').forEach(control => {
         control.disabled = true;
     });
 
@@ -424,7 +424,7 @@ function resetCapoSquadraServizioFormRestrictions() {
         if (el) el.required = true;
     });
 
-    document.querySelectorAll('#s-mezzi-list input[type="checkbox"], #s-volontari-list input[type="checkbox"], #s-volontari-list select[name="s-volontari-art39"]').forEach(control => {
+    document.querySelectorAll('#s-mezzi-list input[type="checkbox"], #s-volontari-list input[type="checkbox"], #s-volontari-list select[name="s-volontari-art39"], #s-volontari-list select[name="s-volontari-mezzo"]').forEach(control => {
         control.disabled = false;
     });
 
@@ -1868,6 +1868,7 @@ function mapServizioRow(s) {
         carrelliTrainanti: s.carrelli_trainanti || {},
         volontariIds: s.volontari_ids || [],
         volontariArt39: s.volontari_art39 || {},
+        volontariMezzi: s.volontari_mezzi || {},
         art39: s.art39 || 'Si',
         note: s.note,
         altriEnti: s.altri_enti_coinvolti,
@@ -4102,7 +4103,7 @@ function collectServizioCarrelliTrainanti(mezziIds) {
     return { valid: true, value: result };
 }
 
-function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariIds = [], selectedVolontariArt39 = {}, servizioArt39 = 'Si', selectedCarrelliTrainanti = {}) {
+function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariIds = [], selectedVolontariArt39 = {}, servizioArt39 = 'Si', selectedCarrelliTrainanti = {}, selectedVolontariMezzi = {}) {
     const mezziList = getDB("pc_mezzi");
     const volontariList = getDB("pc_volontari");
 
@@ -4123,7 +4124,7 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
         const searchText = (m.targa || "").toLowerCase();
         return `
             <label data-mezzo-search="${searchText}" class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
-                <input type="checkbox" name="s-mezzi-check" value="${m.id}" ${checked} onchange="renderServizioCarrelliTrainantiOptions()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
+                <input type="checkbox" name="s-mezzi-check" value="${m.id}" ${checked} onchange="renderServizioCarrelliTrainantiOptions(); renderServizioVolontariMezziOptions();" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
                 <span class="text-xs ${fontClass}">${m.modello} [${m.targa}] (${m.tipo})${m.associazione_appartenenza ? ` · ${m.associazione_appartenenza}` : ''}${extra}</span>
             </label>
         `;
@@ -4157,6 +4158,7 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
     const renderVolontarioCheckbox = (v, muted = false) => {
         const checked = selectedVolontariIds.includes(v.id) ? 'checked' : '';
         const art39Value = servizioArt39 === 'No' ? 'No' : (selectedVolontariArt39?.[v.id] === 'Si' ? 'Si' : 'No');
+        const mezzoValue = selectedVolontariMezzi?.[v.id] || '';
         const textClass = muted ? 'text-slate-400' : 'text-slate-200';
         const fontClass = muted ? 'font-medium' : 'font-semibold';
         const extra = muted ? ` - [${v.stato}]` : '';
@@ -4171,12 +4173,20 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
                 </span>
         ` : '';
         return `
-            <label data-volontario-search="${searchText}" class="flex items-center justify-between gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
-                <span class="flex items-center gap-3 min-w-0">
-                    <input type="checkbox" name="s-volontari-check" value="${v.id}" ${checked} class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
-                    <span class="text-xs ${fontClass} truncate">${v.nome} ${v.cognome} (${v.ruolo})${v.associazione_appartenenza ? ` · ${v.associazione_appartenenza}` : ''}${extra}</span>
+            <label data-volontario-search="${searchText}" class="block p-2 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
+                <span class="flex items-start gap-3 min-w-0">
+                    <input type="checkbox" name="s-volontari-check" value="${v.id}" ${checked} onchange="updateServizioVolontarioMezzoControl(this.value)" class="mt-0.5 rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4 shrink-0">
+                    <span class="text-xs ${fontClass} leading-snug break-words">${v.nome} ${v.cognome} (${v.ruolo})${v.associazione_appartenenza ? ` · ${v.associazione_appartenenza}` : ''}${extra}</span>
                 </span>
-                ${art39Control}
+                <span class="mt-2 ml-7 flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span class="flex flex-col gap-1 min-w-0 sm:flex-1">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Mezzo assegnato</span>
+                        <select name="s-volontari-mezzo" data-volontario-id="${v.id}" data-selected-mezzo-id="${mezzoValue}" onclick="event.stopPropagation()" onchange="this.dataset.selectedMezzoId = this.value" class="w-full bg-slate-900 border border-slate-700 text-slate-200 py-1.5 px-2 rounded-lg text-[11px] font-bold focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
+                            <option value="">Mezzo...</option>
+                        </select>
+                    </span>
+                    ${art39Control}
+                </span>
             </label>
         `;
     };
@@ -4194,6 +4204,8 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
     if (volontariList.length === 0) {
         volontariBox.innerHTML = `<p class="text-xs text-slate-500 p-2 text-center">Nessun volontario registrato!</p>`;
     }
+
+    renderServizioVolontariMezziOptions();
 }
 
 function populateServizioSquadreAibOptions(selectedSquadreIds = []) {
@@ -4340,6 +4352,58 @@ function collectServizioVolontariArt39(volontariIds) {
     return volontariArt39;
 }
 
+function renderServizioVolontariMezziOptions() {
+    const mezziIds = getSelectedServizioMezziIds();
+    const selectedIdSet = new Set(mezziIds);
+    const mezziOptions = mezziIds
+        .map(id => mezzi.find(m => m.id === id))
+        .filter(Boolean);
+
+    document.querySelectorAll('select[name="s-volontari-mezzo"]').forEach(select => {
+        const volontarioId = select.dataset.volontarioId;
+        const checkbox = document.querySelector(`input[name="s-volontari-check"][value="${CSS.escape(volontarioId)}"]`);
+        const previous = select.value || select.dataset.selectedMezzoId || '';
+        const checked = !!checkbox?.checked;
+
+        select.innerHTML = `<option value="">Mezzo...</option>` + mezziOptions.map(m => (
+            `<option value="${m.id}">${m.modello} [${m.targa}]</option>`
+        )).join('');
+
+        if (checked && selectedIdSet.has(previous)) {
+            select.value = previous;
+        } else if (checked && mezziOptions.length === 1) {
+            select.value = mezziOptions[0].id;
+        } else {
+            select.value = '';
+        }
+
+        select.disabled = !checked;
+        select.classList.toggle('opacity-50', !checked);
+    });
+}
+
+function updateServizioVolontarioMezzoControl(volontarioId) {
+    const select = document.querySelector(`select[name="s-volontari-mezzo"][data-volontario-id="${CSS.escape(volontarioId)}"]`);
+    if (!select) return;
+    renderServizioVolontariMezziOptions();
+}
+
+function collectServizioVolontariMezzi(volontariIds, mezziIds) {
+    const selectedMezzi = new Set(mezziIds || []);
+    const volontariMezzi = {};
+
+    for (const id of (volontariIds || [])) {
+        const select = document.querySelector(`select[name="s-volontari-mezzo"][data-volontario-id="${CSS.escape(id)}"]`);
+        const mezzoId = select?.value || '';
+        if (!mezzoId || !selectedMezzi.has(mezzoId)) {
+            return { valid: false, value: {}, message: 'Assegna ogni volontario selezionato a un mezzo.' };
+        }
+        volontariMezzi[id] = mezzoId;
+    }
+
+    return { valid: true, value: volontariMezzi };
+}
+
 function filterServizioMezziList() {
     const search = (document.getElementById("s-mezzi-search")?.value || "").toLowerCase().trim();
     const box = document.getElementById("s-mezzi-list");
@@ -4455,7 +4519,7 @@ function openEditServizioModal(id) {
     editingServizioId = id;
     setModalFormMode('modal-servizio', { title: 'Modifica Servizio / Missione', submitText: 'Salva modifiche' });
 
-    populateServizioModalOptions(serv.mezziIds || [], serv.volontariIds || [], serv.volontariArt39 || {}, serv.art39 || 'Si', serv.carrelliTrainanti || {});
+    populateServizioModalOptions(serv.mezziIds || [], serv.volontariIds || [], serv.volontariArt39 || {}, serv.art39 || 'Si', serv.carrelliTrainanti || {}, serv.volontariMezzi || {});
 
     document.getElementById("s-richiedente").value = serv.richiedente || "SORU";
     document.getElementById("s-protocollo-regionale").value = serv.protocolloRegionale || "";
@@ -5176,6 +5240,7 @@ async function saveServizio(event) {
         const volontariIds = [];
         volontariCheckboxes.forEach(cb => volontariIds.push(cb.value));
         const volontariArt39 = collectServizioVolontariArt39(volontariIds);
+        const volontariMezziResult = collectServizioVolontariMezzi(volontariIds, mezziIds);
 
         if (isAntincendioBoschivo(existing.tipo) && mezziIds.length === 0) {
             alert('Attenzione: devi assegnare almeno un mezzo al servizio!');
@@ -5187,12 +5252,18 @@ async function saveServizio(event) {
             return;
         }
 
+        if (!volontariMezziResult.valid) {
+            showToast('Mezzo mancante', volontariMezziResult.message);
+            return;
+        }
+
         try {
             const { error } = await supabase.from('servizi').update({
                 mezzi_ids: mezziIds,
                 carrelli_trainanti: carrelliTrainantiResult.value,
                 volontari_ids: volontariIds,
                 volontari_art39: volontariArt39,
+                volontari_mezzi: volontariMezziResult.value,
             }).eq('id', editingServizioId);
             if (error) throw error;
             toggleModal('modal-servizio', false);
@@ -5263,6 +5334,7 @@ async function saveServizio(event) {
     let volontariIds = [];
     volontariCheckboxes.forEach(cb => volontariIds.push(cb.value));
     let volontariArt39 = collectServizioVolontariArt39(volontariIds);
+    let volontariMezzi = {};
     let squadreAibIds = isAntincendioBoschivo(tipo) ? (existingServizio?.squadreAibIds || []) : [];
 
     if (isSalaOperativa()) {
@@ -5281,6 +5353,7 @@ async function saveServizio(event) {
             mezziIds = resources.mezziIds;
             volontariIds = resources.volontariIds;
             carrelliTrainanti = {};
+            volontariMezzi = {};
             if (mezziIds.length === 0 || volontariIds.length === 0) {
                 alert("Attenzione: le squadre A.I.B. selezionate non hanno mezzi o volontari associati.");
                 return;
@@ -5290,12 +5363,14 @@ async function saveServizio(event) {
             mezziIds = existingServizio?.mezziIds || [];
             volontariIds = existingServizio?.volontariIds || [];
             volontariArt39 = existingServizio?.volontariArt39 || {};
+            volontariMezzi = existingServizio?.volontariMezzi || {};
             carrelliTrainanti = existingServizio?.carrelliTrainanti || {};
             squadreAibIds = [];
         } else {
             mezziIds = [];
             volontariIds = [];
             volontariArt39 = {};
+            volontariMezzi = {};
             carrelliTrainanti = {};
             squadreAibIds = [];
         }
@@ -5317,6 +5392,13 @@ async function saveServizio(event) {
             alert("Attenzione: devi assegnare almeno un volontario all'equipaggio del servizio!");
             return;
         }
+
+        const volontariMezziResult = collectServizioVolontariMezzi(volontariIds, mezziIds);
+        if (!volontariMezziResult.valid) {
+            showToast('Mezzo mancante', volontariMezziResult.message);
+            return;
+        }
+        volontariMezzi = volontariMezziResult.value;
     }
 
     if (art39 === 'No') {
@@ -5346,6 +5428,7 @@ async function saveServizio(event) {
         carrelli_trainanti: carrelliTrainanti,
         volontari_ids: volontariIds,
         volontari_art39: volontariArt39,
+        volontari_mezzi: volontariMezzi,
         squadre_aib_ids: squadreAibIds,
         art39,
         note,
@@ -6156,6 +6239,8 @@ window.toggleMezzoStato = toggleMezzoStato;
 window.deleteMezzo = deleteMezzo;
 window.renderMezzi = renderMezzi;
 window.renderServizioCarrelliTrainantiOptions = renderServizioCarrelliTrainantiOptions;
+window.renderServizioVolontariMezziOptions = renderServizioVolontariMezziOptions;
+window.updateServizioVolontarioMezzoControl = updateServizioVolontarioMezzoControl;
 window.openNuovaSquadraAibModal = openNuovaSquadraAibModal;
 window.openEditSquadraAibModal = openEditSquadraAibModal;
 window.saveSquadraAib = saveSquadraAib;
