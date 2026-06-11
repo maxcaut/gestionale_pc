@@ -21,6 +21,20 @@
                                 <option value="In corso">In corso</option>
                                 <option value="Completato">Completato</option>
                             </select>
+
+                            <select id="sort-servizi-field" onchange="renderServizi()" class="bg-slate-900 border border-slate-800 text-slate-300 py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                                <option value="data" selected>Ordina per data</option>
+                                <option value="id">Ordina per protocollo</option>
+                                <option value="tipo">Ordina per tipologia</option>
+                                <option value="mezzi">Ordina per mezzi</option>
+                                <option value="volontari">Ordina per equipaggio</option>
+                                <option value="stato">Ordina per stato</option>
+                            </select>
+
+                            <select id="sort-servizi-direction" onchange="renderServizi()" class="bg-slate-900 border border-slate-800 text-slate-300 py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                                <option value="desc" selected>Decrescente</option>
+                                <option value="asc">Crescente</option>
+                            </select>
                         </div>
 
                         <!-- Bottone Inserimento (Apre Modal) -->

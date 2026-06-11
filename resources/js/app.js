@@ -5610,6 +5610,40 @@ function getFilteredServizi() {
     });
 }
 
+function getServizioSortValue(servizio, field) {
+    if (field === "data") {
+        const timestamp = new Date(servizio.data).getTime();
+        return Number.isFinite(timestamp) ? timestamp : 0;
+    }
+
+    if (field === "mezzi") return (servizio.mezziIds || []).length;
+    if (field === "volontari") return (servizio.volontariIds || []).length;
+
+    return String(servizio[field] || "").toLowerCase();
+}
+
+function sortServiziForTable(servizi) {
+    const sortField = document.getElementById("sort-servizi-field")?.value || "data";
+    const sortDirection = document.getElementById("sort-servizi-direction")?.value || "desc";
+    const direction = sortDirection === "asc" ? 1 : -1;
+
+    return [...servizi].sort((a, b) => {
+        const valueA = getServizioSortValue(a, sortField);
+        const valueB = getServizioSortValue(b, sortField);
+
+        if (typeof valueA === "number" && typeof valueB === "number") {
+            if (valueA !== valueB) return (valueA - valueB) * direction;
+        } else {
+            const result = String(valueA).localeCompare(String(valueB), "it", { numeric: true, sensitivity: "base" });
+            if (result !== 0) return result * direction;
+        }
+
+        const fallbackA = getServizioSortValue(a, "data");
+        const fallbackB = getServizioSortValue(b, "data");
+        return fallbackB - fallbackA;
+    });
+}
+
 function hasValidServizioCoordinates(servizio) {
     const lat = parseFloat(servizio.latitudine);
     const lng = parseFloat(servizio.longitudine);
@@ -5925,7 +5959,7 @@ function renderServizi() {
         return;
     }
 
-    [...tableServizi].reverse().forEach(s => {
+    sortServiziForTable(tableServizi).forEach(s => {
         const mezziAssegnati = (s.mezziIds || [])
             .map(mId => mezzi.find(m => m.id === mId))
             .filter(Boolean);
