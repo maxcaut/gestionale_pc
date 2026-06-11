@@ -801,6 +801,7 @@ let editingServizioId = null;
 let editingProfileId = null;
 let editingSquadraAibId = null;
 let editingProtocolloIngressoId = null;
+let isSavingProtocolloIngresso = false;
 let editingAttrezzaturaId = null;
 let editingPrelievoMagazzinoId = null;
 let pendingVolontarioFileDeletes = { foto: false, cartaIdentita: false, patenti: new Set(), qualificheCoordinamento: new Set() };
@@ -6536,22 +6537,28 @@ function openEditProtocolloIngressoModal(id) {
 async function saveProtocolloIngresso(event) {
     event.preventDefault();
     if (!canAccessProtocolloIngresso()) return;
+    if (isSavingProtocolloIngresso) return;
 
-    const protocolloEsterno = document.getElementById('pi-protocollo-esterno')?.value.trim() || null;
-    const dataMemorizzazione = document.getElementById('pi-data-memorizzazione')?.value || '';
-    const file = document.getElementById('pi-file')?.files?.[0] || null;
-
-    if (!dataMemorizzazione) {
-        showToast('Errore', 'La data di memorizzazione è obbligatoria.');
-        return;
-    }
-
-    if (!editingProtocolloIngressoId && !file) {
-        showToast('Errore', 'Il file è obbligatorio.');
-        return;
-    }
+    isSavingProtocolloIngresso = true;
+    const submitEl = document.getElementById('modal-protocollo-ingresso-submit');
+    const submitText = submitEl?.innerText || '';
+    if (submitEl) submitEl.disabled = true;
 
     try {
+        const protocolloEsterno = document.getElementById('pi-protocollo-esterno')?.value.trim() || null;
+        const dataMemorizzazione = document.getElementById('pi-data-memorizzazione')?.value || '';
+        const file = document.getElementById('pi-file')?.files?.[0] || null;
+
+        if (!dataMemorizzazione) {
+            showToast('Errore', 'La data di memorizzazione è obbligatoria.');
+            return;
+        }
+
+        if (!editingProtocolloIngressoId && !file) {
+            showToast('Errore', 'Il file è obbligatorio.');
+            return;
+        }
+
         if (editingProtocolloIngressoId) {
             const current = protocolliIngresso.find(item => item.id === editingProtocolloIngressoId);
             const payload = {
@@ -6622,6 +6629,12 @@ async function saveProtocolloIngresso(event) {
     } catch (err) {
         console.error('Errore salvataggio protocollo in ingresso:', err);
         showToast('Errore', 'Impossibile salvare il protocollo in ingresso.');
+    } finally {
+        isSavingProtocolloIngresso = false;
+        if (submitEl) {
+            submitEl.disabled = false;
+            submitEl.innerText = submitText;
+        }
     }
 }
 
