@@ -89,8 +89,13 @@ class ServizioPdfController extends Controller
         return array_values(array_filter($equipaggio, static function (array $volontario) use ($volontariInReport): bool {
             $id = (string) ($volontario['id'] ?? '');
 
-            return $id === '' || ($volontariInReport[$id] ?? 'Si') !== 'No';
+            return $id === '' || ! self::isVolontarioFlagNo($volontariInReport[$id] ?? null);
         }));
+    }
+
+    private static function isVolontarioFlagNo(mixed $value): bool
+    {
+        return strtolower(trim((string) $value)) === 'no';
     }
 
     /**

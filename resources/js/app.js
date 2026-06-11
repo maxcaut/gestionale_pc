@@ -5246,6 +5246,10 @@ function buildDefaultVolontariFlag(volontariIds, existingFlags = {}) {
     return Object.fromEntries((volontariIds || []).map(id => [id, 'Si']));
 }
 
+function isVolontarioFlagNo(value) {
+    return String(value ?? '').trim().toLowerCase() === 'no';
+}
+
 function renderServizioVolontariMezziOptions() {
     const mezziIds = getSelectedServizioMezziIds();
     const selectedIdSet = new Set(mezziIds);
@@ -6503,7 +6507,7 @@ async function exportServizioPdf(id, template = 'servizio-programmato') {
         .map(mId => mezzi.find(m => m.id === mId))
         .filter(Boolean);
     const equipaggio = (serv.volontariIds || [])
-        .filter(vId => !isConsuntivo || (serv.volontariInReport || {})[vId] !== 'No')
+        .filter(vId => !isConsuntivo || !isVolontarioFlagNo((serv.volontariInReport || {})[vId]))
         .map(vId => volontari.find(v => v.id === vId))
         .filter(Boolean);
 
