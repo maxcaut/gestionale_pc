@@ -6542,6 +6542,8 @@ async function saveProtocolloIngresso(event) {
     isSavingProtocolloIngresso = true;
     const submitEl = document.getElementById('modal-protocollo-ingresso-submit');
     const submitText = submitEl?.innerText || '';
+    let progressVisible = false;
+    let saveSucceeded = false;
     if (submitEl) submitEl.disabled = true;
 
     try {
@@ -6558,6 +6560,9 @@ async function saveProtocolloIngresso(event) {
             showToast('Errore', 'Il file è obbligatorio.');
             return;
         }
+
+        showPdfExportProgress('Caricamento protocollo in corso', 'Attendere il completamento del caricamento...');
+        progressVisible = true;
 
         if (editingProtocolloIngressoId) {
             const current = protocolliIngresso.find(item => item.id === editingProtocolloIngressoId);
@@ -6626,10 +6631,12 @@ async function saveProtocolloIngresso(event) {
 
         editingProtocolloIngressoId = null;
         await fetchDataFromSupabase();
+        saveSucceeded = true;
     } catch (err) {
         console.error('Errore salvataggio protocollo in ingresso:', err);
         showToast('Errore', 'Impossibile salvare il protocollo in ingresso.');
     } finally {
+        if (progressVisible) hidePdfExportProgress(saveSucceeded);
         isSavingProtocolloIngresso = false;
         if (submitEl) {
             submitEl.disabled = false;
