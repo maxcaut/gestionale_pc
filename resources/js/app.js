@@ -4745,6 +4745,7 @@ function renderSquadreAib() {
                 <td class="py-4 px-6 text-slate-300 font-semibold">${formatSquadraAibDisponibileFino(s.disponibileFino)}</td>
                 <td class="py-4 px-6 text-right">
                     <div class="inline-flex gap-2">
+                        <button type="button" onclick="exportSquadraAibPdf('${s.id}')" title="Scarica PDF" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">${ICON_DOWNLOAD}</button>
                         <button type="button" onclick="openEditSquadraAibModal('${s.id}')" title="Modifica" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">${ICON_EDIT}</button>
                         <button type="button" onclick="deleteSquadraAib('${s.id}')" title="Elimina squadra" class="p-2 hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-500 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
@@ -4756,6 +4757,85 @@ function renderSquadreAib() {
             </tr>
         `;
     });
+}
+
+async function exportSquadraAibPdf(id) {
+    const squadra = squadreAib.find(s => s.id === id);
+    if (!squadra) return;
+
+    const mezziExport = (squadra.mezziIds || [])
+        .map(mId => mezzi.find(m => m.id === mId))
+        .filter(Boolean);
+    const equipaggio = (squadra.volontariIds || [])
+        .map(vId => volontari.find(v => v.id === vId))
+        .filter(Boolean);
+
+    if (equipaggio.length === 0) {
+        showToast('PDF non disponibile', 'La squadra non ha volontari associati.');
+        return;
+    }
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    showPdfExportProgress('Generazione PDF in corso', 'Attendere il completamento del download...');
+
+    try {
+        const response = await fetch('/squadre-aib/pdf', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/pdf',
+                'X-CSRF-TOKEN': csrfToken || '',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({
+                squadra: {
+                    id: squadra.id,
+                    nome: squadra.nome,
+                    associazione_appartenenza: squadra.associazione_appartenenza || '',
+                    stato: squadra.stato || '',
+                    disponibile_fino: squadra.disponibileFino || '',
+                },
+                mezzi: mezziExport.map(m => ({
+                    id: m.id,
+                    modello: m.modello,
+                    targa: m.targa,
+                    tipo: m.tipo,
+                    stato: m.stato,
+                })),
+                equipaggio: equipaggio.map(v => ({
+                    id: v.id,
+                    nome: v.nome,
+                    cognome: v.cognome,
+                    cf: v.cf,
+                    ruolo: v.ruolo,
+                    associazione_appartenenza: v.associazione_appartenenza,
+                    telefono: v.telefono,
+                    stato: v.stato,
+                })),
+            }),
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || 'Errore durante la generazione del PDF');
+        }
+
+        const blob = await response.blob();
+        const disposition = response.headers.get('Content-Disposition');
+        let filename = 'squadra-aib.pdf';
+        if (disposition) {
+            const match = disposition.match(/filename="?([^";]+)"?/);
+            if (match) filename = match[1];
+        }
+
+        downloadBlob(blob, filename);
+        showToast('PDF generato', 'Il PDF della squadra A.I.B. è stato scaricato.');
+        hidePdfExportProgress(true);
+    } catch (err) {
+        console.error('Errore export PDF squadra AIB:', err);
+        showToast('Errore export PDF', err.message || 'Impossibile generare il file PDF.');
+        hidePdfExportProgress(false);
+    }
 }
 
 function openNuovaSquadraAibModal() {
@@ -7223,6 +7303,7 @@ window.openNuovaSquadraAibModal = openNuovaSquadraAibModal;
 window.openEditSquadraAibModal = openEditSquadraAibModal;
 window.saveSquadraAib = saveSquadraAib;
 window.deleteSquadraAib = deleteSquadraAib;
+window.exportSquadraAibPdf = exportSquadraAibPdf;
 window.renderSquadreAib = renderSquadreAib;
 window.populateSquadraAibModalOptions = populateSquadraAibModalOptions;
 window.openNuovoServizioModal = openNuovoServizioModal;
