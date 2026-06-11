@@ -4303,6 +4303,10 @@ async function savePrelievoMagazzino(event) {
     }
     if (!validatePrelievoMagazzinoRows(rows)) return;
 
+    let saveSucceeded = false;
+    showPdfExportProgress('Salvataggio prelievo in corso', 'Attendere il completamento del salvataggio...');
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
     try {
         if (editingPrelievoMagazzinoId) {
             const oldRows = getPrelievoRighe(editingPrelievoMagazzinoId);
@@ -4344,10 +4348,13 @@ async function savePrelievoMagazzino(event) {
 
         toggleModal('modal-prelievo-magazzino', false);
         await fetchDataFromSupabase();
+        saveSucceeded = true;
     } catch (err) {
         console.error('Errore salvataggio prelievo magazzino:', err);
         showToast('Errore di salvataggio', err?.message || 'Impossibile salvare il prelievo.');
         await fetchDataFromSupabase();
+    } finally {
+        hidePdfExportProgress(saveSucceeded);
     }
 }
 
@@ -4508,6 +4515,13 @@ async function saveAttrezzatura(event) {
         return;
     }
 
+    const showMagazzinoCreateProgress = !editingAttrezzaturaId;
+    let saveSucceeded = false;
+    if (showMagazzinoCreateProgress) {
+        showPdfExportProgress('Salvataggio item in corso', 'Attendere il completamento del salvataggio...');
+        await new Promise(resolve => requestAnimationFrame(resolve));
+    }
+
     try {
         const payload = {
             nome_attrezzatura,
@@ -4529,9 +4543,12 @@ async function saveAttrezzatura(event) {
             showToast('Attrezzatura registrata', `${nome_attrezzatura} inserita correttamente.`);
         }
         await fetchDataFromSupabase();
+        saveSucceeded = true;
     } catch (err) {
         console.error('Errore salvataggio attrezzatura:', err);
         showToast('Errore di salvataggio', "Impossibile registrare l'attrezzatura su Supabase.");
+    } finally {
+        if (showMagazzinoCreateProgress) hidePdfExportProgress(saveSucceeded);
     }
 }
 
