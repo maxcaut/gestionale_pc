@@ -171,7 +171,7 @@
 
 /* Bottom navigation mobile */
 .bottom-nav-scroll {
-    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
 }
