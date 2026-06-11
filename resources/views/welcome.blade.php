@@ -67,6 +67,10 @@
                     <p class="font-bold text-white group-hover:text-amber-500 transition-colors">Modello AIB — Antincendio Boschivo</p>
                     <p class="text-xs text-slate-500 mt-1">Rapporto intervento AIB con dati operativi e equipaggio.</p>
                 </button>
+                <button type="button" onclick="confirmPdfTemplate('modello-3-2')" class="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 rounded-xl p-4 transition-all group">
+                    <p class="font-bold text-white group-hover:text-amber-500 transition-colors">Modello 3.2</p>
+                    <p class="text-xs text-slate-500 mt-1">Scheda carburante e pedaggi autostradali.</p>
+                </button>
             </div>
             <div class="px-6 pb-6">
                 <button type="button" onclick="closePdfTemplateModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">Annulla</button>

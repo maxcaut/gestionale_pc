@@ -309,7 +309,7 @@
 
         <div class="section-title">DICHIARA:</div>
 
-        <p class="dash">di essere iscritto all’OdV/Gruppo Comunale________________________________________________ __________________________________________________________________________________;</p>
+        <p class="dash">di essere iscritto all’OdV/Gruppo Comunale {{ $field('associazione_appartenenza') }};</p>
 
         <p class="dash">che, per libera scelta, svolge l'attività di volontariato in favore della comunità e del bene comune, nell'ambito delle attività di protezione civile di cui all'articolo 2 del D.Lgs. n. 1/2018, mettendo a disposizione il proprio tempo e le proprie capacità per acquisire, all'interno della organizzazione di protezione civile cui aderisce, la formazione e la preparazione necessaria per concorrere alla promozione di efficaci risposte ai bisogni delle persone e delle comunità beneficiarie della propria azione in modo personale, spontaneo e gratuito, senza fini di lucro, neanche indiretti, ed esclusivamente per fini di solidarietà, partecipando, con passione e impegno ad una forza libera e organizzata che contribuisce a migliorare la vita di tutti;</p>
 

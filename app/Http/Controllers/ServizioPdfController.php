@@ -11,7 +11,7 @@ class ServizioPdfController extends Controller
     public function export(Request $request)
     {
         $validated = $request->validate([
-            'template' => 'nullable|string|in:riepilogo-intervento,template_aib,servizio-programmato',
+            'template' => 'nullable|string|in:riepilogo-intervento,template_aib,servizio-programmato,modello-3-2',
             'servizio' => 'required|array',
             'servizio.id' => 'required|string',
             'servizio.tipo' => 'required|string',
@@ -76,6 +76,7 @@ class ServizioPdfController extends Controller
         return match ($template) {
             'riepilogo-intervento' => $this->exportRiepilogoIntervento($validated, $dataIntervento),
             'template_aib' => $this->exportTemplateAib($validated, $dataIntervento),
+            'modello-3-2' => $this->exportModello32($validated, $dataIntervento),
         };
     }
 
@@ -214,6 +215,24 @@ class ServizioPdfController extends Controller
         ])->setPaper('a4', 'portrait');
 
         $filename = 'Modello AIB-'.Str::slug($servizio['tipo']).'-'.$dataIntervento['file'].'.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @param  array{completa: string, data: string, ora: string, file: string, giorno?: string, mese?: string, anno?: string}  $dataIntervento
+     */
+    private function exportModello32(array $validated, array $dataIntervento)
+    {
+        $pdf = Pdf::loadView('pdf.modello-3-2', [
+            'servizio' => $validated['servizio'],
+            'mezzi' => $validated['mezzi'] ?? [],
+            'equipaggio' => $validated['equipaggio'],
+            'dataIntervento' => $dataIntervento,
+        ])->setPaper('a4', 'portrait');
+
+        $filename = 'Modello 3.2-'.Str::slug($validated['servizio']['tipo']).'-'.$dataIntervento['file'].'.pdf';
 
         return $pdf->download($filename);
     }

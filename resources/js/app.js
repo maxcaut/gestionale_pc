@@ -6560,7 +6560,7 @@ async function exportServizioPdf(id, template = 'servizio-programmato') {
     const serv = servizi.find(s => s.id === id);
     if (!serv) return;
 
-    const isConsuntivo = ["riepilogo-intervento", "template_aib"].includes(template);
+    const isConsuntivo = ["riepilogo-intervento", "template_aib", "modello-3-2"].includes(template);
     const isServizioProgrammato = template === "servizio-programmato";
     if (isServizioProgrammato && !["Programmato", "In corso"].includes(serv.stato)) {
         showToast("Export non disponibile", "Il PDF servizio programmato può essere generato solo per servizi programmati o in corso.");
