@@ -110,8 +110,6 @@
         }
         .logo{
             height: 60px;
-            width: 60px;
-            
             display: table-cell;
             vertical-align: middle;
         }
