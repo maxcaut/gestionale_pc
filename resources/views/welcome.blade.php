@@ -1028,6 +1028,16 @@
                     <p class="text-[10px] text-slate-500 mt-1 font-medium">Associazione fissa per il tuo account segreteria.</p>
                 </div>
 
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">ALLEGATO V</label>
+                    <div class="flex items-center gap-2">
+                        <input type="file" id="v-allegato-v" accept="application/pdf,image/jpeg,image/png,image/webp" onchange="clearVolontarioFileDelete('allegatoV')" class="min-w-0 flex-1 bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-amber-500 file:text-slate-950 file:font-bold file:text-xs hover:file:bg-amber-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                        <span id="v-allegato-v-filename" class="hidden min-w-0 max-w-[10rem] truncate rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs font-semibold text-slate-300"></span>
+                        <button type="button" id="v-allegato-v-delete" onclick="markVolontarioFileForDelete('allegatoV')" class="hidden shrink-0 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-bold text-rose-300 hover:bg-rose-500/20 transition-colors">Elimina</button>
+                    </div>
+                    <p id="v-allegato-v-current" class="mt-1 text-[11px] text-slate-500"></p>
+                </div>
+
                 <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">
                     <button type="button" onclick="toggleModal('modal-volontario', false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">Annulla</button>
                     <button type="submit" id="modal-volontario-submit" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-amber-500/10">Registra</button>

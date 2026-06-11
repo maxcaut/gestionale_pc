@@ -28,6 +28,9 @@ const VOLONTARI_QUALIFICHE_COORDINAMENTO_ATTESTATI = ["Corso BLSD", "Corso Alto 
 const VOLONTARI_CARTA_IDENTITA_BUCKET = "volontari-carte-identita";
 const VOLONTARI_CARTA_IDENTITA_MAX_SIZE = 10 * 1024 * 1024;
 const VOLONTARI_CARTA_IDENTITA_ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+const VOLONTARI_ALLEGATO_V_BUCKET = "volontari-allegato-v";
+const VOLONTARI_ALLEGATO_V_MAX_SIZE = 10 * 1024 * 1024;
+const VOLONTARI_ALLEGATO_V_ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
 const PROTOCOLLO_INGRESSO_BUCKET = "protocollo-ingresso";
 
 // --- PROFILO UTENTE (ruolo + associazione) ---
@@ -807,7 +810,7 @@ let isSavingPrelievoMagazzino = false;
 let savingRientriPrelievoMagazzino = new Set();
 let editingAttrezzaturaId = null;
 let editingPrelievoMagazzinoId = null;
-let pendingVolontarioFileDeletes = { foto: false, cartaIdentita: false, patenti: new Set(), qualificheCoordinamento: new Set() };
+let pendingVolontarioFileDeletes = { foto: false, cartaIdentita: false, allegatoV: false, patenti: new Set(), qualificheCoordinamento: new Set() };
 
 // Mappa servizi — default: comune di Massa di Somma (NA)
 const MASSA_DI_SOMMA_CENTER = [40.850, 14.342];
@@ -895,7 +898,7 @@ function getVolontarioInitials(volontario = {}) {
 }
 
 function resetVolontarioFileDeleteState() {
-    pendingVolontarioFileDeletes = { foto: false, cartaIdentita: false, patenti: new Set(), qualificheCoordinamento: new Set() };
+    pendingVolontarioFileDeletes = { foto: false, cartaIdentita: false, allegatoV: false, patenti: new Set(), qualificheCoordinamento: new Set() };
 }
 
 function hasPendingVolontarioPatenteDelete(patente) {
@@ -930,6 +933,11 @@ function clearVolontarioFileDelete(type, patente = null) {
         pendingVolontarioFileDeletes.cartaIdentita = false;
         const file = document.getElementById("v-carta-identita")?.files?.[0] || null;
         if (file) setVolontarioFileName(document.getElementById("v-carta-identita-filename"), file.name);
+    }
+    if (type === "allegatoV") {
+        pendingVolontarioFileDeletes.allegatoV = false;
+        const file = document.getElementById("v-allegato-v")?.files?.[0] || null;
+        if (file) setVolontarioFileName(document.getElementById("v-allegato-v-filename"), file.name);
     }
     if (type === "patente" && patente) {
         pendingVolontarioFileDeletes.patenti.delete(patente);
@@ -968,6 +976,16 @@ function markVolontarioFileForDelete(type, patente = null) {
         if (current) current.innerText = "Carta d'identita eliminata al salvataggio.";
         setVolontarioFileName(document.getElementById("v-carta-identita-filename"), "");
         setVolontarioFileDeleteButton(document.getElementById("v-carta-identita-delete"), false);
+    }
+
+    if (type === "allegatoV") {
+        pendingVolontarioFileDeletes.allegatoV = true;
+        const input = document.getElementById("v-allegato-v");
+        if (input) input.value = "";
+        const current = document.getElementById("v-allegato-v-current");
+        if (current) current.innerText = "ALLEGATO V eliminato al salvataggio.";
+        setVolontarioFileName(document.getElementById("v-allegato-v-filename"), "");
+        setVolontarioFileDeleteButton(document.getElementById("v-allegato-v-delete"), false);
     }
 
     if (type === "patente" && patente) {
@@ -1030,6 +1048,24 @@ function resetVolontarioCartaIdentitaField() {
     setVolontarioCartaIdentitaField(null);
 }
 
+function setVolontarioAllegatoVField(volontario = null) {
+    const input = document.getElementById("v-allegato-v");
+    const current = document.getElementById("v-allegato-v-current");
+    const deleteButton = document.getElementById("v-allegato-v-delete");
+    const filename = document.getElementById("v-allegato-v-filename");
+    const isDeleted = pendingVolontarioFileDeletes.allegatoV;
+    if (input) input.value = "";
+    if (current) {
+        current.innerText = volontario?.allegato_v_path && !isDeleted ? "ALLEGATO V gia caricato." : "";
+    }
+    setVolontarioFileName(filename, volontario?.allegato_v_path && !isDeleted ? volontario.allegato_v_path : "");
+    setVolontarioFileDeleteButton(deleteButton, Boolean(volontario?.allegato_v_path && !isDeleted));
+}
+
+function resetVolontarioAllegatoVField() {
+    setVolontarioAllegatoVField(null);
+}
+
 function resetVolontarioPatentiFields() {
     const presenzaSelect = document.getElementById("v-patente-presente");
     if (presenzaSelect) presenzaSelect.value = "No";
@@ -1072,6 +1108,14 @@ function getVolontarioDocumentiCaricati(volontario = null) {
             description: "Documento di identita caricato.",
             bucket: VOLONTARI_CARTA_IDENTITA_BUCKET,
             path: volontario.carta_identita_path,
+        });
+    }
+    if (volontario?.allegato_v_path) {
+        documenti.push({
+            label: "ALLEGATO V",
+            description: "ALLEGATO V caricato.",
+            bucket: VOLONTARI_ALLEGATO_V_BUCKET,
+            path: volontario.allegato_v_path,
         });
     }
 
@@ -1231,6 +1275,10 @@ function getSelectedVolontarioCartaIdentitaFile() {
     return document.getElementById("v-carta-identita")?.files?.[0] || null;
 }
 
+function getSelectedVolontarioAllegatoVFile() {
+    return document.getElementById("v-allegato-v")?.files?.[0] || null;
+}
+
 function validateVolontarioFotoFile(file) {
     if (!file) return null;
     if (!VOLONTARI_FOTO_ALLOWED_TYPES.includes(file.type)) {
@@ -1249,6 +1297,17 @@ function validateVolontarioCartaIdentitaFile(file) {
     }
     if (file.size > VOLONTARI_CARTA_IDENTITA_MAX_SIZE) {
         return "La carta d'identita non puo superare 10 MB.";
+    }
+    return null;
+}
+
+function validateVolontarioAllegatoVFile(file) {
+    if (!file) return null;
+    if (!VOLONTARI_ALLEGATO_V_ALLOWED_TYPES.includes(file.type)) {
+        return "ALLEGATO V deve essere PDF, JPG, PNG o WebP.";
+    }
+    if (file.size > VOLONTARI_ALLEGATO_V_MAX_SIZE) {
+        return "ALLEGATO V non puo superare 10 MB.";
     }
     return null;
 }
@@ -1330,6 +1389,17 @@ function getVolontarioCartaIdentitaPath(volontarioId, file) {
     return `${volontarioId}/carta-identita.${extension}`;
 }
 
+function getVolontarioAllegatoVPath(volontarioId, file) {
+    const extensionByType = {
+        "application/pdf": "pdf",
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+    };
+    const extension = extensionByType[file.type] || "pdf";
+    return `${volontarioId}/allegato-v.${extension}`;
+}
+
 function getVolontarioPatentePath(volontarioId, patente, file) {
     const extensionByType = {
         "application/pdf": "pdf",
@@ -1391,6 +1461,27 @@ async function uploadVolontarioCartaIdentita(volontarioId, file, previousPath = 
 
     if (previousPath && previousPath !== path) {
         await supabase.storage.from(VOLONTARI_CARTA_IDENTITA_BUCKET).remove([previousPath]);
+    }
+
+    return path;
+}
+
+async function uploadVolontarioAllegatoV(volontarioId, file, previousPath = null) {
+    const validationError = validateVolontarioAllegatoVFile(file);
+    if (validationError) throw new Error(validationError);
+
+    const path = getVolontarioAllegatoVPath(volontarioId, file);
+    const { error } = await supabase.storage
+        .from(VOLONTARI_ALLEGATO_V_BUCKET)
+        .upload(path, file, {
+            cacheControl: "3600",
+            contentType: file.type,
+            upsert: true,
+        });
+    if (error) throw error;
+
+    if (previousPath && previousPath !== path) {
+        await supabase.storage.from(VOLONTARI_ALLEGATO_V_BUCKET).remove([previousPath]);
     }
 
     return path;
@@ -3358,6 +3449,7 @@ function openNuovoVolontarioModal() {
     resetEditState();
     resetVolontarioFotoField();
     resetVolontarioCartaIdentitaField();
+    resetVolontarioAllegatoVField();
     resetVolontarioPatentiFields();
     setVolontarioQualificheCoordinamentoFiles(null);
     resetVolontarioQualificationDateFields();
@@ -3401,6 +3493,7 @@ function openEditVolontarioModal(id) {
     document.getElementById("v-foto").value = "";
     setVolontarioFotoPreview(vol, vol.foto_url);
     setVolontarioCartaIdentitaField(vol);
+    setVolontarioAllegatoVField(vol);
 
     toggleModal('modal-volontario', true);
 }
@@ -3457,8 +3550,10 @@ async function saveVolontario(event) {
     const associazione_appartenenza = getVolontarioAssociazioneValue();
     const fotoFile = getSelectedVolontarioFotoFile();
     const cartaIdentitaFile = getSelectedVolontarioCartaIdentitaFile();
+    const allegatoVFile = getSelectedVolontarioAllegatoVFile();
     const fotoValidationError = validateVolontarioFotoFile(fotoFile);
     const cartaIdentitaValidationError = validateVolontarioCartaIdentitaFile(cartaIdentitaFile);
+    const allegatoVValidationError = validateVolontarioAllegatoVFile(allegatoVFile);
     const qualificheCoordinamentoValidationError = validateVolontarioQualificheCoordinamentoFiles(qualificheCoordinamentoFiles);
     const patentiValidationError = validateVolontarioPatentiFiles(patentiFiles);
     const currentVolontario = editingVolontarioId ? volontari.find(v => v.id === editingVolontarioId) : null;
@@ -3480,6 +3575,10 @@ async function saveVolontario(event) {
     }
     if (cartaIdentitaValidationError) {
         showToast("Carta d'identita non valida", cartaIdentitaValidationError);
+        return;
+    }
+    if (allegatoVValidationError) {
+        showToast("ALLEGATO V non valido", allegatoVValidationError);
         return;
     }
     if (!cartaIdentitaFile && !currentVolontario?.carta_identita_path) {
@@ -3543,6 +3642,15 @@ async function saveVolontario(event) {
                 if (cartaRemoveError) console.error("Carta d'identita volontario non rimossa:", cartaRemoveError);
                 payload.carta_identita_path = null;
             }
+            if (allegatoVFile) {
+                payload.allegato_v_path = await uploadVolontarioAllegatoV(editingVolontarioId, allegatoVFile, currentVolontario?.allegato_v_path || null);
+            } else if (pendingVolontarioFileDeletes.allegatoV && currentVolontario?.allegato_v_path) {
+                const { error: allegatoVRemoveError } = await supabase.storage
+                    .from(VOLONTARI_ALLEGATO_V_BUCKET)
+                    .remove([currentVolontario.allegato_v_path]);
+                if (allegatoVRemoveError) console.error("ALLEGATO V volontario non rimosso:", allegatoVRemoveError);
+                payload.allegato_v_path = null;
+            }
             payload.patenti_files = await uploadVolontarioPatentiFiles(
                 editingVolontarioId,
                 patenti,
@@ -3582,6 +3690,14 @@ async function saveVolontario(event) {
                     .update({ carta_identita_path: cartaIdentitaPath })
                     .eq('id', newVolontario.id);
                 if (cartaIdentitaUpdateError) throw cartaIdentitaUpdateError;
+            }
+            if (allegatoVFile) {
+                const allegatoVPath = await uploadVolontarioAllegatoV(newVolontario.id, allegatoVFile);
+                const { error: allegatoVUpdateError } = await supabase
+                    .from('volontari')
+                    .update({ allegato_v_path: allegatoVPath })
+                    .eq('id', newVolontario.id);
+                if (allegatoVUpdateError) throw allegatoVUpdateError;
             }
             if (patenti.length > 0) {
                 const patenti_files = await uploadVolontarioPatentiFiles(newVolontario.id, patenti, patentiFiles, {});
@@ -3663,6 +3779,14 @@ async function deleteVolontario(id) {
                     .remove([vol.carta_identita_path]);
                 if (cartaIdentitaStorageError) {
                     console.error("Volontario eliminato, ma carta d'identita non rimossa:", cartaIdentitaStorageError);
+                }
+            }
+            if (vol?.allegato_v_path) {
+                const { error: allegatoVStorageError } = await supabase.storage
+                    .from(VOLONTARI_ALLEGATO_V_BUCKET)
+                    .remove([vol.allegato_v_path]);
+                if (allegatoVStorageError) {
+                    console.error("Volontario eliminato, ma ALLEGATO V non rimosso:", allegatoVStorageError);
                 }
             }
             const patentePaths = Object.values(getVolontarioPatentiFilesMap(vol)).filter(Boolean);
