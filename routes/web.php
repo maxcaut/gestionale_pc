@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminProfileController;
+use App\Http\Controllers\MagazzinoPrelievoPdfController;
 use App\Http\Controllers\ServizioPdfController;
 use App\Http\Controllers\VolontarioPdfController;
 use Illuminate\Support\Facades\Route;
@@ -11,6 +12,7 @@ Route::get('/', function () {
 
 Route::post('/servizi/pdf', [ServizioPdfController::class, 'export'])->name('servizi.pdf');
 Route::post('/volontari/pdf', [VolontarioPdfController::class, 'export'])->name('volontari.pdf');
+Route::post('/magazzino/prelievi/pdf', [MagazzinoPrelievoPdfController::class, 'export'])->name('magazzino.prelievi.pdf');
 
 Route::middleware('supabase.master')->prefix('api/admin')->group(function () {
     Route::post('/profiles', [AdminProfileController::class, 'store']);

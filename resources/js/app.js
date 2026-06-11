@@ -823,6 +823,8 @@ let squadreAibScadenzaTimer = null;
 
 const ICON_EDIT = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>`;
 const ICON_EYE = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`;
+const ICON_DOWNLOAD = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M7.5 12L12 16.5m0 0l4.5-4.5M12 16.5V3" /></svg>`;
+const ICON_TRASH = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>`;
 
 function toDatetimeLocalValue(isoString) {
     if (!isoString) return '';
@@ -3996,8 +3998,8 @@ function renderPrelieviMagazzino() {
                 return `${escapeHtml(item?.nome_attrezzatura || 'Item non disponibile')} <span class="text-slate-500">x${Number(riga.quantita || 0)}</span>`;
             }).join('<br>')
             : '<span class="text-slate-500">—</span>';
-        const isCompletato = prelievo.stato === 'completato';
-        const statoClass = isCompletato
+        const isAperto = prelievo.stato === 'aperto';
+        const statoClass = !isAperto
             ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
             : 'bg-amber-500/10 text-amber-300 border-amber-500/30';
 
@@ -4008,13 +4010,15 @@ function renderPrelieviMagazzino() {
                 <td class="py-4 px-4 text-slate-300 leading-6">${items}</td>
                 <td class="py-4 px-4">
                     <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${statoClass}">
-                        ${isCompletato ? 'Completato' : 'Aperto'}
+                        ${isAperto ? 'Aperto' : 'Completato'}
                     </span>
                 </td>
                 <td class="py-4 px-4">
                     <div class="flex justify-end gap-1">
-                        <button type="button" onclick="openEditPrelievoMagazzinoModal('${escapeAttr(prelievo.id)}')" title="Modifica" ${isCompletato ? 'disabled' : ''} class="p-2 rounded-lg text-slate-400 transition-colors ${isCompletato ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-800 hover:text-amber-500'}">${ICON_EDIT}</button>
-                        <button type="button" onclick="rientroPrelievoMagazzino('${escapeAttr(prelievo.id)}')" title="Rientro" ${isCompletato ? 'disabled' : ''} class="px-3 py-2 rounded-lg text-xs font-bold transition-colors ${isCompletato ? 'bg-slate-800/40 text-slate-600 cursor-not-allowed' : 'bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 hover:text-emerald-100'}">Rientro</button>
+                        ${isAperto ? `<button type="button" onclick="exportBollaPrelievoMagazzinoPdf('${escapeAttr(prelievo.id)}')" title="Scarica bolla" class="p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-sky-400 transition-colors">${ICON_DOWNLOAD}</button>` : ''}
+                        <button type="button" onclick="openEditPrelievoMagazzinoModal('${escapeAttr(prelievo.id)}')" title="Modifica" ${isAperto ? '' : 'disabled'} class="p-2 rounded-lg text-slate-400 transition-colors ${isAperto ? 'hover:bg-slate-800 hover:text-amber-500' : 'opacity-40 cursor-not-allowed'}">${ICON_EDIT}</button>
+                        <button type="button" onclick="rientroPrelievoMagazzino('${escapeAttr(prelievo.id)}')" title="Rientro" ${isAperto ? '' : 'disabled'} class="px-3 py-2 rounded-lg text-xs font-bold transition-colors ${isAperto ? 'bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 hover:text-emerald-100' : 'bg-slate-800/40 text-slate-600 cursor-not-allowed'}">Rientro</button>
+                        <button type="button" onclick="deletePrelievoMagazzino('${escapeAttr(prelievo.id)}')" title="Elimina transazione" class="p-2 hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-500 transition-colors">${ICON_TRASH}</button>
                     </div>
                 </td>
             </tr>
@@ -4355,6 +4359,115 @@ async function rientroPrelievoMagazzino(id) {
         console.error('Errore rientro prelievo magazzino:', err);
         showToast('Errore', 'Impossibile completare il rientro.');
         await fetchDataFromSupabase();
+    }
+}
+
+async function deletePrelievoMagazzino(id) {
+    const prelievo = prelieviMagazzino.find(item => item.id === id);
+    if (!prelievo) return;
+    if (!confirm('Eliminare questa transazione di prelievo?')) return;
+
+    try {
+        const righe = getPrelievoRighe(id);
+        if (prelievo.stato === 'aperto') {
+            const quantitaByItem = new Map();
+            righe.forEach(riga => {
+                quantitaByItem.set(riga.attrezzatura_id, (quantitaByItem.get(riga.attrezzatura_id) || 0) + Number(riga.quantita || 0));
+            });
+
+            for (const [itemId, quantita] of quantitaByItem.entries()) {
+                const item = getAttrezzaturaById(itemId);
+                if (!item) continue;
+                await setAttrezzaturaQuantita(item.id, Number(item.quantita || 0) + quantita);
+            }
+        }
+
+        const { error } = await supabase
+            .from('magazzino_prelievi')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+
+        showToast('Transazione eliminata', 'Il prelievo è stato rimosso.');
+        await fetchDataFromSupabase();
+    } catch (err) {
+        console.error('Errore eliminazione prelievo magazzino:', err);
+        showToast('Errore', 'Impossibile eliminare la transazione.');
+        await fetchDataFromSupabase();
+    }
+}
+
+async function exportBollaPrelievoMagazzinoPdf(id) {
+    const prelievo = prelieviMagazzino.find(item => item.id === id);
+    if (!prelievo || prelievo.stato !== 'aperto') return;
+
+    const righe = getPrelievoRighe(id).map(riga => {
+        const item = getAttrezzaturaById(riga.attrezzatura_id);
+        return {
+            nome_attrezzatura: item?.nome_attrezzatura || 'Item non disponibile',
+            tipo_attrezzatura: item?.tipo_attrezzatura || '',
+            numero_inventario: item?.numero_inventario || '',
+            quantita: Number(riga.quantita || 0),
+        };
+    }).filter(riga => riga.quantita > 0);
+
+    if (righe.length === 0) {
+        showToast('Bolla non disponibile', 'Nessun item presente nel prelievo.');
+        return;
+    }
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    showPdfExportProgress('Generazione bolla in corso', 'Attendere il completamento del download...');
+
+    try {
+        const response = await fetch('/magazzino/prelievi/pdf', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/pdf',
+                'X-CSRF-TOKEN': csrfToken || '',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({
+                prelievo: {
+                    id: prelievo.id,
+                    data_prelievo: prelievo.data_prelievo,
+                    consegnato_a: prelievo.consegnato_a,
+                    associazione_appartenenza: prelievo.associazione_appartenenza || '',
+                    stato: prelievo.stato,
+                },
+                righe,
+            }),
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || 'Errore durante la generazione del PDF');
+        }
+
+        const blob = await response.blob();
+        const disposition = response.headers.get('Content-Disposition');
+        let filename = 'bolla-prelievo.pdf';
+        if (disposition) {
+            const match = disposition.match(/filename="?([^";]+)"?/);
+            if (match) filename = match[1];
+        }
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+
+        showToast('PDF generato', 'La bolla di prelievo è stata scaricata.');
+        hidePdfExportProgress(true);
+    } catch (err) {
+        console.error('Errore PDF bolla prelievo:', err);
+        showToast('Errore PDF', err?.message || 'Impossibile generare la bolla.');
+        hidePdfExportProgress(false);
     }
 }
 
@@ -6981,6 +7094,8 @@ window.addPrelievoMagazzinoRow = addPrelievoMagazzinoRow;
 window.removePrelievoMagazzinoRow = removePrelievoMagazzinoRow;
 window.savePrelievoMagazzino = savePrelievoMagazzino;
 window.rientroPrelievoMagazzino = rientroPrelievoMagazzino;
+window.deletePrelievoMagazzino = deletePrelievoMagazzino;
+window.exportBollaPrelievoMagazzinoPdf = exportBollaPrelievoMagazzinoPdf;
 window.openNuovoTipoAttrezzaturaModal = openNuovoTipoAttrezzaturaModal;
 window.saveTipoAttrezzatura = saveTipoAttrezzatura;
 window.deleteTipoAttrezzatura = deleteTipoAttrezzatura;
