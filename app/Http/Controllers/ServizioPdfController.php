@@ -32,6 +32,8 @@ class ServizioPdfController extends Controller
             'servizio.volontariIds' => 'nullable|array',
             'servizio.volontari_art39' => 'nullable|array',
             'servizio.volontari_mezzi' => 'nullable|array',
+            'servizio.volontari_conta_ore' => 'nullable|array',
+            'servizio.volontari_in_report' => 'nullable|array',
             'servizio.carrelli_trainanti' => 'nullable|array',
             'servizio.carrelli_trainanti.*' => 'nullable|string',
             'mezzi' => 'nullable|array',
@@ -66,10 +68,29 @@ class ServizioPdfController extends Controller
             return response()->json(['message' => 'I modelli consuntivi sono disponibili solo per servizi completati.'], 422);
         }
 
+        $validated['equipaggio'] = $this->filterEquipaggioInReport(
+            $validated['equipaggio'],
+            $validated['servizio']['volontari_in_report'] ?? []
+        );
+
         return match ($template) {
             'riepilogo-intervento' => $this->exportRiepilogoIntervento($validated, $dataIntervento),
             'template_aib' => $this->exportTemplateAib($validated, $dataIntervento),
         };
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $equipaggio
+     * @param  array<string, mixed>  $volontariInReport
+     * @return array<int, array<string, mixed>>
+     */
+    private function filterEquipaggioInReport(array $equipaggio, array $volontariInReport): array
+    {
+        return array_values(array_filter($equipaggio, static function (array $volontario) use ($volontariInReport): bool {
+            $id = (string) ($volontario['id'] ?? '');
+
+            return $id === '' || ($volontariInReport[$id] ?? 'Si') !== 'No';
+        }));
     }
 
     /**

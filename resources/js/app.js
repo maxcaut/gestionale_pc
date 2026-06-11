@@ -1921,6 +1921,8 @@ function mapServizioRow(s) {
         volontariIds: s.volontari_ids || [],
         volontariArt39: s.volontari_art39 || {},
         volontariMezzi: s.volontari_mezzi || {},
+        volontariContaOre: s.volontari_conta_ore || {},
+        volontariInReport: s.volontari_in_report || {},
         art39: s.art39 || 'Si',
         note: s.note,
         altriEnti: s.altri_enti_coinvolti,
@@ -2725,6 +2727,7 @@ function getStatisticheData() {
         tipologieStats.set(tipologia, tipoStat);
 
         (servizio.volontariIds || []).forEach(id => {
+            if ((servizio.volontariContaOre || {})[id] === 'No') return;
             const volontario = volontariById.get(id);
             if (!volontario) return;
             addStatHours(volontariStats, id, `${volontario.nome} ${volontario.cognome}`, tipologia, hours);
@@ -4921,7 +4924,7 @@ function collectServizioCarrelliTrainanti(mezziIds) {
     return { valid: true, value: result };
 }
 
-function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariIds = [], selectedVolontariArt39 = {}, servizioArt39 = 'Si', selectedCarrelliTrainanti = {}, selectedVolontariMezzi = {}) {
+function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariIds = [], selectedVolontariArt39 = {}, servizioArt39 = 'Si', selectedCarrelliTrainanti = {}, selectedVolontariMezzi = {}, selectedVolontariContaOre = {}, selectedVolontariInReport = {}) {
     const mezziList = getDB("pc_mezzi");
     const volontariList = getDB("pc_volontari");
 
@@ -4972,21 +4975,45 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
     const volontariOperativi = volontariList.filter(v => v.stato === "Operativo");
     const volontariNonOperativi = volontariList.filter(v => v.stato !== "Operativo");
     const canManageVolontariArt39 = servizioArt39 !== 'No' || !isSegreteria();
+    const canManageReportFlags = hasMasterAccess();
 
     const renderVolontarioCheckbox = (v, muted = false) => {
         const checked = selectedVolontariIds.includes(v.id) ? 'checked' : '';
         const art39Value = servizioArt39 === 'No' ? 'No' : (selectedVolontariArt39?.[v.id] === 'Si' ? 'Si' : 'No');
         const mezzoValue = selectedVolontariMezzi?.[v.id] || '';
+        const contaOreValue = selectedVolontariContaOre?.[v.id] === 'No' ? 'No' : 'Si';
+        const inReportValue = selectedVolontariInReport?.[v.id] === 'No' ? 'No' : 'Si';
         const textClass = muted ? 'text-slate-400' : 'text-slate-200';
         const fontClass = muted ? 'font-medium' : 'font-semibold';
         const extra = muted ? ` - [${v.stato}]` : '';
         const searchText = `${v.nome} ${v.cognome} ${v.ruolo} ${v.associazione_appartenenza || ''} ${v.stato}`.toLowerCase();
+        const controlsGridClass = canManageReportFlags
+            ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end'
+            : (canManageVolontariArt39
+                ? 'grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(5.5rem,9rem)] gap-3 items-end'
+                : 'grid grid-cols-1 gap-3 items-end');
         const art39Control = canManageVolontariArt39 ? `
-                <span class="flex items-center gap-1.5 shrink-0">
+                <span class="flex flex-col gap-1 min-w-0">
                     <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">art.39</span>
-                    <select name="s-volontari-art39" data-volontario-id="${v.id}" onclick="event.stopPropagation()" class="bg-slate-900 border border-slate-700 text-slate-200 py-1 px-2 rounded-lg text-[11px] font-bold focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
+                    <select name="s-volontari-art39" data-volontario-id="${v.id}" onclick="event.stopPropagation()" class="w-full min-w-[5.5rem] bg-slate-900 border border-slate-700 text-slate-200 py-1.5 px-2 rounded-lg text-[11px] font-bold focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
                         <option value="Si" ${art39Value === 'Si' ? 'selected' : ''}>Si</option>
                         <option value="No" ${art39Value === 'No' ? 'selected' : ''}>No</option>
+                    </select>
+                </span>
+        ` : '';
+        const reportFlagsControls = canManageReportFlags ? `
+                <span class="flex flex-col gap-1 min-w-0">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">conta ore</span>
+                    <select name="s-volontari-conta-ore" data-volontario-id="${v.id}" onclick="event.stopPropagation()" class="w-full min-w-[5.5rem] bg-slate-900 border border-slate-700 text-slate-200 py-1.5 px-2 rounded-lg text-[11px] font-bold focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
+                        <option value="Si" ${contaOreValue === 'Si' ? 'selected' : ''}>Si</option>
+                        <option value="No" ${contaOreValue === 'No' ? 'selected' : ''}>No</option>
+                    </select>
+                </span>
+                <span class="flex flex-col gap-1 min-w-0">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">in report</span>
+                    <select name="s-volontari-in-report" data-volontario-id="${v.id}" onclick="event.stopPropagation()" class="w-full min-w-[5.5rem] bg-slate-900 border border-slate-700 text-slate-200 py-1.5 px-2 rounded-lg text-[11px] font-bold focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
+                        <option value="Si" ${inReportValue === 'Si' ? 'selected' : ''}>Si</option>
+                        <option value="No" ${inReportValue === 'No' ? 'selected' : ''}>No</option>
                     </select>
                 </span>
         ` : '';
@@ -4996,14 +5023,15 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
                     <input type="checkbox" name="s-volontari-check" value="${v.id}" ${checked} onchange="updateServizioVolontarioMezzoControl(this.value)" class="mt-0.5 rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4 shrink-0">
                     <span class="text-xs ${fontClass} leading-snug break-words">${v.nome} ${v.cognome} (${v.ruolo})${v.associazione_appartenenza ? ` · ${v.associazione_appartenenza}` : ''}${extra}</span>
                 </span>
-                <span class="mt-2 ml-7 flex flex-col sm:flex-row sm:items-center gap-2">
-                    <span class="flex flex-col gap-1 min-w-0 sm:flex-1">
+                <span class="mt-3 ml-7 ${controlsGridClass}">
+                    <span class="flex flex-col gap-1 min-w-0">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Mezzo assegnato</span>
                         <select name="s-volontari-mezzo" data-volontario-id="${v.id}" data-selected-mezzo-id="${mezzoValue}" onclick="event.stopPropagation()" onchange="this.dataset.selectedMezzoId = this.value" class="w-full bg-slate-900 border border-slate-700 text-slate-200 py-1.5 px-2 rounded-lg text-[11px] font-bold focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
                             <option value="">Mezzo...</option>
                         </select>
                     </span>
                     ${art39Control}
+                    ${reportFlagsControls}
                 </span>
             </label>
         `;
@@ -5168,6 +5196,23 @@ function collectServizioVolontariArt39(volontariIds) {
         volontariArt39[id] = servizioArt39 === 'No' ? 'No' : (select?.value === 'Si' ? 'Si' : 'No');
     });
     return volontariArt39;
+}
+
+function collectServizioVolontariFlag(volontariIds, inputName) {
+    const flags = {};
+    (volontariIds || []).forEach(id => {
+        const select = document.querySelector(`select[name="${inputName}"][data-volontario-id="${CSS.escape(id)}"]`);
+        flags[id] = select?.value === 'No' ? 'No' : 'Si';
+    });
+    return flags;
+}
+
+function buildDefaultVolontariFlag(volontariIds, existingFlags = {}) {
+    if (hasMasterAccess()) {
+        return Object.fromEntries((volontariIds || []).map(id => [id, existingFlags?.[id] === 'No' ? 'No' : 'Si']));
+    }
+
+    return Object.fromEntries((volontariIds || []).map(id => [id, 'Si']));
 }
 
 function renderServizioVolontariMezziOptions() {
@@ -5337,7 +5382,7 @@ function openEditServizioModal(id) {
     editingServizioId = id;
     setModalFormMode('modal-servizio', { title: 'Modifica Servizio / Missione', submitText: 'Salva modifiche' });
 
-    populateServizioModalOptions(serv.mezziIds || [], serv.volontariIds || [], serv.volontariArt39 || {}, serv.art39 || 'Si', serv.carrelliTrainanti || {}, serv.volontariMezzi || {});
+    populateServizioModalOptions(serv.mezziIds || [], serv.volontariIds || [], serv.volontariArt39 || {}, serv.art39 || 'Si', serv.carrelliTrainanti || {}, serv.volontariMezzi || {}, serv.volontariContaOre || {}, serv.volontariInReport || {});
 
     document.getElementById("s-richiedente").value = serv.richiedente || "SORU";
     document.getElementById("s-protocollo-regionale").value = serv.protocolloRegionale || "";
@@ -6098,6 +6143,8 @@ async function saveServizio(event) {
         const volontariIds = [];
         volontariCheckboxes.forEach(cb => volontariIds.push(cb.value));
         const volontariArt39 = collectServizioVolontariArt39(volontariIds);
+        const volontariContaOre = buildDefaultVolontariFlag(volontariIds);
+        const volontariInReport = buildDefaultVolontariFlag(volontariIds);
         const volontariMezziResult = collectServizioVolontariMezzi(volontariIds, mezziIds);
 
         if (isAntincendioBoschivo(existing.tipo) && mezziIds.length === 0) {
@@ -6122,6 +6169,8 @@ async function saveServizio(event) {
                 volontari_ids: volontariIds,
                 volontari_art39: volontariArt39,
                 volontari_mezzi: volontariMezziResult.value,
+                volontari_conta_ore: volontariContaOre,
+                volontari_in_report: volontariInReport,
             }).eq('id', editingServizioId);
             if (error) throw error;
             toggleModal('modal-servizio', false);
@@ -6192,6 +6241,12 @@ async function saveServizio(event) {
     let volontariIds = [];
     volontariCheckboxes.forEach(cb => volontariIds.push(cb.value));
     let volontariArt39 = collectServizioVolontariArt39(volontariIds);
+    let volontariContaOre = hasMasterAccess()
+        ? collectServizioVolontariFlag(volontariIds, 's-volontari-conta-ore')
+        : buildDefaultVolontariFlag(volontariIds, existingServizio?.volontariContaOre || {});
+    let volontariInReport = hasMasterAccess()
+        ? collectServizioVolontariFlag(volontariIds, 's-volontari-in-report')
+        : buildDefaultVolontariFlag(volontariIds, existingServizio?.volontariInReport || {});
     let volontariMezzi = {};
     let squadreAibIds = isAntincendioBoschivo(tipo) ? (existingServizio?.squadreAibIds || []) : [];
 
@@ -6217,10 +6272,14 @@ async function saveServizio(event) {
                 return;
             }
             volontariArt39 = Object.fromEntries(volontariIds.map(id => [id, art39 === 'No' ? 'No' : 'Si']));
+            volontariContaOre = buildDefaultVolontariFlag(volontariIds);
+            volontariInReport = buildDefaultVolontariFlag(volontariIds);
         } else if (editingServizioId) {
             mezziIds = existingServizio?.mezziIds || [];
             volontariIds = existingServizio?.volontariIds || [];
             volontariArt39 = existingServizio?.volontariArt39 || {};
+            volontariContaOre = buildDefaultVolontariFlag(volontariIds, existingServizio?.volontariContaOre || {});
+            volontariInReport = buildDefaultVolontariFlag(volontariIds, existingServizio?.volontariInReport || {});
             volontariMezzi = existingServizio?.volontariMezzi || {};
             carrelliTrainanti = existingServizio?.carrelliTrainanti || {};
             squadreAibIds = [];
@@ -6228,6 +6287,8 @@ async function saveServizio(event) {
             mezziIds = [];
             volontariIds = [];
             volontariArt39 = {};
+            volontariContaOre = {};
+            volontariInReport = {};
             volontariMezzi = {};
             carrelliTrainanti = {};
             squadreAibIds = [];
@@ -6262,6 +6323,12 @@ async function saveServizio(event) {
     if (art39 === 'No') {
         volontariArt39 = Object.fromEntries(volontariIds.map(id => [id, 'No']));
     }
+    volontariContaOre = hasMasterAccess()
+        ? Object.fromEntries(volontariIds.map(id => [id, volontariContaOre?.[id] === 'No' ? 'No' : 'Si']))
+        : buildDefaultVolontariFlag(volontariIds, existingServizio?.volontariContaOre || {});
+    volontariInReport = hasMasterAccess()
+        ? Object.fromEntries(volontariIds.map(id => [id, volontariInReport?.[id] === 'No' ? 'No' : 'Si']))
+        : buildDefaultVolontariFlag(volontariIds, existingServizio?.volontariInReport || {});
 
     let latitudine = latValue !== "" ? parseFloat(latValue) : null;
     let longitudine = lngValue !== "" ? parseFloat(lngValue) : null;
@@ -6287,6 +6354,8 @@ async function saveServizio(event) {
         volontari_ids: volontariIds,
         volontari_art39: volontariArt39,
         volontari_mezzi: volontariMezzi,
+        volontari_conta_ore: volontariContaOre,
+        volontari_in_report: volontariInReport,
         squadre_aib_ids: squadreAibIds,
         art39,
         note,
@@ -6403,6 +6472,7 @@ async function exportServizioPdf(id, template = 'servizio-programmato') {
         .map(mId => mezzi.find(m => m.id === mId))
         .filter(Boolean);
     const equipaggio = (serv.volontariIds || [])
+        .filter(vId => !isConsuntivo || (serv.volontariInReport || {})[vId] !== 'No')
         .map(vId => volontari.find(v => v.id === vId))
         .filter(Boolean);
 
@@ -6435,6 +6505,8 @@ async function exportServizioPdf(id, template = 'servizio-programmato') {
                     volontariIds: serv.volontariIds || [],
                     volontari_art39: serv.volontariArt39 || {},
                     volontari_mezzi: serv.volontariMezzi || {},
+                    volontari_conta_ore: serv.volontariContaOre || {},
+                    volontari_in_report: serv.volontariInReport || {},
                     carrelli_trainanti: serv.carrelliTrainanti || {},
                     oraArrivoIncendio: serv.oraArrivoIncendio || '',
                     oraFineIntervento: serv.oraFineIntervento || '',
