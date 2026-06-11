@@ -11,7 +11,7 @@ class ServizioPdfController extends Controller
     public function export(Request $request)
     {
         $validated = $request->validate([
-            'template' => 'nullable|string|in:riepilogo-intervento,template_aib',
+            'template' => 'nullable|string|in:riepilogo-intervento,template_aib,servizio-programmato',
             'servizio' => 'required|array',
             'servizio.id' => 'required|string',
             'servizio.tipo' => 'required|string',
@@ -31,6 +31,7 @@ class ServizioPdfController extends Controller
             'servizio.superficieNonBoscato' => 'nullable|array',
             'servizio.volontariIds' => 'nullable|array',
             'servizio.volontari_art39' => 'nullable|array',
+            'servizio.volontari_mezzi' => 'nullable|array',
             'servizio.carrelli_trainanti' => 'nullable|array',
             'servizio.carrelli_trainanti.*' => 'nullable|string',
             'mezzi' => 'nullable|array',
@@ -39,29 +40,30 @@ class ServizioPdfController extends Controller
             'mezzi.*.targa' => 'nullable|string',
             'mezzi.*.tipo' => 'nullable|string',
             'mezzi.*.stato' => 'nullable|string',
-            'equipaggio' => 'required|array|min:1',
+            'equipaggio' => 'required|array',
             'equipaggio.*.id' => 'nullable|string',
             'equipaggio.*.nome' => 'required|string',
             'equipaggio.*.cognome' => 'required|string',
             'equipaggio.*.cf' => 'nullable|string',
             'equipaggio.*.ruolo' => 'nullable|string',
+            'equipaggio.*.associazione_appartenenza' => 'nullable|string',
             'equipaggio.*.telefono' => 'nullable|string',
             'equipaggio.*.stato' => 'nullable|string',
         ]);
 
-        if ($validated['servizio']['stato'] !== 'Completato') {
-            return response()->json(['message' => 'Il PDF è disponibile solo per servizi completati.'], 422);
+        if (! in_array($validated['servizio']['stato'], ['Programmato', 'In corso'], true)) {
+            return response()->json(['message' => 'Il PDF è disponibile solo per servizi programmati o in corso.'], 422);
         }
 
-        $template = $validated['template'] ?? 'riepilogo-intervento';
+        $template = $validated['template'] ?? 'servizio-programmato';
+        if ($template !== 'servizio-programmato') {
+            return response()->json(['message' => 'Il PDF è disponibile solo con il modello servizio programmato/in corso.'], 422);
+        }
+
         $dataIntervento = $this->formatDataIntervento($validated['servizio']['data']);
         $exportatoIl = now()->timezone('Europe/Rome')->format('d/m/Y H:i');
 
-        if ($template === 'template_aib') {
-            return $this->exportTemplateAib($validated, $dataIntervento);
-        }
-
-        $pdf = Pdf::loadView('pdf.riepilogo-intervento', [
+        $pdf = Pdf::loadView('pdf.servizio-programmato', [
             'servizio' => $validated['servizio'],
             'mezzi' => $validated['mezzi'] ?? [],
             'equipaggio' => $validated['equipaggio'],
@@ -69,7 +71,7 @@ class ServizioPdfController extends Controller
             'exportatoIl' => $exportatoIl,
         ])->setPaper('a4', 'landscape');
 
-        $filename = 'Modello A - Presenze ODV-'.Str::slug($validated['servizio']['tipo']).'-'.$dataIntervento['file'].'.pdf';
+        $filename = 'Servizio programmato-'.Str::slug($validated['servizio']['tipo']).'-'.$dataIntervento['file'].'.pdf';
 
         return $pdf->download($filename);
     }
