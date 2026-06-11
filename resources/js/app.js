@@ -801,6 +801,7 @@ let editingServizioId = null;
 let editingProfileId = null;
 let editingSquadraAibId = null;
 let editingProtocolloIngressoId = null;
+let isSavingVolontario = false;
 let isSavingProtocolloIngresso = false;
 let editingAttrezzaturaId = null;
 let editingPrelievoMagazzinoId = null;
@@ -3428,6 +3429,8 @@ function previewVolontarioFoto() {
 
 async function saveVolontario(event) {
     event.preventDefault();
+    if (isSavingVolontario) return;
+
     const nome = document.getElementById("v-nome").value;
     const cognome = document.getElementById("v-cognome").value;
     const data_nascita = document.getElementById("v-data-nascita").value;
@@ -3489,6 +3492,12 @@ async function saveVolontario(event) {
         showToast("Attestato non valido", qualificheCoordinamentoValidationError);
         return;
     }
+
+    isSavingVolontario = true;
+    const submitEl = document.getElementById("modal-volontario-submit");
+    let saveSucceeded = false;
+    if (submitEl) submitEl.disabled = true;
+    showPdfExportProgress("Salvataggio volontario in corso", "Attendere il completamento del salvataggio...");
 
     const payload = {
         nome,
@@ -3593,9 +3602,14 @@ async function saveVolontario(event) {
             showToast("Volontario Registrato", `${nome} ${cognome} è stato inserito con successo.`);
         }
         await fetchDataFromSupabase();
+        saveSucceeded = true;
     } catch (err) {
         console.error("Errore durante il salvataggio del volontario:", err);
         showToast("Errore di Salvataggio", "Impossibile salvare il volontario su Supabase.");
+    } finally {
+        hidePdfExportProgress(saveSucceeded);
+        isSavingVolontario = false;
+        if (submitEl) submitEl.disabled = false;
     }
 }
 
