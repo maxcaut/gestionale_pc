@@ -19,6 +19,7 @@ class MagazzinoPrelievoPdfController extends Controller
             'prelievo.stato' => 'required|string|in:aperto,completato',
             'righe' => 'required|array|min:1',
             'righe.*.nome_attrezzatura' => 'required|string',
+            'righe.*.associazione_appartenenza' => 'nullable|string',
             'righe.*.tipo_attrezzatura' => 'nullable|string',
             'righe.*.numero_inventario' => 'nullable|string',
             'righe.*.quantita' => 'required|integer|min:1',
@@ -36,7 +37,7 @@ class MagazzinoPrelievoPdfController extends Controller
             'righe' => $validated['righe'],
             'dataPrelievo' => $dataPrelievo,
             'exportatoIl' => $exportatoIl,
-        ])->setPaper('a4', 'portrait');
+        ])->setPaper('a4', 'landscape');
 
         $filename = 'Bolla prelievo-'.Str::slug($validated['prelievo']['consegnato_a']).'-'.$dataPrelievo['file'].'.pdf';
 

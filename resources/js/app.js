@@ -4213,7 +4213,7 @@ function validatePrelievoMagazzinoRows(rows) {
 function getPrelievoMagazzinoAssociazione(rows) {
     const associazioni = [...new Set(rows.map(row => getAttrezzaturaById(row.attrezzatura_id)?.associazione_appartenenza).filter(Boolean))];
     if (associazioni.length === 1) return associazioni[0];
-    if (hasMasterAccess() && associazioni.length > 1) return 'Associazioni multiple';
+    if (hasMasterAccess() && associazioni.length > 1) return associazioni.join(', ');
     return null;
 }
 
@@ -4405,6 +4405,7 @@ async function exportBollaPrelievoMagazzinoPdf(id) {
         const item = getAttrezzaturaById(riga.attrezzatura_id);
         return {
             nome_attrezzatura: item?.nome_attrezzatura || 'Item non disponibile',
+            associazione_appartenenza: item?.associazione_appartenenza || '',
             tipo_attrezzatura: item?.tipo_attrezzatura || '',
             numero_inventario: item?.numero_inventario || '',
             quantita: Number(riga.quantita || 0),

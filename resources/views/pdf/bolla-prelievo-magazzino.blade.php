@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>Bolla prelievo magazzino</title>
     <style>
-        @page { size: A4 portrait; margin: 14mm; }
+        @page { size: A4 landscape; margin: 14mm; }
         * { box-sizing: border-box; }
         body {
             margin: 0;
@@ -135,33 +135,25 @@
                 <span class="value">{{ $prelievo['consegnato_a'] }}</span>
             </td>
         </tr>
-        <tr>
-            <td>
-                <span class="label">Associazione</span>
-                <span class="value">{{ $prelievo['associazione_appartenenza'] ?? '-' }}</span>
-            </td>
-            <td>
-                <span class="label">Stato</span>
-                <span class="value">Aperto</span>
-            </td>
-        </tr>
     </table>
 
     <table class="items">
         <thead>
             <tr>
-                <th>Attrezzatura</th>
-                <th>Tipo</th>
                 <th>Numero inventario</th>
+                <th>Tipo</th>
+                <th>Attrezzatura</th>
+                <th>Associazione di appartenenza</th>
                 <th class="qty">Quantità</th>
             </tr>
         </thead>
         <tbody>
             @foreach ($righe as $riga)
                 <tr>
-                    <td>{{ $riga['nome_attrezzatura'] }}</td>
-                    <td>{{ $riga['tipo_attrezzatura'] ?? '-' }}</td>
                     <td>{{ $riga['numero_inventario'] ?? '-' }}</td>
+                    <td>{{ $riga['tipo_attrezzatura'] ?? '-' }}</td>
+                    <td>{{ $riga['nome_attrezzatura'] }}</td>
+                    <td>{{ $riga['associazione_appartenenza'] ?? '-' }}</td>
                     <td class="qty">{{ $riga['quantita'] }}</td>
                 </tr>
             @endforeach
