@@ -41,6 +41,7 @@
                                         <th class="py-3 px-4">Tipo attrezzatura</th>
                                         <th class="py-3 px-4">Numero inventario</th>
                                         <th class="py-3 px-4">Associazione di appartenenza</th>
+                                        <th class="py-3 px-4 text-right">Azioni</th>
                                     </tr>
                                 </thead>
                                 <tbody id="magazzino-table-body" class="text-sm divide-y divide-slate-800/50">

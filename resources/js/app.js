@@ -799,6 +799,7 @@ let editingServizioId = null;
 let editingProfileId = null;
 let editingSquadraAibId = null;
 let editingProtocolloIngressoId = null;
+let editingAttrezzaturaId = null;
 let pendingVolontarioFileDeletes = { foto: false, cartaIdentita: false, patenti: new Set(), qualificheCoordinamento: new Set() };
 
 // Mappa servizi — default: comune di Massa di Somma (NA)
@@ -873,6 +874,7 @@ function resetEditState() {
     editingServizioId = null;
     editingSquadraAibId = null;
     editingProtocolloIngressoId = null;
+    editingAttrezzaturaId = null;
     resetVolontarioFileDeleteState();
 }
 
@@ -2203,6 +2205,7 @@ function toggleModal(modalId, show) {
         resetProtocolloIngressoForm();
         setModalFormMode('modal-volontario', { title: 'Aggiungi Nuovo Volontario', submitText: 'Registra' });
         setModalFormMode('modal-mezzo', { title: 'Aggiungi Nuovo Mezzo di Soccorso', submitText: 'Registra' });
+        setModalFormMode('modal-attrezzatura', { title: 'Nuova Attrezzatura', submitText: 'Registra' });
         setModalFormMode('modal-servizio', { title: 'Pianifica Servizio / Missione', submitText: 'Pianifica' });
     }
 }
@@ -3906,7 +3909,7 @@ function renderMagazzino() {
     if (filtered.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="4" class="py-10 px-4 text-center text-slate-500 font-medium">Nessuna attrezzatura trovata.</td>
+                <td colspan="5" class="py-10 px-4 text-center text-slate-500 font-medium">Nessuna attrezzatura trovata.</td>
             </tr>
         `;
         return;
@@ -3918,13 +3921,46 @@ function renderMagazzino() {
             <td class="py-4 px-4 text-slate-300">${escapeHtml(item.tipo_attrezzatura)}</td>
             <td class="py-4 px-4 text-slate-300 font-mono text-xs font-bold">${escapeHtml(item.numero_inventario)}</td>
             <td class="py-4 px-4 text-slate-400">${escapeHtml(item.associazione_appartenenza)}</td>
+            <td class="py-4 px-4">
+                <div class="flex justify-end gap-1">
+                    <button type="button" onclick="openEditAttrezzaturaModal('${escapeAttr(item.id)}')" title="Modifica" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">${ICON_EDIT}</button>
+                    <button type="button" onclick="deleteAttrezzatura('${escapeAttr(item.id)}')" title="Elimina" class="p-2 hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-500 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                        </svg>
+                    </button>
+                </div>
+            </td>
         </tr>
     `).join('');
 }
 
 function openNuovaAttrezzaturaModal() {
+    resetEditState();
+    setModalFormMode('modal-attrezzatura', { title: 'Nuova Attrezzatura', submitText: 'Registra' });
     renderTipiAttrezzaturaOptions();
     setupAttrezzaturaAssociazioneField();
+    toggleModal('modal-attrezzatura', true);
+}
+
+function openEditAttrezzaturaModal(id) {
+    const attrezzatura = attrezzatureMagazzino.find(item => item.id === id);
+    if (!attrezzatura) return;
+
+    editingAttrezzaturaId = id;
+    setModalFormMode('modal-attrezzatura', { title: 'Modifica Attrezzatura', submitText: 'Salva modifiche' });
+    renderTipiAttrezzaturaOptions();
+
+    document.getElementById('a-nome').value = attrezzatura.nome_attrezzatura || '';
+    document.getElementById('a-tipo').value = attrezzatura.tipo_attrezzatura || '';
+    document.getElementById('a-numero-inventario').value = attrezzatura.numero_inventario || '';
+
+    setupAttrezzaturaAssociazioneField();
+    const associazioneSelect = document.getElementById('a-associazione');
+    if (associazioneSelect) {
+        associazioneSelect.value = attrezzatura.associazione_appartenenza || 'G.C. Massa di Somma';
+    }
+
     toggleModal('modal-attrezzatura', true);
 }
 
@@ -3946,20 +3982,46 @@ async function saveAttrezzatura(event) {
     }
 
     try {
-        const { error } = await supabase.from('magazzino_attrezzature').insert([{
+        const payload = {
             nome_attrezzatura,
             tipo_attrezzatura,
             numero_inventario,
             associazione_appartenenza
-        }]);
-        if (error) throw error;
+        };
 
-        toggleModal('modal-attrezzatura', false);
-        showToast('Attrezzatura registrata', `${nome_attrezzatura} inserita correttamente.`);
+        if (editingAttrezzaturaId) {
+            const { error } = await supabase.from('magazzino_attrezzature').update(payload).eq('id', editingAttrezzaturaId);
+            if (error) throw error;
+            toggleModal('modal-attrezzatura', false);
+            showToast('Attrezzatura aggiornata', `${nome_attrezzatura} modificata correttamente.`);
+        } else {
+            const { error } = await supabase.from('magazzino_attrezzature').insert([payload]);
+            if (error) throw error;
+            toggleModal('modal-attrezzatura', false);
+            showToast('Attrezzatura registrata', `${nome_attrezzatura} inserita correttamente.`);
+        }
         await fetchDataFromSupabase();
     } catch (err) {
         console.error('Errore salvataggio attrezzatura:', err);
         showToast('Errore di salvataggio', "Impossibile registrare l'attrezzatura su Supabase.");
+    }
+}
+
+async function deleteAttrezzatura(id) {
+    if (!confirm("Sei sicuro di voler eliminare questa attrezzatura?")) return;
+
+    try {
+        const { error } = await supabase
+            .from('magazzino_attrezzature')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+
+        showToast('Attrezzatura eliminata', "L'attrezzatura è stata rimossa dal magazzino.");
+        await fetchDataFromSupabase();
+    } catch (err) {
+        console.error("Errore eliminazione attrezzatura:", err);
+        showToast('Errore', "Impossibile eliminare l'attrezzatura da Supabase.");
     }
 }
 
@@ -6477,7 +6539,9 @@ window.downloadProtocolloIngressoFile = downloadProtocolloIngressoFile;
 window.deleteProtocolloIngresso = deleteProtocolloIngresso;
 window.renderProtocolloIngresso = renderProtocolloIngresso;
 window.openNuovaAttrezzaturaModal = openNuovaAttrezzaturaModal;
+window.openEditAttrezzaturaModal = openEditAttrezzaturaModal;
 window.saveAttrezzatura = saveAttrezzatura;
+window.deleteAttrezzatura = deleteAttrezzatura;
 window.openNuovoTipoAttrezzaturaModal = openNuovoTipoAttrezzaturaModal;
 window.saveTipoAttrezzatura = saveTipoAttrezzatura;
 window.renderMagazzino = renderMagazzino;
