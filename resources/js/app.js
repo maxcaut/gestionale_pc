@@ -753,6 +753,7 @@ let editingServizioId = null;
 let editingProfileId = null;
 let editingSquadraAibId = null;
 let editingProtocolloIngressoId = null;
+let pendingVolontarioFileDeletes = { foto: false, cartaIdentita: false, patenti: new Set() };
 
 // Mappa servizi — default: comune di Massa di Somma (NA)
 const MASSA_DI_SOMMA_CENTER = [40.850, 14.342];
@@ -817,6 +818,7 @@ function resetEditState() {
     editingServizioId = null;
     editingSquadraAibId = null;
     editingProtocolloIngressoId = null;
+    resetVolontarioFileDeleteState();
 }
 
 function getVolontarioInitials(volontario = {}) {
@@ -825,10 +827,90 @@ function getVolontarioInitials(volontario = {}) {
     return `${nome.charAt(0)}${cognome.charAt(0)}`.toUpperCase() || "--";
 }
 
+function resetVolontarioFileDeleteState() {
+    pendingVolontarioFileDeletes = { foto: false, cartaIdentita: false, patenti: new Set() };
+}
+
+function hasPendingVolontarioPatenteDelete(patente) {
+    return pendingVolontarioFileDeletes.patenti.has(patente);
+}
+
+function setVolontarioFileDeleteButton(button, show) {
+    if (button) button.classList.toggle("hidden", !show);
+}
+
+function getFilenameFromPath(path) {
+    return String(path || "").split("/").filter(Boolean).pop() || "";
+}
+
+function setVolontarioFileName(el, path) {
+    if (!el) return;
+    const filename = getFilenameFromPath(path);
+    el.innerText = filename;
+    el.title = filename;
+    el.classList.toggle("hidden", !filename);
+}
+
+function clearVolontarioFileDelete(type, patente = null) {
+    if (type === "foto") {
+        pendingVolontarioFileDeletes.foto = false;
+    }
+    if (type === "cartaIdentita") {
+        pendingVolontarioFileDeletes.cartaIdentita = false;
+        const file = document.getElementById("v-carta-identita")?.files?.[0] || null;
+        if (file) setVolontarioFileName(document.getElementById("v-carta-identita-filename"), file.name);
+    }
+    if (type === "patente" && patente) {
+        pendingVolontarioFileDeletes.patenti.delete(patente);
+        const file = document.querySelector(`[data-patente-file-input="${patente}"]`)?.files?.[0] || null;
+        if (file) setVolontarioFileName(document.querySelector(`[data-patente-filename="${patente}"]`), file.name);
+    }
+}
+
+function markVolontarioFileForDelete(type, patente = null) {
+    if (!editingVolontarioId) return;
+
+    if (type === "foto") {
+        pendingVolontarioFileDeletes.foto = true;
+        const input = document.getElementById("v-foto");
+        if (input) input.value = "";
+        setVolontarioFotoPreview(volontari.find(v => v.id === editingVolontarioId) || null, null);
+        const current = document.getElementById("v-foto-current");
+        if (current) current.innerText = "Foto eliminata al salvataggio.";
+        setVolontarioFileName(document.getElementById("v-foto-filename"), "");
+        setVolontarioFileDeleteButton(document.getElementById("v-foto-delete"), false);
+    }
+
+    if (type === "cartaIdentita") {
+        pendingVolontarioFileDeletes.cartaIdentita = true;
+        const input = document.getElementById("v-carta-identita");
+        if (input) {
+            input.value = "";
+            input.required = false;
+        }
+        const current = document.getElementById("v-carta-identita-current");
+        if (current) current.innerText = "Carta d'identita eliminata al salvataggio.";
+        setVolontarioFileName(document.getElementById("v-carta-identita-filename"), "");
+        setVolontarioFileDeleteButton(document.getElementById("v-carta-identita-delete"), false);
+    }
+
+    if (type === "patente" && patente) {
+        pendingVolontarioFileDeletes.patenti.add(patente);
+        const input = document.querySelector(`[data-patente-file-input="${patente}"]`);
+        if (input) input.value = "";
+        const current = document.querySelector(`[data-patente-current="${patente}"]`);
+        if (current) current.innerText = "File patente eliminato al salvataggio.";
+        setVolontarioFileName(document.querySelector(`[data-patente-filename="${patente}"]`), "");
+        setVolontarioFileDeleteButton(document.querySelector(`[data-patente-delete="${patente}"]`), false);
+    }
+}
+
 function resetVolontarioFotoField() {
     const input = document.getElementById("v-foto");
     const preview = document.getElementById("v-foto-preview");
     const current = document.getElementById("v-foto-current");
+    const deleteButton = document.getElementById("v-foto-delete");
+    const filename = document.getElementById("v-foto-filename");
 
     if (input) input.value = "";
     if (preview) {
@@ -837,18 +919,25 @@ function resetVolontarioFotoField() {
         preview.style.backgroundImage = "";
     }
     if (current) current.innerText = "";
+    setVolontarioFileName(filename, "");
+    setVolontarioFileDeleteButton(deleteButton, false);
 }
 
 function setVolontarioCartaIdentitaField(volontario = null) {
     const input = document.getElementById("v-carta-identita");
     const current = document.getElementById("v-carta-identita-current");
+    const deleteButton = document.getElementById("v-carta-identita-delete");
+    const filename = document.getElementById("v-carta-identita-filename");
+    const isDeleted = pendingVolontarioFileDeletes.cartaIdentita;
     if (input) {
         input.value = "";
-        input.required = !volontario?.carta_identita_path;
+        input.required = !volontario?.carta_identita_path && !isDeleted;
     }
     if (current) {
-        current.innerText = volontario?.carta_identita_path ? "Carta d'identita gia caricata." : "";
+        current.innerText = volontario?.carta_identita_path && !isDeleted ? "Carta d'identita gia caricata." : "";
     }
+    setVolontarioFileName(filename, volontario?.carta_identita_path && !isDeleted ? volontario.carta_identita_path : "");
+    setVolontarioFileDeleteButton(deleteButton, Boolean(volontario?.carta_identita_path && !isDeleted));
 }
 
 function resetVolontarioCartaIdentitaField() {
@@ -864,6 +953,12 @@ function resetVolontarioPatentiFields() {
     });
     document.querySelectorAll("[data-patente-current]").forEach(el => {
         el.innerText = "";
+    });
+    document.querySelectorAll("[data-patente-delete]").forEach(button => {
+        setVolontarioFileDeleteButton(button, false);
+    });
+    document.querySelectorAll("[data-patente-filename]").forEach(el => {
+        setVolontarioFileName(el, "");
     });
     toggleVolontarioPatentiFiles();
 }
@@ -948,7 +1043,16 @@ function setVolontarioPatentiFields(volontario = null) {
     document.querySelectorAll("[data-patente-current]").forEach(el => {
         const patente = el.dataset.patenteCurrent;
         const hasFile = patente === VOLONTARI_PATENTI_AUTO_FILE_KEY ? getVolontarioPatentiAutoFilePath(files) : files[patente];
-        el.innerText = hasFile ? "File patente gia caricato." : "";
+        const isDeleted = hasPendingVolontarioPatenteDelete(patente);
+        el.innerText = hasFile && !isDeleted ? "File patente gia caricato." : "";
+        setVolontarioFileName(
+            document.querySelector(`[data-patente-filename="${patente}"]`),
+            hasFile && !isDeleted ? hasFile : ""
+        );
+        setVolontarioFileDeleteButton(
+            document.querySelector(`[data-patente-delete="${patente}"]`),
+            Boolean(hasFile && !isDeleted)
+        );
     });
     toggleVolontarioPatentiPresence();
 }
@@ -956,22 +1060,28 @@ function setVolontarioPatentiFields(volontario = null) {
 function setVolontarioFotoPreview(volontario = null, previewUrl = null) {
     const preview = document.getElementById("v-foto-preview");
     const current = document.getElementById("v-foto-current");
+    const deleteButton = document.getElementById("v-foto-delete");
+    const filename = document.getElementById("v-foto-filename");
     if (!preview) return;
 
     const initials = getVolontarioInitials(volontario || {});
     preview.classList.remove("bg-cover", "bg-center");
     preview.style.backgroundImage = "";
+    const hasExistingFoto = Boolean(volontario?.foto_path && !pendingVolontarioFileDeletes.foto);
+    setVolontarioFileName(filename, hasExistingFoto ? volontario.foto_path : "");
 
-    if (previewUrl) {
+    if (previewUrl && !pendingVolontarioFileDeletes.foto) {
         preview.innerHTML = "";
         preview.style.backgroundImage = `url("${previewUrl.replaceAll('"', '%22')}")`;
         preview.classList.add("bg-cover", "bg-center");
         if (current) current.innerText = "Foto attuale caricata.";
+        setVolontarioFileDeleteButton(deleteButton, hasExistingFoto);
         return;
     }
 
     preview.innerHTML = escapeHtml(initials);
-    if (current) current.innerText = volontario?.foto_path ? "Foto presente, anteprima non disponibile." : "";
+    if (current) current.innerText = hasExistingFoto ? "Foto presente, anteprima non disponibile." : "";
+    setVolontarioFileDeleteButton(deleteButton, hasExistingFoto);
 }
 
 function getSelectedVolontarioFotoFile() {
@@ -1107,7 +1217,7 @@ async function uploadVolontarioCartaIdentita(volontarioId, file, previousPath = 
     return path;
 }
 
-async function uploadVolontarioPatentiFiles(volontarioId, selectedPatenti, filesByPatente, previousFiles = {}) {
+async function uploadVolontarioPatentiFiles(volontarioId, selectedPatenti, filesByPatente, previousFiles = {}, deletedFileKeys = new Set()) {
     const selected = new Set(selectedPatenti || []);
     const hasAutoPatente = VOLONTARI_PATENTI_AUTO_OPTIONS.some(patente => selected.has(patente));
     const selectedFileKeys = [
@@ -1124,7 +1234,8 @@ async function uploadVolontarioPatentiFiles(volontarioId, selectedPatenti, files
             : previousFiles[patente];
 
         if (!file) {
-            if (previousPath) nextFiles[patente] = previousPath;
+            if (previousPath && !deletedFileKeys.has(patente)) nextFiles[patente] = previousPath;
+            if (previousPath && deletedFileKeys.has(patente)) pathsToRemove.push(previousPath);
             continue;
         }
 
@@ -2903,6 +3014,7 @@ function openEditVolontarioModal(id) {
     const vol = volontari.find(v => v.id === id);
     if (!vol) return;
 
+    resetVolontarioFileDeleteState();
     editingVolontarioId = id;
     setModalFormMode('modal-volontario', { title: 'Modifica Volontario', submitText: 'Salva modifiche' });
 
@@ -2937,6 +3049,7 @@ function openEditVolontarioModal(id) {
 function previewVolontarioFoto() {
     const file = getSelectedVolontarioFotoFile();
     const vol = editingVolontarioId ? volontari.find(v => v.id === editingVolontarioId) : null;
+    clearVolontarioFileDelete("foto");
 
     if (!file) {
         setVolontarioFotoPreview(vol, vol?.foto_url || null);
@@ -2952,6 +3065,7 @@ function previewVolontarioFoto() {
     }
 
     setVolontarioFotoPreview(vol, URL.createObjectURL(file));
+    setVolontarioFileName(document.getElementById("v-foto-filename"), file.name);
     const current = document.getElementById("v-foto-current");
     if (current) current.innerText = "Nuova foto selezionata.";
 }
@@ -3038,15 +3152,28 @@ async function saveVolontario(event) {
         if (editingVolontarioId) {
             if (fotoFile) {
                 payload.foto_path = await uploadVolontarioFoto(editingVolontarioId, fotoFile, currentVolontario?.foto_path || null);
+            } else if (pendingVolontarioFileDeletes.foto && currentVolontario?.foto_path) {
+                const { error: fotoRemoveError } = await supabase.storage
+                    .from(VOLONTARI_FOTO_BUCKET)
+                    .remove([currentVolontario.foto_path]);
+                if (fotoRemoveError) console.error("Foto volontario non rimossa:", fotoRemoveError);
+                payload.foto_path = null;
             }
             if (cartaIdentitaFile) {
                 payload.carta_identita_path = await uploadVolontarioCartaIdentita(editingVolontarioId, cartaIdentitaFile, currentVolontario?.carta_identita_path || null);
+            } else if (pendingVolontarioFileDeletes.cartaIdentita && currentVolontario?.carta_identita_path) {
+                const { error: cartaRemoveError } = await supabase.storage
+                    .from(VOLONTARI_CARTA_IDENTITA_BUCKET)
+                    .remove([currentVolontario.carta_identita_path]);
+                if (cartaRemoveError) console.error("Carta d'identita volontario non rimossa:", cartaRemoveError);
+                payload.carta_identita_path = null;
             }
             payload.patenti_files = await uploadVolontarioPatentiFiles(
                 editingVolontarioId,
                 patenti,
                 patentiFiles,
-                getVolontarioPatentiFilesMap(currentVolontario)
+                getVolontarioPatentiFilesMap(currentVolontario),
+                pendingVolontarioFileDeletes.patenti
             );
 
             const { error } = await supabase.from('volontari').update(payload).eq('id', editingVolontarioId);
@@ -5737,6 +5864,8 @@ window.renderVolontarioQualificationDateFields = renderVolontarioQualificationDa
 window.toggleVolontarioPatentiPresence = toggleVolontarioPatentiPresence;
 window.toggleVolontarioPatentiFiles = toggleVolontarioPatentiFiles;
 window.previewVolontarioFoto = previewVolontarioFoto;
+window.clearVolontarioFileDelete = clearVolontarioFileDelete;
+window.markVolontarioFileForDelete = markVolontarioFileForDelete;
 window.openNuovoVolontarioModal = openNuovoVolontarioModal;
 window.openEditVolontarioModal = openEditVolontarioModal;
 window.saveVolontario = saveVolontario;
