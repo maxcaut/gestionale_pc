@@ -2195,6 +2195,7 @@ function switchTab(tabId) {
     if (activeBottomBtn) {
         activeBottomBtn.classList.remove("text-slate-400");
         activeBottomBtn.classList.add("text-amber-500");
+        activeBottomBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
     }
 
     // Aggiorna titolo top bar
