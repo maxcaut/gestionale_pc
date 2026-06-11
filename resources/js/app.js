@@ -24,6 +24,7 @@ const VOLONTARI_PATENTI_AUTO_FILE_KEY = "Patenti A-B-C-D-E";
 const VOLONTARI_CARTA_IDENTITA_BUCKET = "volontari-carte-identita";
 const VOLONTARI_CARTA_IDENTITA_MAX_SIZE = 10 * 1024 * 1024;
 const VOLONTARI_CARTA_IDENTITA_ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+const PROTOCOLLO_INGRESSO_BUCKET = "protocollo-ingresso";
 
 // --- PROFILO UTENTE (ruolo + associazione) ---
 let currentUserProfile = null;
@@ -66,6 +67,10 @@ function canAccessAttivita() {
 
 function canAccessSquadreAib() {
     return hasMasterAccess() || isSegreteria();
+}
+
+function canAccessProtocolloIngresso() {
+    return hasMasterAccess();
 }
 
 function canLoadServizi() {
@@ -468,6 +473,9 @@ function applyRoleBasedUI() {
     document.querySelectorAll('[data-squadre-aib-access]').forEach(el => {
         el.classList.toggle('hidden', !canAccessSquadreAib());
     });
+    document.querySelectorAll('[data-protocollo-ingresso-access]').forEach(el => {
+        el.classList.toggle('hidden', !canAccessProtocolloIngresso());
+    });
 
     configureProfiloRuoloOptions();
 
@@ -737,12 +745,14 @@ let volontari = [];
 let mezzi = [];
 let servizi = [];
 let squadreAib = [];
+let protocolliIngresso = [];
 
 let editingVolontarioId = null;
 let editingMezzoId = null;
 let editingServizioId = null;
 let editingProfileId = null;
 let editingSquadraAibId = null;
+let editingProtocolloIngressoId = null;
 
 // Mappa servizi — default: comune di Massa di Somma (NA)
 const MASSA_DI_SOMMA_CENTER = [40.850, 14.342];
@@ -806,6 +816,7 @@ function resetEditState() {
     editingMezzoId = null;
     editingServizioId = null;
     editingSquadraAibId = null;
+    editingProtocolloIngressoId = null;
 }
 
 function getVolontarioInitials(volontario = {}) {
@@ -1342,6 +1353,7 @@ function getDB(table) {
     if (table === "pc_mezzi") return mezzi;
     if (table === "pc_servizi") return servizi;
     if (table === "pc_squadre_aib") return squadreAib;
+    if (table === "pc_protocollo_ingresso") return protocolliIngresso;
     return [];
 }
 
@@ -1725,6 +1737,17 @@ async function fetchDataFromSupabase() {
             squadreAib = [];
         }
 
+        if (canAccessProtocolloIngresso()) {
+            const protocolloResponse = await supabase
+                .from('protocollo_ingresso')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (protocolloResponse.error) throw protocolloResponse.error;
+            protocolliIngresso = protocolloResponse.data || [];
+        } else {
+            protocolliIngresso = [];
+        }
+
         if (hasMasterAccess() && volontari.length === 0 && mezzi.length === 0 && servizi.length === 0) {
             await initializeDefaultData();
             return;
@@ -1816,6 +1839,7 @@ function toggleModal(modalId, show) {
         resetCapoSquadraServizioFormRestrictions();
         resetSalaOperativaServizioFormRestrictions();
         resetSegreteriaAttivitaFormRestrictions();
+        resetProtocolloIngressoForm();
         setModalFormMode('modal-volontario', { title: 'Aggiungi Nuovo Volontario', submitText: 'Registra' });
         setModalFormMode('modal-mezzo', { title: 'Aggiungi Nuovo Mezzo di Soccorso', submitText: 'Registra' });
         setModalFormMode('modal-servizio', { title: 'Pianifica Servizio / Missione', submitText: 'Pianifica' });
@@ -1840,6 +1864,9 @@ function switchTab(tabId) {
     }
     if (!canAccessSquadreAib() && tabId === 'squadre-aib') {
         tabId = canAccessVolontari() ? 'volontari' : (canAccessServizi() ? 'servizi' : 'dashboard');
+    }
+    if (!canAccessProtocolloIngresso() && tabId === 'protocollo-ingresso') {
+        tabId = canAccessServizi() ? 'servizi' : (canAccessVolontari() ? 'volontari' : 'dashboard');
     }
     if (!hasMasterAccess() && (tabId === 'admin' || tabId === 'dashboard' || tabId === 'statistiche')) {
         if (canAccessServizi()) tabId = 'servizi';
@@ -1889,6 +1916,7 @@ function switchTab(tabId) {
         servizi: "Sala Opeerativa",
         statistiche: "Statistiche",
         attivita: "Attività",
+        "protocollo-ingresso": "Protocollo in Ingresso",
         admin: "Gestione Utenti"
     };
     document.getElementById("page-title").innerText = titleMap[tabId] || tabId;
@@ -1902,6 +1930,10 @@ function switchTab(tabId) {
             ensureServiziMap();
             renderServizi();
         }, 100);
+    }
+
+    if (tabId === "protocollo-ingresso") {
+        renderProtocolloIngresso();
     }
 
     if (tabId === "attivita") {
@@ -5138,6 +5170,269 @@ async function deleteServizio(id) {
     }
 }
 
+// --- PROTOCOLLO IN INGRESSO ---
+function getProtocolloIngressoFilePath(id, file) {
+    const safeName = String(file?.name || 'documento')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9._-]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'documento';
+    return `${id}/${Date.now()}-${safeName}`;
+}
+
+function setProtocolloIngressoModalMode({ title, submitText, fileRequired, currentFileName = '' }) {
+    const titleEl = document.getElementById('modal-protocollo-ingresso-title');
+    const submitEl = document.getElementById('modal-protocollo-ingresso-submit');
+    const fileInput = document.getElementById('pi-file');
+    const requiredMark = document.getElementById('pi-file-required');
+    const currentFile = document.getElementById('pi-file-current');
+    if (titleEl) titleEl.innerText = title;
+    if (submitEl) submitEl.innerText = submitText;
+    if (fileInput) fileInput.required = fileRequired;
+    if (requiredMark) requiredMark.classList.toggle('hidden', !fileRequired);
+    if (currentFile) {
+        currentFile.classList.toggle('hidden', !currentFileName);
+        currentFile.innerText = currentFileName ? `File attuale: ${currentFileName}` : '';
+    }
+}
+
+function resetProtocolloIngressoForm() {
+    setProtocolloIngressoModalMode({
+        title: 'Nuovo Protocollo in Ingresso',
+        submitText: 'Salva',
+        fileRequired: true,
+    });
+}
+
+function openNuovoProtocolloIngressoModal() {
+    if (!canAccessProtocolloIngresso()) return;
+    editingProtocolloIngressoId = null;
+    document.getElementById('pi-protocollo-esterno').value = '';
+    document.getElementById('pi-data-memorizzazione').value = '';
+    document.getElementById('pi-file').value = '';
+    resetProtocolloIngressoForm();
+    toggleModal('modal-protocollo-ingresso', true);
+}
+
+function openEditProtocolloIngressoModal(id) {
+    if (!canAccessProtocolloIngresso()) return;
+    const protocollo = protocolliIngresso.find(item => item.id === id);
+    if (!protocollo) {
+        showToast('Errore', 'Protocollo non trovato.');
+        return;
+    }
+
+    editingProtocolloIngressoId = id;
+    document.getElementById('pi-protocollo-esterno').value = protocollo.protocollo_esterno || '';
+    document.getElementById('pi-data-memorizzazione').value = protocollo.data_memorizzazione || '';
+    document.getElementById('pi-file').value = '';
+    setProtocolloIngressoModalMode({
+        title: 'Modifica Protocollo in Ingresso',
+        submitText: 'Salva modifiche',
+        fileRequired: false,
+        currentFileName: protocollo.file_name || '',
+    });
+    toggleModal('modal-protocollo-ingresso', true);
+}
+
+async function saveProtocolloIngresso(event) {
+    event.preventDefault();
+    if (!canAccessProtocolloIngresso()) return;
+
+    const protocolloEsterno = document.getElementById('pi-protocollo-esterno')?.value.trim() || null;
+    const dataMemorizzazione = document.getElementById('pi-data-memorizzazione')?.value || '';
+    const file = document.getElementById('pi-file')?.files?.[0] || null;
+
+    if (!dataMemorizzazione) {
+        showToast('Errore', 'La data di memorizzazione è obbligatoria.');
+        return;
+    }
+
+    if (!editingProtocolloIngressoId && !file) {
+        showToast('Errore', 'Il file è obbligatorio.');
+        return;
+    }
+
+    try {
+        if (editingProtocolloIngressoId) {
+            const current = protocolliIngresso.find(item => item.id === editingProtocolloIngressoId);
+            const payload = {
+                protocollo_esterno: protocolloEsterno,
+                data_memorizzazione: dataMemorizzazione,
+            };
+            let previousFilePathToRemove = null;
+
+            if (file) {
+                const path = getProtocolloIngressoFilePath(editingProtocolloIngressoId, file);
+                const { error: uploadError } = await supabase.storage
+                    .from(PROTOCOLLO_INGRESSO_BUCKET)
+                    .upload(path, file, { upsert: true, contentType: file.type || undefined });
+                if (uploadError) throw uploadError;
+
+                previousFilePathToRemove = current?.file_path || null;
+                payload.file_path = path;
+                payload.file_name = file.name;
+                payload.file_mime_type = file.type || null;
+                payload.file_size = file.size;
+            }
+
+            const { error } = await supabase
+                .from('protocollo_ingresso')
+                .update(payload)
+                .eq('id', editingProtocolloIngressoId);
+            if (error) throw error;
+
+            if (previousFilePathToRemove) {
+                await supabase.storage.from(PROTOCOLLO_INGRESSO_BUCKET).remove([previousFilePathToRemove]);
+            }
+
+            toggleModal('modal-protocollo-ingresso', false);
+            showToast('Protocollo aggiornato', 'Record modificato con successo.');
+        } else {
+            const { data, error } = await supabase
+                .from('protocollo_ingresso')
+                .insert([{
+                    protocollo_esterno: protocolloEsterno,
+                    data_memorizzazione: dataMemorizzazione,
+                    file_path: '',
+                    file_name: file.name,
+                    file_mime_type: file.type || null,
+                    file_size: file.size,
+                }])
+                .select('id')
+                .single();
+            if (error) throw error;
+
+            const path = getProtocolloIngressoFilePath(data.id, file);
+            const { error: uploadError } = await supabase.storage
+                .from(PROTOCOLLO_INGRESSO_BUCKET)
+                .upload(path, file, { upsert: true, contentType: file.type || undefined });
+            if (uploadError) throw uploadError;
+
+            const { error: updateError } = await supabase
+                .from('protocollo_ingresso')
+                .update({ file_path: path })
+                .eq('id', data.id);
+            if (updateError) throw updateError;
+
+            toggleModal('modal-protocollo-ingresso', false);
+            showToast('Protocollo inserito', 'Record salvato con successo.');
+        }
+
+        editingProtocolloIngressoId = null;
+        await fetchDataFromSupabase();
+    } catch (err) {
+        console.error('Errore salvataggio protocollo in ingresso:', err);
+        showToast('Errore', 'Impossibile salvare il protocollo in ingresso.');
+    }
+}
+
+function renderProtocolloIngresso() {
+    const tbody = document.getElementById('protocollo-ingresso-table-body');
+    if (!tbody) return;
+
+    const search = (document.getElementById('search-protocollo-ingresso')?.value || '').toLowerCase();
+    const filtered = protocolliIngresso.filter(item => {
+        return `${item.id || ''} ${item.protocollo_esterno || ''} ${item.file_name || ''}`.toLowerCase().includes(search);
+    });
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="py-8 text-center text-slate-500 font-medium">Nessun protocollo in ingresso trovato.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = '';
+    filtered.forEach(item => {
+        const formattedDate = item.data_memorizzazione
+            ? new Date(`${item.data_memorizzazione}T00:00:00`).toLocaleDateString('it-IT')
+            : '—';
+
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-800/10 transition-colors">
+                <td class="py-4 px-6 text-slate-200 font-mono text-xs font-bold">${escapeHtml(item.id)}</td>
+                <td class="py-4 px-6 text-slate-300 font-medium">${escapeHtml(item.protocollo_esterno || '—')}</td>
+                <td class="py-4 px-6 text-slate-300 font-medium">${formattedDate}</td>
+                <td class="py-4 px-6 text-slate-400">${escapeHtml(item.file_name || '—')}</td>
+                <td class="py-4 px-6 text-right">
+                    <div class="inline-flex gap-2">
+                        <button type="button" onclick="openEditProtocolloIngressoModal('${escapeAttr(item.id)}')" title="Modifica" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-all">
+                            ${ICON_EDIT}
+                        </button>
+                        <button type="button" onclick="downloadProtocolloIngressoFile('${escapeAttr(item.id)}')" title="Scarica file" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M7.5 12l4.5 4.5m0 0l4.5-4.5m-4.5 4.5V3" />
+                            </svg>
+                        </button>
+                        <button type="button" onclick="deleteProtocolloIngresso('${escapeAttr(item.id)}')" title="Elimina" class="p-2 hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-500 transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                            </svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+async function downloadProtocolloIngressoFile(id) {
+    if (!canAccessProtocolloIngresso()) return;
+
+    const protocollo = protocolliIngresso.find(item => item.id === id);
+    if (!protocollo?.file_path) {
+        showToast('Errore', 'File non disponibile.');
+        return;
+    }
+
+    try {
+        const { data, error } = await supabase.storage
+            .from(PROTOCOLLO_INGRESSO_BUCKET)
+            .download(protocollo.file_path);
+        if (error) throw error;
+
+        downloadBlob(data, protocollo.file_name || `${id}.file`);
+    } catch (err) {
+        console.error('Errore download protocollo in ingresso:', err);
+        showToast('Errore', 'Impossibile scaricare il file.');
+    }
+}
+
+async function deleteProtocolloIngresso(id) {
+    if (!canAccessProtocolloIngresso()) return;
+
+    const protocollo = protocolliIngresso.find(item => item.id === id);
+    if (!protocollo) {
+        showToast('Errore', 'Protocollo non trovato.');
+        return;
+    }
+
+    if (!confirm('Eliminare questo protocollo in ingresso?')) {
+        return;
+    }
+
+    try {
+        const { error } = await supabase
+            .from('protocollo_ingresso')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+
+        if (protocollo.file_path) {
+            await supabase.storage.from(PROTOCOLLO_INGRESSO_BUCKET).remove([protocollo.file_path]);
+        }
+
+        showToast('Protocollo eliminato', 'Record eliminato con successo.');
+        await fetchDataFromSupabase();
+    } catch (err) {
+        console.error('Errore eliminazione protocollo in ingresso:', err);
+        showToast('Errore', 'Impossibile eliminare il protocollo in ingresso.');
+    }
+}
+
 // --- UPDATE TOTALE UI E STATI ---
 function updateUI() {
     updateDashboardStats();
@@ -5147,6 +5442,7 @@ function updateUI() {
     renderServizi();
     renderAttivita();
     renderStatistiche();
+    renderProtocolloIngresso();
 }
 
 // --- CLOCK E DATA IN TEMPO REALE ---
@@ -5495,6 +5791,12 @@ window.saveProfilo = saveProfilo;
 window.deleteProfilo = deleteProfilo;
 window.toggleProfiloAssociazioneField = toggleProfiloAssociazioneField;
 window.renderAdminProfiles = renderAdminProfiles;
+window.openNuovoProtocolloIngressoModal = openNuovoProtocolloIngressoModal;
+window.openEditProtocolloIngressoModal = openEditProtocolloIngressoModal;
+window.saveProtocolloIngresso = saveProtocolloIngresso;
+window.downloadProtocolloIngressoFile = downloadProtocolloIngressoFile;
+window.deleteProtocolloIngresso = deleteProtocolloIngresso;
+window.renderProtocolloIngresso = renderProtocolloIngresso;
 
 // --- INIZIALIZZAZIONE ALL'AVVIO ---
 window.addEventListener("DOMContentLoaded", async () => {
@@ -5515,6 +5817,7 @@ window.addEventListener("DOMContentLoaded", async () => {
             mezzi = [];
             servizi = [];
             squadreAib = [];
+            protocolliIngresso = [];
             stopSquadreAibScadenzaTimer();
             await showLogin();
         }
