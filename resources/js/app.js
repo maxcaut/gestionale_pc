@@ -77,6 +77,10 @@ function canAccessProtocolloIngresso() {
     return hasMasterAccess();
 }
 
+function canAccessMagazzino() {
+    return hasMasterAccess() || isSegreteria();
+}
+
 function canLoadServizi() {
     return canAccessServizi() || canAccessAttivita();
 }
@@ -471,6 +475,9 @@ function applyRoleBasedUI() {
     document.querySelectorAll('[data-mezzi-access]').forEach(el => {
         el.classList.toggle('hidden', !canAccessMezzi());
     });
+    document.querySelectorAll('[data-magazzino-access]').forEach(el => {
+        el.classList.toggle('hidden', !canAccessMagazzino());
+    });
     document.querySelectorAll('#nav-attivita, #bottom-nav-attivita').forEach(el => {
         el.classList.toggle('hidden', !canAccessAttivita());
     });
@@ -540,6 +547,39 @@ function getVolontarioAssociazioneValue() {
         return getUserAssociazione();
     }
     return document.getElementById('v-associazione')?.value || null;
+}
+
+function setupAttrezzaturaAssociazioneField() {
+    const selectWrap = document.getElementById('a-associazione-select-wrap');
+    const fissaWrap = document.getElementById('a-associazione-fissa-wrap');
+    const select = document.getElementById('a-associazione');
+    const fissaInput = document.getElementById('a-associazione-fissa');
+    const fissaLabel = document.getElementById('a-associazione-fissa-label');
+
+    if (!selectWrap || !fissaWrap) return;
+
+    if (isSegreteria()) {
+        const assoc = getUserAssociazione() || '';
+        selectWrap.classList.add('hidden');
+        fissaWrap.classList.remove('hidden');
+        if (fissaInput) fissaInput.value = assoc;
+        if (fissaLabel) fissaLabel.innerText = assoc;
+        if (select) {
+            select.required = false;
+            select.value = assoc;
+        }
+    } else {
+        selectWrap.classList.remove('hidden');
+        fissaWrap.classList.add('hidden');
+        if (select) select.required = true;
+    }
+}
+
+function getAttrezzaturaAssociazioneValue() {
+    if (isSegreteria()) {
+        return getUserAssociazione();
+    }
+    return document.getElementById('a-associazione')?.value || null;
 }
 
 function setupMezzoAssociazioneField() {
@@ -750,6 +790,8 @@ let mezzi = [];
 let servizi = [];
 let squadreAib = [];
 let protocolliIngresso = [];
+let attrezzatureMagazzino = [];
+let tipiAttrezzaturaMagazzino = [];
 
 let editingVolontarioId = null;
 let editingMezzoId = null;
@@ -1642,6 +1684,7 @@ function getDB(table) {
     if (table === "pc_servizi") return servizi;
     if (table === "pc_squadre_aib") return squadreAib;
     if (table === "pc_protocollo_ingresso") return protocolliIngresso;
+    if (table === "pc_attrezzature_magazzino") return attrezzatureMagazzino;
     return [];
 }
 
@@ -2037,6 +2080,34 @@ async function fetchDataFromSupabase() {
             protocolliIngresso = [];
         }
 
+        if (canAccessMagazzino()) {
+            let attrezzatureQuery = supabase
+                .from('magazzino_attrezzature')
+                .select('*')
+                .order('created_at', { ascending: true });
+
+            if (isSegreteria()) {
+                const assoc = getUserAssociazione();
+                attrezzatureQuery = assoc
+                    ? attrezzatureQuery.eq('associazione_appartenenza', assoc)
+                    : Promise.resolve({ data: [], error: null });
+            }
+
+            const [attrezzatureResponse, tipiResponse] = await Promise.all([
+                attrezzatureQuery,
+                supabase.from('magazzino_tipi_attrezzatura').select('*').order('nome', { ascending: true })
+            ]);
+
+            if (attrezzatureResponse.error) throw attrezzatureResponse.error;
+            if (tipiResponse.error) throw tipiResponse.error;
+
+            attrezzatureMagazzino = attrezzatureResponse.data || [];
+            tipiAttrezzaturaMagazzino = tipiResponse.data || [];
+        } else {
+            attrezzatureMagazzino = [];
+            tipiAttrezzaturaMagazzino = [];
+        }
+
         if (hasMasterAccess() && volontari.length === 0 && mezzi.length === 0 && servizi.length === 0) {
             await initializeDefaultData();
             return;
@@ -2152,6 +2223,9 @@ function switchTab(tabId) {
     if (!canAccessMezzi() && tabId === 'mezzi') {
         tabId = canAccessVolontari() ? 'volontari' : (canAccessAttivita() ? 'attivita' : 'dashboard');
     }
+    if (!canAccessMagazzino() && tabId === 'magazzino') {
+        tabId = canAccessVolontari() ? 'volontari' : (canAccessMezzi() ? 'mezzi' : 'dashboard');
+    }
     if (!canAccessSquadreAib() && tabId === 'squadre-aib') {
         tabId = canAccessVolontari() ? 'volontari' : (canAccessServizi() ? 'servizi' : 'dashboard');
     }
@@ -2162,6 +2236,7 @@ function switchTab(tabId) {
         if (canAccessServizi()) tabId = 'servizi';
         else if (canAccessAttivita()) tabId = 'attivita';
         else if (canAccessSquadreAib()) tabId = 'squadre-aib';
+        else if (canAccessMagazzino()) tabId = 'magazzino';
         else if (canAccessVolontari()) tabId = 'volontari';
         else tabId = 'mezzi';
     }
@@ -2203,6 +2278,7 @@ function switchTab(tabId) {
         dashboard: "Dashboard",
         volontari: "Gestione Volontari",
         mezzi: "Gestione Flotta Mezzi",
+        magazzino: "Gestione Magazzino",
         "squadre-aib": "Squadre A.I.B.",
         servizi: "Sala Opeerativa",
         statistiche: "Statistiche",
@@ -2225,6 +2301,10 @@ function switchTab(tabId) {
 
     if (tabId === "protocollo-ingresso") {
         renderProtocolloIngresso();
+    }
+
+    if (tabId === "magazzino") {
+        renderMagazzino();
     }
 
     if (tabId === "attivita") {
@@ -3779,6 +3859,129 @@ async function deleteMezzo(id) {
             console.error("Errore durante l'eliminazione del mezzo:", err);
             showToast("Errore", "Impossibile eliminare il mezzo da Supabase.");
         }
+    }
+}
+
+// --- SEZIONE: GESTIONE MAGAZZINO ---
+function renderTipiAttrezzaturaOptions() {
+    const tipoSelect = document.getElementById('a-tipo');
+    const filtroSelect = document.getElementById('filter-tipo-attrezzatura');
+    const options = tipiAttrezzaturaMagazzino.map(t => t.nome).filter(Boolean);
+
+    if (tipoSelect) {
+        tipoSelect.innerHTML = options
+            .map(nome => `<option value="${escapeAttr(nome)}">${escapeHtml(nome)}</option>`)
+            .join('');
+    }
+
+    if (filtroSelect) {
+        const selected = filtroSelect.value;
+        filtroSelect.innerHTML = '<option value="">Tutte le tipologie</option>' + options
+            .map(nome => `<option value="${escapeAttr(nome)}">${escapeHtml(nome)}</option>`)
+            .join('');
+        filtroSelect.value = options.includes(selected) ? selected : '';
+    }
+}
+
+function renderMagazzino() {
+    renderTipiAttrezzaturaOptions();
+
+    const tbody = document.getElementById('magazzino-table-body');
+    if (!tbody) return;
+
+    const search = (document.getElementById('search-magazzino')?.value || '').toLowerCase();
+    const filterTipo = document.getElementById('filter-tipo-attrezzatura')?.value || '';
+
+    const filtered = getDB('pc_attrezzature_magazzino').filter(item => {
+        const matchSearch = [
+            item.nome_attrezzatura,
+            item.tipo_attrezzatura,
+            item.numero_inventario,
+            item.associazione_appartenenza
+        ].join(' ').toLowerCase().includes(search);
+        const matchTipo = !filterTipo || item.tipo_attrezzatura === filterTipo;
+        return matchSearch && matchTipo;
+    });
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="py-10 px-4 text-center text-slate-500 font-medium">Nessuna attrezzatura trovata.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = filtered.map(item => `
+        <tr class="hover:bg-slate-800/30 transition-colors">
+            <td class="py-4 px-4 text-slate-100 font-semibold">${escapeHtml(item.nome_attrezzatura)}</td>
+            <td class="py-4 px-4 text-slate-300">${escapeHtml(item.tipo_attrezzatura)}</td>
+            <td class="py-4 px-4 text-slate-300 font-mono text-xs font-bold">${escapeHtml(item.numero_inventario)}</td>
+            <td class="py-4 px-4 text-slate-400">${escapeHtml(item.associazione_appartenenza)}</td>
+        </tr>
+    `).join('');
+}
+
+function openNuovaAttrezzaturaModal() {
+    renderTipiAttrezzaturaOptions();
+    setupAttrezzaturaAssociazioneField();
+    toggleModal('modal-attrezzatura', true);
+}
+
+function openNuovoTipoAttrezzaturaModal() {
+    toggleModal('modal-tipo-attrezzatura', true);
+}
+
+async function saveAttrezzatura(event) {
+    event.preventDefault();
+
+    const nome_attrezzatura = document.getElementById('a-nome')?.value.trim();
+    const tipo_attrezzatura = document.getElementById('a-tipo')?.value;
+    const numero_inventario = document.getElementById('a-numero-inventario')?.value.trim();
+    const associazione_appartenenza = getAttrezzaturaAssociazioneValue();
+
+    if (!nome_attrezzatura || !tipo_attrezzatura || !numero_inventario || !associazione_appartenenza) {
+        showToast('Campi mancanti', 'Compila tutti i campi richiesti.');
+        return;
+    }
+
+    try {
+        const { error } = await supabase.from('magazzino_attrezzature').insert([{
+            nome_attrezzatura,
+            tipo_attrezzatura,
+            numero_inventario,
+            associazione_appartenenza
+        }]);
+        if (error) throw error;
+
+        toggleModal('modal-attrezzatura', false);
+        showToast('Attrezzatura registrata', `${nome_attrezzatura} inserita correttamente.`);
+        await fetchDataFromSupabase();
+    } catch (err) {
+        console.error('Errore salvataggio attrezzatura:', err);
+        showToast('Errore di salvataggio', "Impossibile registrare l'attrezzatura su Supabase.");
+    }
+}
+
+async function saveTipoAttrezzatura(event) {
+    event.preventDefault();
+
+    const nome = document.getElementById('ta-nome')?.value.trim();
+    if (!nome) {
+        showToast('Campo mancante', 'Inserisci il nome del tipo attrezzatura.');
+        return;
+    }
+
+    try {
+        const { error } = await supabase.from('magazzino_tipi_attrezzatura').insert([{ nome }]);
+        if (error) throw error;
+
+        toggleModal('modal-tipo-attrezzatura', false);
+        showToast('Tipo aggiunto', `${nome} inserito correttamente.`);
+        await fetchDataFromSupabase();
+    } catch (err) {
+        console.error('Errore salvataggio tipo attrezzatura:', err);
+        showToast('Errore di salvataggio', 'Impossibile registrare il tipo attrezzatura su Supabase.');
     }
 }
 
@@ -5913,6 +6116,7 @@ function updateUI() {
     renderAttivita();
     renderStatistiche();
     renderProtocolloIngresso();
+    renderMagazzino();
 }
 
 // --- CLOCK E DATA IN TEMPO REALE ---
@@ -6272,6 +6476,11 @@ window.saveProtocolloIngresso = saveProtocolloIngresso;
 window.downloadProtocolloIngressoFile = downloadProtocolloIngressoFile;
 window.deleteProtocolloIngresso = deleteProtocolloIngresso;
 window.renderProtocolloIngresso = renderProtocolloIngresso;
+window.openNuovaAttrezzaturaModal = openNuovaAttrezzaturaModal;
+window.saveAttrezzatura = saveAttrezzatura;
+window.openNuovoTipoAttrezzaturaModal = openNuovoTipoAttrezzaturaModal;
+window.saveTipoAttrezzatura = saveTipoAttrezzatura;
+window.renderMagazzino = renderMagazzino;
 
 // --- INIZIALIZZAZIONE ALL'AVVIO ---
 window.addEventListener("DOMContentLoaded", async () => {
@@ -6293,6 +6502,8 @@ window.addEventListener("DOMContentLoaded", async () => {
             servizi = [];
             squadreAib = [];
             protocolliIngresso = [];
+            attrezzatureMagazzino = [];
+            tipiAttrezzaturaMagazzino = [];
             stopSquadreAibScadenzaTimer();
             await showLogin();
         }
