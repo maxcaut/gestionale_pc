@@ -5959,13 +5959,19 @@ function renderServizi() {
                </button>`
             : '';
 
-        const exportPdfBtn = ["Programmato", "In corso"].includes(s.stato)
-            ? `<button onclick="exportServizioPdf('${s.id}')" title="Scarica PDF servizio" class="p-2 hover:bg-amber-950/30 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">
+        const exportPdfBtn = s.stato === "Completato"
+            ? `<button onclick="openPdfTemplateModal('${s.id}')" title="Scarica modelli intervento completato" class="p-2 hover:bg-amber-950/30 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                     </svg>
                </button>`
-            : '';
+            : ["Programmato", "In corso"].includes(s.stato)
+                ? `<button onclick="exportServizioPdf('${s.id}')" title="Scarica PDF servizio" class="p-2 hover:bg-amber-950/30 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+               </button>`
+                : '';
 
         const editBtn = (hasMasterAccess() || s.stato !== "Completato")
             ? `<button onclick="openEditServizioModal('${s.id}')" title="Modifica dati" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">
@@ -6306,8 +6312,8 @@ function openPdfTemplateModal(id) {
     const serv = servizi.find(s => s.id === id);
     if (!serv) return;
 
-    if (!["Programmato", "In corso"].includes(serv.stato)) {
-        showToast("Export non disponibile", "Il PDF può essere generato solo per servizi programmati o in corso.");
+    if (serv.stato !== "Completato") {
+        showToast("Export non disponibile", "I modelli consuntivi possono essere generati solo per servizi completati.");
         return;
     }
 
@@ -6332,8 +6338,14 @@ async function exportServizioPdf(id, template = 'servizio-programmato') {
     const serv = servizi.find(s => s.id === id);
     if (!serv) return;
 
-    if (!["Programmato", "In corso"].includes(serv.stato)) {
-        showToast("Export non disponibile", "Il PDF può essere generato solo per servizi programmati o in corso.");
+    const isConsuntivo = ["riepilogo-intervento", "template_aib"].includes(template);
+    const isServizioProgrammato = template === "servizio-programmato";
+    if (isServizioProgrammato && !["Programmato", "In corso"].includes(serv.stato)) {
+        showToast("Export non disponibile", "Il PDF servizio programmato può essere generato solo per servizi programmati o in corso.");
+        return;
+    }
+    if (isConsuntivo && serv.stato !== "Completato") {
+        showToast("Export non disponibile", "I modelli consuntivi possono essere generati solo per servizi completati.");
         return;
     }
 

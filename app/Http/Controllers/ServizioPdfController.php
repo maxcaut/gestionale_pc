@@ -51,16 +51,33 @@ class ServizioPdfController extends Controller
             'equipaggio.*.stato' => 'nullable|string',
         ]);
 
-        if (! in_array($validated['servizio']['stato'], ['Programmato', 'In corso'], true)) {
-            return response()->json(['message' => 'Il PDF è disponibile solo per servizi programmati o in corso.'], 422);
-        }
-
         $template = $validated['template'] ?? 'servizio-programmato';
-        if ($template !== 'servizio-programmato') {
-            return response()->json(['message' => 'Il PDF è disponibile solo con il modello servizio programmato/in corso.'], 422);
+        $dataIntervento = $this->formatDataIntervento($validated['servizio']['data']);
+
+        if ($template === 'servizio-programmato') {
+            if (! in_array($validated['servizio']['stato'], ['Programmato', 'In corso'], true)) {
+                return response()->json(['message' => 'Il PDF servizio programmato è disponibile solo per servizi programmati o in corso.'], 422);
+            }
+
+            return $this->exportServizioProgrammato($validated, $dataIntervento);
         }
 
-        $dataIntervento = $this->formatDataIntervento($validated['servizio']['data']);
+        if ($validated['servizio']['stato'] !== 'Completato') {
+            return response()->json(['message' => 'I modelli consuntivi sono disponibili solo per servizi completati.'], 422);
+        }
+
+        return match ($template) {
+            'riepilogo-intervento' => $this->exportRiepilogoIntervento($validated, $dataIntervento),
+            'template_aib' => $this->exportTemplateAib($validated, $dataIntervento),
+        };
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @param  array{completa: string, data: string, ora: string, file: string, giorno?: string, mese?: string, anno?: string}  $dataIntervento
+     */
+    private function exportServizioProgrammato(array $validated, array $dataIntervento)
+    {
         $exportatoIl = now()->timezone('Europe/Rome')->format('d/m/Y H:i');
 
         $pdf = Pdf::loadView('pdf.servizio-programmato', [
@@ -72,6 +89,24 @@ class ServizioPdfController extends Controller
         ])->setPaper('a4', 'landscape');
 
         $filename = 'Servizio programmato-'.Str::slug($validated['servizio']['tipo']).'-'.$dataIntervento['file'].'.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @param  array{completa: string, data: string, ora: string, file: string, giorno?: string, mese?: string, anno?: string}  $dataIntervento
+     */
+    private function exportRiepilogoIntervento(array $validated, array $dataIntervento)
+    {
+        $pdf = Pdf::loadView('pdf.riepilogo-intervento', [
+            'servizio' => $validated['servizio'],
+            'mezzi' => $validated['mezzi'] ?? [],
+            'equipaggio' => $validated['equipaggio'],
+            'dataIntervento' => $dataIntervento,
+        ])->setPaper('a4', 'landscape');
+
+        $filename = 'Riepilogo intervento-'.Str::slug($validated['servizio']['tipo']).'-'.$dataIntervento['file'].'.pdf';
 
         return $pdf->download($filename);
     }
