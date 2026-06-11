@@ -6261,6 +6261,14 @@ async function saveServizio(event) {
         ...buildServizioAibPayload(tipo),
     };
 
+    const serviziTab = document.getElementById('tab-servizi');
+    const showSalaOperativaCreateProgress = !editingServizioId && serviziTab && !serviziTab.classList.contains('hidden');
+    let saveSucceeded = false;
+    if (showSalaOperativaCreateProgress) {
+        showPdfExportProgress('Salvataggio missione in corso', 'Attendere il completamento del salvataggio...');
+        await new Promise(resolve => requestAnimationFrame(resolve));
+    }
+
     try {
         if (stato === "In corso") {
             for (const mId of mezziIds) {
@@ -6284,9 +6292,12 @@ async function saveServizio(event) {
             showToast("Servizio Pianificato", "Il servizio è stato inserito con successo nel registro.");
         }
         await fetchDataFromSupabase();
+        saveSucceeded = true;
     } catch (err) {
         console.error("Errore durante il salvataggio del servizio:", err);
         showToast("Errore di Salvataggio", "Impossibile registrare il servizio su Supabase.");
+    } finally {
+        if (showSalaOperativaCreateProgress) hidePdfExportProgress(saveSucceeded);
     }
 }
 
