@@ -616,6 +616,10 @@
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Numero inventario <span class="text-amber-500">*</span></label>
                     <input type="text" id="a-numero-inventario" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
                 </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Quantità <span class="text-amber-500">*</span></label>
+                    <input type="number" id="a-quantita" min="0" step="1" value="0" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                </div>
                 <div id="a-associazione-select-wrap">
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Associazione di appartenenza <span class="text-amber-500">*</span></label>
                     <select id="a-associazione" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
@@ -636,6 +640,45 @@
                 <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">
                     <button type="button" onclick="toggleModal('modal-attrezzatura', false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">Annulla</button>
                     <button type="submit" id="modal-attrezzatura-submit" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-amber-500/10">Registra</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: PRELIEVO MAGAZZINO ================= -->
+    <div id="modal-prelievo-magazzino" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-3xl rounded-2xl overflow-hidden shadow-2xl slide-in">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <span id="modal-prelievo-magazzino-title">Nuovo Prelievo</span>
+                </h3>
+                <button type="button" onclick="toggleModal('modal-prelievo-magazzino', false)" class="text-slate-400 hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <form id="form-prelievo-magazzino" onsubmit="savePrelievoMagazzino(event)" class="p-6 space-y-5">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Data del prelievo <span class="text-amber-500">*</span></label>
+                        <input type="date" id="pm-data" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Persona consegna bene <span class="text-amber-500">*</span></label>
+                        <input type="text" id="pm-consegnato-a" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center justify-between gap-3 mb-3">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">Item da prelevare <span class="text-amber-500">*</span></label>
+                        <button type="button" onclick="addPrelievoMagazzinoRow()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl text-xs font-bold transition-colors">Aggiungi item</button>
+                    </div>
+                    <div id="pm-items" class="space-y-3"></div>
+                </div>
+                <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">
+                    <button type="button" onclick="toggleModal('modal-prelievo-magazzino', false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">Annulla</button>
+                    <button type="submit" id="modal-prelievo-magazzino-submit" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-amber-500/10">Registra</button>
                 </div>
             </form>
         </div>

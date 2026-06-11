@@ -792,6 +792,8 @@ let squadreAib = [];
 let protocolliIngresso = [];
 let attrezzatureMagazzino = [];
 let tipiAttrezzaturaMagazzino = [];
+let prelieviMagazzino = [];
+let prelievoRigheMagazzino = [];
 
 let editingVolontarioId = null;
 let editingMezzoId = null;
@@ -800,6 +802,7 @@ let editingProfileId = null;
 let editingSquadraAibId = null;
 let editingProtocolloIngressoId = null;
 let editingAttrezzaturaId = null;
+let editingPrelievoMagazzinoId = null;
 let pendingVolontarioFileDeletes = { foto: false, cartaIdentita: false, patenti: new Set(), qualificheCoordinamento: new Set() };
 
 // Mappa servizi — default: comune di Massa di Somma (NA)
@@ -875,6 +878,7 @@ function resetEditState() {
     editingSquadraAibId = null;
     editingProtocolloIngressoId = null;
     editingAttrezzaturaId = null;
+    editingPrelievoMagazzinoId = null;
     resetVolontarioFileDeleteState();
 }
 
@@ -2087,27 +2091,43 @@ async function fetchDataFromSupabase() {
                 .from('magazzino_attrezzature')
                 .select('*')
                 .order('created_at', { ascending: true });
+            let prelieviQuery = supabase
+                .from('magazzino_prelievi')
+                .select('*')
+                .order('data_prelievo', { ascending: false })
+                .order('created_at', { ascending: false });
 
             if (isSegreteria()) {
                 const assoc = getUserAssociazione();
                 attrezzatureQuery = assoc
                     ? attrezzatureQuery.eq('associazione_appartenenza', assoc)
                     : Promise.resolve({ data: [], error: null });
+                prelieviQuery = assoc
+                    ? prelieviQuery.eq('associazione_appartenenza', assoc)
+                    : Promise.resolve({ data: [], error: null });
             }
 
-            const [attrezzatureResponse, tipiResponse] = await Promise.all([
+            const [attrezzatureResponse, tipiResponse, prelieviResponse, prelievoRigheResponse] = await Promise.all([
                 attrezzatureQuery,
-                supabase.from('magazzino_tipi_attrezzatura').select('*').order('nome', { ascending: true })
+                supabase.from('magazzino_tipi_attrezzatura').select('*').order('nome', { ascending: true }),
+                prelieviQuery,
+                supabase.from('magazzino_prelievi_righe').select('*')
             ]);
 
             if (attrezzatureResponse.error) throw attrezzatureResponse.error;
             if (tipiResponse.error) throw tipiResponse.error;
+            if (prelieviResponse.error) throw prelieviResponse.error;
+            if (prelievoRigheResponse.error) throw prelievoRigheResponse.error;
 
             attrezzatureMagazzino = attrezzatureResponse.data || [];
             tipiAttrezzaturaMagazzino = tipiResponse.data || [];
+            prelieviMagazzino = prelieviResponse.data || [];
+            prelievoRigheMagazzino = prelievoRigheResponse.data || [];
         } else {
             attrezzatureMagazzino = [];
             tipiAttrezzaturaMagazzino = [];
+            prelieviMagazzino = [];
+            prelievoRigheMagazzino = [];
         }
 
         if (hasMasterAccess() && volontari.length === 0 && mezzi.length === 0 && servizi.length === 0) {
@@ -2203,9 +2223,11 @@ function toggleModal(modalId, show) {
         resetSalaOperativaServizioFormRestrictions();
         resetSegreteriaAttivitaFormRestrictions();
         resetProtocolloIngressoForm();
+        resetPrelievoMagazzinoForm();
         setModalFormMode('modal-volontario', { title: 'Aggiungi Nuovo Volontario', submitText: 'Registra' });
         setModalFormMode('modal-mezzo', { title: 'Aggiungi Nuovo Mezzo di Soccorso', submitText: 'Registra' });
         setModalFormMode('modal-attrezzatura', { title: 'Nuova Attrezzatura', submitText: 'Registra' });
+        setModalFormMode('modal-prelievo-magazzino', { title: 'Nuovo Prelievo', submitText: 'Registra' });
         setModalFormMode('modal-servizio', { title: 'Pianifica Servizio / Missione', submitText: 'Pianifica' });
     }
 }
@@ -3905,8 +3927,104 @@ function renderTipiAttrezzaturaList() {
     `).join('');
 }
 
+function getTodayDateValue() {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 10);
+}
+
+function formatDateIt(value) {
+    if (!value) return '—';
+    const d = new Date(`${value}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString('it-IT');
+}
+
+function getPrelievoRighe(prelievoId) {
+    return prelievoRigheMagazzino.filter(riga => riga.prelievo_id === prelievoId);
+}
+
+function getAttrezzaturaById(id) {
+    return attrezzatureMagazzino.find(item => item.id === id) || null;
+}
+
+function getPrelievoCurrentQuantitaByItem(prelievoId) {
+    const map = new Map();
+    getPrelievoRighe(prelievoId).forEach(riga => {
+        map.set(riga.attrezzatura_id, (map.get(riga.attrezzatura_id) || 0) + Number(riga.quantita || 0));
+    });
+    return map;
+}
+
+function getAttrezzaturePrelevabili() {
+    const currentByItem = editingPrelievoMagazzinoId
+        ? getPrelievoCurrentQuantitaByItem(editingPrelievoMagazzinoId)
+        : new Map();
+
+    return attrezzatureMagazzino.filter(item => {
+        const available = Number(item.quantita || 0) + (currentByItem.get(item.id) || 0);
+        return available > 0;
+    });
+}
+
+function getAvailableQuantitaForPrelievoItem(itemId) {
+    const item = getAttrezzaturaById(itemId);
+    if (!item) return 0;
+    const currentByItem = editingPrelievoMagazzinoId
+        ? getPrelievoCurrentQuantitaByItem(editingPrelievoMagazzinoId)
+        : new Map();
+    return Number(item.quantita || 0) + (currentByItem.get(itemId) || 0);
+}
+
+function renderPrelieviMagazzino() {
+    const tbody = document.getElementById('prelievi-magazzino-table-body');
+    if (!tbody) return;
+
+    if (prelieviMagazzino.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="py-10 px-4 text-center text-slate-500 font-medium">Nessun prelievo registrato.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = prelieviMagazzino.map(prelievo => {
+        const righe = getPrelievoRighe(prelievo.id);
+        const items = righe.length
+            ? righe.map(riga => {
+                const item = getAttrezzaturaById(riga.attrezzatura_id);
+                return `${escapeHtml(item?.nome_attrezzatura || 'Item non disponibile')} <span class="text-slate-500">x${Number(riga.quantita || 0)}</span>`;
+            }).join('<br>')
+            : '<span class="text-slate-500">—</span>';
+        const isCompletato = prelievo.stato === 'completato';
+        const statoClass = isCompletato
+            ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+            : 'bg-amber-500/10 text-amber-300 border-amber-500/30';
+
+        return `
+            <tr class="hover:bg-slate-800/30 transition-colors">
+                <td class="py-4 px-4 text-slate-300">${escapeHtml(formatDateIt(prelievo.data_prelievo))}</td>
+                <td class="py-4 px-4 text-slate-100 font-semibold">${escapeHtml(prelievo.consegnato_a)}</td>
+                <td class="py-4 px-4 text-slate-300 leading-6">${items}</td>
+                <td class="py-4 px-4">
+                    <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${statoClass}">
+                        ${isCompletato ? 'Completato' : 'Aperto'}
+                    </span>
+                </td>
+                <td class="py-4 px-4">
+                    <div class="flex justify-end gap-1">
+                        <button type="button" onclick="openEditPrelievoMagazzinoModal('${escapeAttr(prelievo.id)}')" title="Modifica" ${isCompletato ? 'disabled' : ''} class="p-2 rounded-lg text-slate-400 transition-colors ${isCompletato ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-800 hover:text-amber-500'}">${ICON_EDIT}</button>
+                        <button type="button" onclick="rientroPrelievoMagazzino('${escapeAttr(prelievo.id)}')" title="Rientro" ${isCompletato ? 'disabled' : ''} class="px-3 py-2 rounded-lg text-xs font-bold transition-colors ${isCompletato ? 'bg-slate-800/40 text-slate-600 cursor-not-allowed' : 'bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 hover:text-emerald-100'}">Rientro</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
 function renderMagazzino() {
     renderTipiAttrezzaturaOptions();
+    renderPrelieviMagazzino();
 
     const tbody = document.getElementById('magazzino-table-body');
     if (!tbody) return;
@@ -3919,6 +4037,7 @@ function renderMagazzino() {
             item.nome_attrezzatura,
             item.tipo_attrezzatura,
             item.numero_inventario,
+            item.quantita,
             item.associazione_appartenenza
         ].join(' ').toLowerCase().includes(search);
         const matchTipo = !filterTipo || item.tipo_attrezzatura === filterTipo;
@@ -3928,7 +4047,7 @@ function renderMagazzino() {
     if (filtered.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" class="py-10 px-4 text-center text-slate-500 font-medium">Nessuna attrezzatura trovata.</td>
+                <td colspan="6" class="py-10 px-4 text-center text-slate-500 font-medium">Nessuna attrezzatura trovata.</td>
             </tr>
         `;
         return;
@@ -3939,6 +4058,7 @@ function renderMagazzino() {
             <td class="py-4 px-4 text-slate-100 font-semibold">${escapeHtml(item.nome_attrezzatura)}</td>
             <td class="py-4 px-4 text-slate-300">${escapeHtml(item.tipo_attrezzatura)}</td>
             <td class="py-4 px-4 text-slate-300 font-mono text-xs font-bold">${escapeHtml(item.numero_inventario)}</td>
+            <td class="py-4 px-4 text-slate-100 font-bold">${Number(item.quantita || 0)}</td>
             <td class="py-4 px-4 text-slate-400">${escapeHtml(item.associazione_appartenenza)}</td>
             <td class="py-4 px-4">
                 <div class="flex justify-end gap-1">
@@ -3959,6 +4079,8 @@ function openNuovaAttrezzaturaModal() {
     setModalFormMode('modal-attrezzatura', { title: 'Nuova Attrezzatura', submitText: 'Registra' });
     renderTipiAttrezzaturaOptions();
     setupAttrezzaturaAssociazioneField();
+    const quantitaInput = document.getElementById('a-quantita');
+    if (quantitaInput) quantitaInput.value = '0';
     toggleModal('modal-attrezzatura', true);
 }
 
@@ -3973,6 +4095,7 @@ function openEditAttrezzaturaModal(id) {
     document.getElementById('a-nome').value = attrezzatura.nome_attrezzatura || '';
     document.getElementById('a-tipo').value = attrezzatura.tipo_attrezzatura || '';
     document.getElementById('a-numero-inventario').value = attrezzatura.numero_inventario || '';
+    document.getElementById('a-quantita').value = Number(attrezzatura.quantita || 0);
 
     setupAttrezzaturaAssociazioneField();
     const associazioneSelect = document.getElementById('a-associazione');
@@ -3989,15 +4112,262 @@ function openNuovoTipoAttrezzaturaModal() {
     toggleModal('modal-tipo-attrezzatura', true);
 }
 
+function resetPrelievoMagazzinoForm() {
+    const items = document.getElementById('pm-items');
+    if (items) items.innerHTML = '';
+}
+
+function renderPrelievoMagazzinoRows(rows = []) {
+    const container = document.getElementById('pm-items');
+    if (!container) return;
+
+    const attrezzature = getAttrezzaturePrelevabili();
+    if (attrezzature.length === 0) {
+        container.innerHTML = '<p class="text-sm text-slate-500 font-medium">Nessun item disponibile con quantità maggiore di 0.</p>';
+        return;
+    }
+
+    const normalizedRows = rows.length ? rows : [{ attrezzatura_id: attrezzature[0].id, quantita: 1 }];
+    container.innerHTML = normalizedRows.map((row, index) => renderPrelievoMagazzinoRow(row, index)).join('');
+}
+
+function renderPrelievoMagazzinoRow(row = {}, index = 0) {
+    const attrezzature = getAttrezzaturePrelevabili();
+    const selectedId = row.attrezzatura_id || attrezzature[0]?.id || '';
+    const options = attrezzature.map(item => {
+        const available = getAvailableQuantitaForPrelievoItem(item.id);
+        const label = `${item.nome_attrezzatura} - ${item.numero_inventario} (${available} disponibili)`;
+        return `<option value="${escapeAttr(item.id)}" ${item.id === selectedId ? 'selected' : ''}>${escapeHtml(label)}</option>`;
+    }).join('');
+
+    return `
+        <div class="grid grid-cols-1 sm:grid-cols-[1fr_8rem_auto] gap-3 bg-slate-950 border border-slate-800 rounded-xl p-3" data-prelievo-row>
+            <select name="pm-item" required class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                ${options}
+            </select>
+            <input type="number" name="pm-quantita" min="1" step="1" value="${Number(row.quantita || 1)}" required class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+            <button type="button" onclick="removePrelievoMagazzinoRow(this)" title="Rimuovi" class="px-3 py-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-100 text-xs font-bold transition-colors ${index === 0 ? 'sm:invisible' : ''}">Rimuovi</button>
+        </div>
+    `;
+}
+
+function addPrelievoMagazzinoRow() {
+    const container = document.getElementById('pm-items');
+    if (!container) return;
+
+    const rows = collectPrelievoMagazzinoRows({ allowInvalid: true });
+    const attrezzature = getAttrezzaturePrelevabili();
+    if (attrezzature.length === 0) return;
+    rows.push({ attrezzatura_id: attrezzature[0].id, quantita: 1 });
+    renderPrelievoMagazzinoRows(rows);
+}
+
+function removePrelievoMagazzinoRow(button) {
+    const rows = collectPrelievoMagazzinoRows({ allowInvalid: true });
+    if (rows.length <= 1) return;
+    const rowEl = button.closest('[data-prelievo-row]');
+    const index = Array.from(document.querySelectorAll('#pm-items [data-prelievo-row]')).indexOf(rowEl);
+    rows.splice(index, 1);
+    renderPrelievoMagazzinoRows(rows);
+}
+
+function collectPrelievoMagazzinoRows({ allowInvalid = false } = {}) {
+    const rows = Array.from(document.querySelectorAll('#pm-items [data-prelievo-row]')).map(row => ({
+        attrezzatura_id: row.querySelector('select[name="pm-item"]')?.value || '',
+        quantita: Number.parseInt(row.querySelector('input[name="pm-quantita"]')?.value || '0', 10)
+    }));
+
+    if (allowInvalid) return rows.filter(row => row.attrezzatura_id);
+
+    const byItem = new Map();
+    rows.forEach(row => {
+        if (!row.attrezzatura_id || !Number.isInteger(row.quantita) || row.quantita <= 0) return;
+        byItem.set(row.attrezzatura_id, (byItem.get(row.attrezzatura_id) || 0) + row.quantita);
+    });
+
+    return Array.from(byItem.entries()).map(([attrezzatura_id, quantita]) => ({ attrezzatura_id, quantita }));
+}
+
+function validatePrelievoMagazzinoRows(rows) {
+    if (rows.length === 0) {
+        showToast('Campi mancanti', 'Seleziona almeno un item da prelevare.');
+        return false;
+    }
+
+    for (const row of rows) {
+        const available = getAvailableQuantitaForPrelievoItem(row.attrezzatura_id);
+        if (row.quantita > available) {
+            const item = getAttrezzaturaById(row.attrezzatura_id);
+            showToast('Quantità non disponibile', `${item?.nome_attrezzatura || 'Item'} ha ${available} unità disponibili.`);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function getPrelievoMagazzinoAssociazione(rows) {
+    const associazioni = [...new Set(rows.map(row => getAttrezzaturaById(row.attrezzatura_id)?.associazione_appartenenza).filter(Boolean))];
+    if (associazioni.length === 1) return associazioni[0];
+    if (hasMasterAccess() && associazioni.length > 1) return 'Associazioni multiple';
+    return null;
+}
+
+function openNuovoPrelievoMagazzinoModal() {
+    resetEditState();
+    setModalFormMode('modal-prelievo-magazzino', { title: 'Nuovo Prelievo', submitText: 'Registra' });
+    document.getElementById('pm-data').value = getTodayDateValue();
+    document.getElementById('pm-consegnato-a').value = '';
+    renderPrelievoMagazzinoRows();
+    toggleModal('modal-prelievo-magazzino', true);
+}
+
+function openEditPrelievoMagazzinoModal(id) {
+    const prelievo = prelieviMagazzino.find(item => item.id === id);
+    if (!prelievo || prelievo.stato === 'completato') return;
+
+    editingPrelievoMagazzinoId = id;
+    setModalFormMode('modal-prelievo-magazzino', { title: 'Modifica Prelievo', submitText: 'Salva modifiche' });
+    document.getElementById('pm-data').value = prelievo.data_prelievo || getTodayDateValue();
+    document.getElementById('pm-consegnato-a').value = prelievo.consegnato_a || '';
+    renderPrelievoMagazzinoRows(getPrelievoRighe(id));
+    toggleModal('modal-prelievo-magazzino', true);
+}
+
+async function setAttrezzaturaQuantita(itemId, quantita) {
+    const { error } = await supabase
+        .from('magazzino_attrezzature')
+        .update({ quantita })
+        .eq('id', itemId);
+    if (error) throw error;
+}
+
+async function applyPrelievoQuantita(rows, oldRows = []) {
+    const itemIds = [...new Set([
+        ...rows.map(row => row.attrezzatura_id),
+        ...oldRows.map(row => row.attrezzatura_id)
+    ])];
+
+    for (const itemId of itemIds) {
+        const item = getAttrezzaturaById(itemId);
+        if (!item) continue;
+        const oldQty = oldRows
+            .filter(row => row.attrezzatura_id === itemId)
+            .reduce((sum, row) => sum + Number(row.quantita || 0), 0);
+        const newQty = rows
+            .filter(row => row.attrezzatura_id === itemId)
+            .reduce((sum, row) => sum + Number(row.quantita || 0), 0);
+        const nextQuantita = Number(item.quantita || 0) + oldQty - newQty;
+        if (nextQuantita < 0) throw new Error('Quantità non disponibile');
+        await setAttrezzaturaQuantita(itemId, nextQuantita);
+    }
+}
+
+async function savePrelievoMagazzino(event) {
+    event.preventDefault();
+
+    const data_prelievo = document.getElementById('pm-data')?.value;
+    const consegnato_a = document.getElementById('pm-consegnato-a')?.value.trim();
+    const rows = collectPrelievoMagazzinoRows();
+    const associazione_appartenenza = getPrelievoMagazzinoAssociazione(rows);
+
+    if (!data_prelievo || !consegnato_a || !associazione_appartenenza) {
+        showToast('Campi mancanti', 'Compila tutti i campi richiesti e usa item della stessa associazione.');
+        return;
+    }
+    if (!validatePrelievoMagazzinoRows(rows)) return;
+
+    try {
+        if (editingPrelievoMagazzinoId) {
+            const oldRows = getPrelievoRighe(editingPrelievoMagazzinoId);
+            await applyPrelievoQuantita(rows, oldRows);
+            const { error: updateError } = await supabase
+                .from('magazzino_prelievi')
+                .update({ data_prelievo, consegnato_a, associazione_appartenenza })
+                .eq('id', editingPrelievoMagazzinoId);
+            if (updateError) throw updateError;
+
+            const { error: deleteError } = await supabase
+                .from('magazzino_prelievi_righe')
+                .delete()
+                .eq('prelievo_id', editingPrelievoMagazzinoId);
+            if (deleteError) throw deleteError;
+
+            const { error: insertRowsError } = await supabase
+                .from('magazzino_prelievi_righe')
+                .insert(rows.map(row => ({ ...row, prelievo_id: editingPrelievoMagazzinoId })));
+            if (insertRowsError) throw insertRowsError;
+
+            showToast('Prelievo aggiornato', 'La transazione è stata modificata.');
+        } else {
+            await applyPrelievoQuantita(rows);
+            const { data, error } = await supabase
+                .from('magazzino_prelievi')
+                .insert([{ data_prelievo, consegnato_a, associazione_appartenenza, stato: 'aperto' }])
+                .select('id')
+                .single();
+            if (error) throw error;
+
+            const { error: rowsError } = await supabase
+                .from('magazzino_prelievi_righe')
+                .insert(rows.map(row => ({ ...row, prelievo_id: data.id })));
+            if (rowsError) throw rowsError;
+
+            showToast('Prelievo registrato', 'Le quantità sono state aggiornate.');
+        }
+
+        toggleModal('modal-prelievo-magazzino', false);
+        await fetchDataFromSupabase();
+    } catch (err) {
+        console.error('Errore salvataggio prelievo magazzino:', err);
+        showToast('Errore di salvataggio', err?.message || 'Impossibile salvare il prelievo.');
+        await fetchDataFromSupabase();
+    }
+}
+
+async function rientroPrelievoMagazzino(id) {
+    const prelievo = prelieviMagazzino.find(item => item.id === id);
+    if (!prelievo || prelievo.stato === 'completato') return;
+    if (!confirm('Confermare il rientro in magazzino di questo prelievo?')) return;
+
+    try {
+        const righe = getPrelievoRighe(id);
+        const quantitaByItem = new Map();
+        righe.forEach(riga => {
+            quantitaByItem.set(riga.attrezzatura_id, (quantitaByItem.get(riga.attrezzatura_id) || 0) + Number(riga.quantita || 0));
+        });
+
+        for (const [itemId, quantita] of quantitaByItem.entries()) {
+            const item = getAttrezzaturaById(itemId);
+            if (!item) continue;
+            await setAttrezzaturaQuantita(item.id, Number(item.quantita || 0) + quantita);
+        }
+
+        const { error } = await supabase
+            .from('magazzino_prelievi')
+            .update({ stato: 'completato' })
+            .eq('id', id);
+        if (error) throw error;
+
+        showToast('Rientro completato', 'La transazione è stata completata.');
+        await fetchDataFromSupabase();
+    } catch (err) {
+        console.error('Errore rientro prelievo magazzino:', err);
+        showToast('Errore', 'Impossibile completare il rientro.');
+        await fetchDataFromSupabase();
+    }
+}
+
 async function saveAttrezzatura(event) {
     event.preventDefault();
 
     const nome_attrezzatura = document.getElementById('a-nome')?.value.trim();
     const tipo_attrezzatura = document.getElementById('a-tipo')?.value;
     const numero_inventario = document.getElementById('a-numero-inventario')?.value.trim();
+    const quantita = Number.parseInt(document.getElementById('a-quantita')?.value || '0', 10);
     const associazione_appartenenza = getAttrezzaturaAssociazioneValue();
 
-    if (!nome_attrezzatura || !tipo_attrezzatura || !numero_inventario || !associazione_appartenenza) {
+    if (!nome_attrezzatura || !tipo_attrezzatura || !numero_inventario || !Number.isInteger(quantita) || quantita < 0 || !associazione_appartenenza) {
         showToast('Campi mancanti', 'Compila tutti i campi richiesti.');
         return;
     }
@@ -4007,6 +4377,7 @@ async function saveAttrezzatura(event) {
             nome_attrezzatura,
             tipo_attrezzatura,
             numero_inventario,
+            quantita,
             associazione_appartenenza
         };
 
@@ -6604,6 +6975,12 @@ window.openNuovaAttrezzaturaModal = openNuovaAttrezzaturaModal;
 window.openEditAttrezzaturaModal = openEditAttrezzaturaModal;
 window.saveAttrezzatura = saveAttrezzatura;
 window.deleteAttrezzatura = deleteAttrezzatura;
+window.openNuovoPrelievoMagazzinoModal = openNuovoPrelievoMagazzinoModal;
+window.openEditPrelievoMagazzinoModal = openEditPrelievoMagazzinoModal;
+window.addPrelievoMagazzinoRow = addPrelievoMagazzinoRow;
+window.removePrelievoMagazzinoRow = removePrelievoMagazzinoRow;
+window.savePrelievoMagazzino = savePrelievoMagazzino;
+window.rientroPrelievoMagazzino = rientroPrelievoMagazzino;
 window.openNuovoTipoAttrezzaturaModal = openNuovoTipoAttrezzaturaModal;
 window.saveTipoAttrezzatura = saveTipoAttrezzatura;
 window.deleteTipoAttrezzatura = deleteTipoAttrezzatura;
@@ -6631,6 +7008,8 @@ window.addEventListener("DOMContentLoaded", async () => {
             protocolliIngresso = [];
             attrezzatureMagazzino = [];
             tipiAttrezzaturaMagazzino = [];
+            prelieviMagazzino = [];
+            prelievoRigheMagazzino = [];
             stopSquadreAibScadenzaTimer();
             await showLogin();
         }
