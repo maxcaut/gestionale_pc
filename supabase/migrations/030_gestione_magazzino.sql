@@ -88,6 +88,21 @@ CREATE POLICY "magazzino_tipi_insert_allowed"
         )
     );
 
+DROP POLICY IF EXISTS "magazzino_tipi_delete_allowed" ON public.magazzino_tipi_attrezzatura;
+CREATE POLICY "magazzino_tipi_delete_allowed"
+    ON public.magazzino_tipi_attrezzatura
+    FOR DELETE
+    TO authenticated
+    USING (
+        public.is_master()
+        OR EXISTS (
+            SELECT 1
+            FROM public.profiles p
+            WHERE p.id = auth.uid()
+              AND p.ruolo = 'segreteria'
+        )
+    );
+
 DROP POLICY IF EXISTS "magazzino_attrezzature_select_allowed" ON public.magazzino_attrezzature;
 CREATE POLICY "magazzino_attrezzature_select_allowed"
     ON public.magazzino_attrezzature

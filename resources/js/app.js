@@ -3884,6 +3884,25 @@ function renderTipiAttrezzaturaOptions() {
             .join('');
         filtroSelect.value = options.includes(selected) ? selected : '';
     }
+
+    renderTipiAttrezzaturaList();
+}
+
+function renderTipiAttrezzaturaList() {
+    const list = document.getElementById('tipi-attrezzatura-list');
+    if (!list) return;
+
+    if (tipiAttrezzaturaMagazzino.length === 0) {
+        list.innerHTML = '<p class="text-sm text-slate-500 font-medium">Nessun tipo disponibile.</p>';
+        return;
+    }
+
+    list.innerHTML = tipiAttrezzaturaMagazzino.map(tipo => `
+        <div class="flex items-center justify-between gap-3 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2">
+            <span class="text-sm text-slate-200 font-semibold truncate">${escapeHtml(tipo.nome)}</span>
+            <button type="button" onclick="deleteTipoAttrezzatura('${escapeAttr(tipo.nome)}')" class="shrink-0 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-100 font-bold px-3 py-1.5 rounded-lg text-xs transition-colors">Delete</button>
+        </div>
+    `).join('');
 }
 
 function renderMagazzino() {
@@ -3965,6 +3984,8 @@ function openEditAttrezzaturaModal(id) {
 }
 
 function openNuovoTipoAttrezzaturaModal() {
+    document.getElementById('ta-nome').value = '';
+    renderTipiAttrezzaturaList();
     toggleModal('modal-tipo-attrezzatura', true);
 }
 
@@ -4044,6 +4065,47 @@ async function saveTipoAttrezzatura(event) {
     } catch (err) {
         console.error('Errore salvataggio tipo attrezzatura:', err);
         showToast('Errore di salvataggio', 'Impossibile registrare il tipo attrezzatura su Supabase.');
+    }
+}
+
+async function deleteTipoAttrezzatura(nome) {
+    if (!nome) return;
+
+    const usedLocally = attrezzatureMagazzino.some(item => item.tipo_attrezzatura === nome);
+    if (usedLocally) {
+        showToast('Cancellazione non consentita', 'Questa categoria ha almeno 1 item associato.');
+        return;
+    }
+
+    if (!confirm(`Sei sicuro di voler eliminare il tipo "${nome}"?`)) return;
+
+    try {
+        const { count, error: countError } = await supabase
+            .from('magazzino_attrezzature')
+            .select('id', { count: 'exact', head: true })
+            .eq('tipo_attrezzatura', nome);
+        if (countError) throw countError;
+
+        if ((count || 0) > 0) {
+            showToast('Cancellazione non consentita', 'Questa categoria ha almeno 1 item associato.');
+            return;
+        }
+
+        const { error } = await supabase
+            .from('magazzino_tipi_attrezzatura')
+            .delete()
+            .eq('nome', nome);
+        if (error) throw error;
+
+        showToast('Tipo eliminato', `${nome} rimosso correttamente.`);
+        await fetchDataFromSupabase();
+    } catch (err) {
+        console.error('Errore eliminazione tipo attrezzatura:', err);
+        const isReferenced = err?.code === '23503';
+        showToast(
+            isReferenced ? 'Cancellazione non consentita' : 'Errore',
+            isReferenced ? 'Questa categoria ha almeno 1 item associato.' : 'Impossibile eliminare il tipo attrezzatura da Supabase.'
+        );
     }
 }
 
@@ -6544,6 +6606,7 @@ window.saveAttrezzatura = saveAttrezzatura;
 window.deleteAttrezzatura = deleteAttrezzatura;
 window.openNuovoTipoAttrezzaturaModal = openNuovoTipoAttrezzaturaModal;
 window.saveTipoAttrezzatura = saveTipoAttrezzatura;
+window.deleteTipoAttrezzatura = deleteTipoAttrezzatura;
 window.renderMagazzino = renderMagazzino;
 
 // --- INIZIALIZZAZIONE ALL'AVVIO ---
