@@ -733,8 +733,36 @@
                             <input type="checkbox" name="v-qualifiche-coordinamento" value="telecomunicazioni" onchange="renderVolontarioQualificationDateFields()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
                             telecomunicazioni
                         </label>
+                        <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
+                            <input type="checkbox" name="v-qualifiche-coordinamento" value="Corso BLSD" onchange="renderVolontarioQualificationDateFields()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            Corso BLSD
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
+                            <input type="checkbox" name="v-qualifiche-coordinamento" value="Corso Alto Rischio" onchange="renderVolontarioQualificationDateFields()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            Corso Alto Rischio
+                        </label>
                     </div>
                     <div id="v-qualifiche-coordinamento-date-fields" class="hidden mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                    <div id="v-qualifiche-coordinamento-files-wrap" class="hidden mt-3 space-y-3">
+                        <div data-qualifica-coordinamento-file="Corso BLSD" class="hidden">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Attestato Corso BLSD</label>
+                            <div class="flex items-center gap-2">
+                                <input type="file" data-qualifica-coordinamento-file-input="Corso BLSD" onchange="clearVolontarioFileDelete('qualificaCoordinamento', 'Corso BLSD')" accept="application/pdf,image/jpeg,image/png,image/webp" class="block min-w-0 flex-1 text-sm text-slate-300 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-800 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-slate-200 hover:file:bg-slate-700">
+                                <span data-qualifica-coordinamento-filename="Corso BLSD" class="hidden min-w-0 max-w-[10rem] truncate rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs font-semibold text-slate-300"></span>
+                                <button type="button" data-qualifica-coordinamento-delete="Corso BLSD" onclick="markVolontarioFileForDelete('qualificaCoordinamento', 'Corso BLSD')" class="hidden shrink-0 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-bold text-rose-300 hover:bg-rose-500/20 transition-colors">Elimina</button>
+                            </div>
+                            <p data-qualifica-coordinamento-current="Corso BLSD" class="text-[10px] text-slate-500 mt-1 font-medium"></p>
+                        </div>
+                        <div data-qualifica-coordinamento-file="Corso Alto Rischio" class="hidden">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Attestato Corso Alto Rischio</label>
+                            <div class="flex items-center gap-2">
+                                <input type="file" data-qualifica-coordinamento-file-input="Corso Alto Rischio" onchange="clearVolontarioFileDelete('qualificaCoordinamento', 'Corso Alto Rischio')" accept="application/pdf,image/jpeg,image/png,image/webp" class="block min-w-0 flex-1 text-sm text-slate-300 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-800 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-slate-200 hover:file:bg-slate-700">
+                                <span data-qualifica-coordinamento-filename="Corso Alto Rischio" class="hidden min-w-0 max-w-[10rem] truncate rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs font-semibold text-slate-300"></span>
+                                <button type="button" data-qualifica-coordinamento-delete="Corso Alto Rischio" onclick="markVolontarioFileForDelete('qualificaCoordinamento', 'Corso Alto Rischio')" class="hidden shrink-0 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-bold text-rose-300 hover:bg-rose-500/20 transition-colors">Elimina</button>
+                            </div>
+                            <p data-qualifica-coordinamento-current="Corso Alto Rischio" class="text-[10px] text-slate-500 mt-1 font-medium"></p>
+                        </div>
+                    </div>
                 </div>
 
                 <div>

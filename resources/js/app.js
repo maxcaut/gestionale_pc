@@ -21,6 +21,10 @@ const VOLONTARI_PATENTI_ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image
 const VOLONTARI_PATENTI_OPTIONS = ["A", "B", "C", "D", "E", "MMT", "Patente Nautica"];
 const VOLONTARI_PATENTI_AUTO_OPTIONS = ["A", "B", "C", "D", "E"];
 const VOLONTARI_PATENTI_AUTO_FILE_KEY = "Patenti A-B-C-D-E";
+const VOLONTARI_ATTESTATI_BUCKET = "volontari-attestati";
+const VOLONTARI_ATTESTATI_MAX_SIZE = 10 * 1024 * 1024;
+const VOLONTARI_ATTESTATI_ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+const VOLONTARI_QUALIFICHE_COORDINAMENTO_ATTESTATI = ["Corso BLSD", "Corso Alto Rischio"];
 const VOLONTARI_CARTA_IDENTITA_BUCKET = "volontari-carte-identita";
 const VOLONTARI_CARTA_IDENTITA_MAX_SIZE = 10 * 1024 * 1024;
 const VOLONTARI_CARTA_IDENTITA_ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
@@ -753,7 +757,7 @@ let editingServizioId = null;
 let editingProfileId = null;
 let editingSquadraAibId = null;
 let editingProtocolloIngressoId = null;
-let pendingVolontarioFileDeletes = { foto: false, cartaIdentita: false, patenti: new Set() };
+let pendingVolontarioFileDeletes = { foto: false, cartaIdentita: false, patenti: new Set(), qualificheCoordinamento: new Set() };
 
 // Mappa servizi — default: comune di Massa di Somma (NA)
 const MASSA_DI_SOMMA_CENTER = [40.850, 14.342];
@@ -837,11 +841,15 @@ function getVolontarioInitials(volontario = {}) {
 }
 
 function resetVolontarioFileDeleteState() {
-    pendingVolontarioFileDeletes = { foto: false, cartaIdentita: false, patenti: new Set() };
+    pendingVolontarioFileDeletes = { foto: false, cartaIdentita: false, patenti: new Set(), qualificheCoordinamento: new Set() };
 }
 
 function hasPendingVolontarioPatenteDelete(patente) {
     return pendingVolontarioFileDeletes.patenti.has(patente);
+}
+
+function hasPendingVolontarioQualificaCoordinamentoDelete(qualifica) {
+    return pendingVolontarioFileDeletes.qualificheCoordinamento.has(qualifica);
 }
 
 function setVolontarioFileDeleteButton(button, show) {
@@ -873,6 +881,11 @@ function clearVolontarioFileDelete(type, patente = null) {
         pendingVolontarioFileDeletes.patenti.delete(patente);
         const file = document.querySelector(`[data-patente-file-input="${patente}"]`)?.files?.[0] || null;
         if (file) setVolontarioFileName(document.querySelector(`[data-patente-filename="${patente}"]`), file.name);
+    }
+    if (type === "qualificaCoordinamento" && patente) {
+        pendingVolontarioFileDeletes.qualificheCoordinamento.delete(patente);
+        const file = document.querySelector(`[data-qualifica-coordinamento-file-input="${patente}"]`)?.files?.[0] || null;
+        if (file) setVolontarioFileName(document.querySelector(`[data-qualifica-coordinamento-filename="${patente}"]`), file.name);
     }
 }
 
@@ -911,6 +924,16 @@ function markVolontarioFileForDelete(type, patente = null) {
         if (current) current.innerText = "File patente eliminato al salvataggio.";
         setVolontarioFileName(document.querySelector(`[data-patente-filename="${patente}"]`), "");
         setVolontarioFileDeleteButton(document.querySelector(`[data-patente-delete="${patente}"]`), false);
+    }
+
+    if (type === "qualificaCoordinamento" && patente) {
+        pendingVolontarioFileDeletes.qualificheCoordinamento.add(patente);
+        const input = document.querySelector(`[data-qualifica-coordinamento-file-input="${patente}"]`);
+        if (input) input.value = "";
+        const current = document.querySelector(`[data-qualifica-coordinamento-current="${patente}"]`);
+        if (current) current.innerText = "Attestato eliminato al salvataggio.";
+        setVolontarioFileName(document.querySelector(`[data-qualifica-coordinamento-filename="${patente}"]`), "");
+        setVolontarioFileDeleteButton(document.querySelector(`[data-qualifica-coordinamento-delete="${patente}"]`), false);
     }
 }
 
@@ -982,6 +1005,11 @@ function getVolontarioPatentiAutoFilePath(files = {}) {
     return VOLONTARI_PATENTI_AUTO_OPTIONS.map(patente => files[patente]).find(Boolean) || null;
 }
 
+function getVolontarioQualificheCoordinamentoFilesMap(volontario = null) {
+    const files = volontario?.qualifiche_coordinamento_files || {};
+    return files && typeof files === "object" && !Array.isArray(files) ? files : {};
+}
+
 function getVolontarioDocumentiCaricati(volontario = null) {
     const documenti = [];
     if (volontario?.carta_identita_path) {
@@ -999,6 +1027,16 @@ function getVolontarioDocumentiCaricati(volontario = null) {
             label: patente,
             description: "File patente caricato.",
             bucket: VOLONTARI_PATENTI_BUCKET,
+            path,
+        });
+    });
+
+    const qualificheCoordinamentoFiles = getVolontarioQualificheCoordinamentoFilesMap(volontario);
+    Object.entries(qualificheCoordinamentoFiles).filter(([, path]) => Boolean(path)).forEach(([qualifica, path]) => {
+        documenti.push({
+            label: qualifica,
+            description: "Attestato corso caricato.",
+            bucket: VOLONTARI_ATTESTATI_BUCKET,
             path,
         });
     });
@@ -1064,6 +1102,44 @@ function setVolontarioPatentiFields(volontario = null) {
         );
     });
     toggleVolontarioPatentiPresence();
+}
+
+function toggleVolontarioQualificheCoordinamentoFiles() {
+    const selected = new Set(collectCheckedValues("v-qualifiche-coordinamento"));
+    const wrap = document.getElementById("v-qualifiche-coordinamento-files-wrap");
+    const hasSelectedAttestati = VOLONTARI_QUALIFICHE_COORDINAMENTO_ATTESTATI.some(qualifica => selected.has(qualifica));
+    if (wrap) wrap.classList.toggle("hidden", !hasSelectedAttestati);
+
+    document.querySelectorAll("[data-qualifica-coordinamento-file]").forEach(row => {
+        const qualifica = row.dataset.qualificaCoordinamentoFile;
+        const show = selected.has(qualifica);
+        row.classList.toggle("hidden", !show);
+        const input = row.querySelector("[data-qualifica-coordinamento-file-input]");
+        if (input && !show) input.value = "";
+    });
+}
+
+function setVolontarioQualificheCoordinamentoFiles(volontario = null) {
+    document.querySelectorAll("[data-qualifica-coordinamento-file-input]").forEach(input => {
+        input.value = "";
+    });
+
+    const files = getVolontarioQualificheCoordinamentoFilesMap(volontario);
+    document.querySelectorAll("[data-qualifica-coordinamento-current]").forEach(el => {
+        const qualifica = el.dataset.qualificaCoordinamentoCurrent;
+        const hasFile = files[qualifica];
+        const isDeleted = hasPendingVolontarioQualificaCoordinamentoDelete(qualifica);
+        el.innerText = hasFile && !isDeleted ? "Attestato gia caricato." : "";
+        setVolontarioFileName(
+            document.querySelector(`[data-qualifica-coordinamento-filename="${qualifica}"]`),
+            hasFile && !isDeleted ? hasFile : ""
+        );
+        setVolontarioFileDeleteButton(
+            document.querySelector(`[data-qualifica-coordinamento-delete="${qualifica}"]`),
+            Boolean(hasFile && !isDeleted)
+        );
+    });
+    toggleVolontarioQualificheCoordinamentoFiles();
 }
 
 function setVolontarioFotoPreview(volontario = null, previewUrl = null) {
@@ -1151,6 +1227,34 @@ function validateVolontarioPatentiFiles(filesByPatente) {
     return null;
 }
 
+function getSelectedVolontarioQualificheCoordinamentoFiles() {
+    const files = {};
+    document.querySelectorAll("[data-qualifica-coordinamento-file-input]").forEach(input => {
+        const qualifica = input.dataset.qualificaCoordinamentoFileInput;
+        if (qualifica && input.files?.[0]) files[qualifica] = input.files[0];
+    });
+    return files;
+}
+
+function validateVolontarioAttestatoFile(file) {
+    if (!file) return null;
+    if (!VOLONTARI_ATTESTATI_ALLOWED_TYPES.includes(file.type)) {
+        return "Gli attestati devono essere PDF, JPG, PNG o WebP.";
+    }
+    if (file.size > VOLONTARI_ATTESTATI_MAX_SIZE) {
+        return "Ogni attestato non puo superare 10 MB.";
+    }
+    return null;
+}
+
+function validateVolontarioQualificheCoordinamentoFiles(filesByQualifica) {
+    for (const [qualifica, file] of Object.entries(filesByQualifica || {})) {
+        const validationError = validateVolontarioAttestatoFile(file);
+        if (validationError) return `${qualifica}: ${validationError}`;
+    }
+    return null;
+}
+
 function getVolontarioFotoPath(volontarioId, file) {
     const extensionByType = {
         "image/jpeg": "jpg",
@@ -1182,6 +1286,18 @@ function getVolontarioPatentePath(volontarioId, patente, file) {
     const safePatente = String(patente).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     const extension = extensionByType[file.type] || "pdf";
     return `${volontarioId}/patenti/${safePatente}.${extension}`;
+}
+
+function getVolontarioAttestatoPath(volontarioId, qualifica, file) {
+    const extensionByType = {
+        "application/pdf": "pdf",
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+    };
+    const safeQualifica = String(qualifica).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const extension = extensionByType[file.type] || "pdf";
+    return `${volontarioId}/attestati/${safeQualifica}.${extension}`;
 }
 
 async function uploadVolontarioFoto(volontarioId, file, previousPath = null) {
@@ -1278,6 +1394,57 @@ async function uploadVolontarioPatentiFiles(volontarioId, selectedPatenti, files
             .from(VOLONTARI_PATENTI_BUCKET)
             .remove([...new Set(pathsToRemove)]);
         if (error) console.error("File patente non rimossi:", error);
+    }
+
+    return nextFiles;
+}
+
+async function uploadVolontarioQualificheCoordinamentoFiles(volontarioId, selectedQualifiche, filesByQualifica, previousFiles = {}, deletedFileKeys = new Set()) {
+    const selected = new Set(selectedQualifiche || []);
+    const selectedFileKeys = VOLONTARI_QUALIFICHE_COORDINAMENTO_ATTESTATI.filter(qualifica => selected.has(qualifica));
+    const nextFiles = {};
+    const pathsToRemove = [];
+
+    for (const qualifica of selectedFileKeys) {
+        const file = filesByQualifica?.[qualifica] || null;
+        const previousPath = previousFiles[qualifica];
+
+        if (!file) {
+            if (previousPath && !deletedFileKeys.has(qualifica)) nextFiles[qualifica] = previousPath;
+            if (previousPath && deletedFileKeys.has(qualifica)) pathsToRemove.push(previousPath);
+            continue;
+        }
+
+        const validationError = validateVolontarioAttestatoFile(file);
+        if (validationError) throw new Error(`${qualifica}: ${validationError}`);
+
+        const path = getVolontarioAttestatoPath(volontarioId, qualifica, file);
+        const { error } = await supabase.storage
+            .from(VOLONTARI_ATTESTATI_BUCKET)
+            .upload(path, file, {
+                cacheControl: "3600",
+                contentType: file.type,
+                upsert: true,
+            });
+        if (error) throw error;
+
+        if (previousPath && previousPath !== path) {
+            pathsToRemove.push(previousPath);
+        }
+        nextFiles[qualifica] = path;
+    }
+
+    Object.entries(previousFiles || {}).forEach(([qualifica, path]) => {
+        const isKeptFileKey = selectedFileKeys.includes(qualifica);
+        const isKeptPath = Object.values(nextFiles).includes(path);
+        if (!isKeptFileKey && !isKeptPath && path) pathsToRemove.push(path);
+    });
+
+    if (pathsToRemove.length > 0) {
+        const { error } = await supabase.storage
+            .from(VOLONTARI_ATTESTATI_BUCKET)
+            .remove([...new Set(pathsToRemove)]);
+        if (error) console.error("Attestati non rimossi:", error);
     }
 
     return nextFiles;
@@ -1450,6 +1617,7 @@ function renderVolontarioQualificationDateFields(volontario = {}) {
         'v-qualifiche-coordinamento-date-fields',
         volontario.qualifiche_coordinamento_date || {}
     );
+    toggleVolontarioQualificheCoordinamentoFiles();
 }
 
 function resetVolontarioQualificationDateFields() {
@@ -1954,6 +2122,7 @@ function toggleModal(modalId, show) {
         resetVolontarioFotoField();
         resetVolontarioCartaIdentitaField();
         resetVolontarioPatentiFields();
+        setVolontarioQualificheCoordinamentoFiles(null);
         resetVolontarioQualificationDateFields();
         resetEditState();
         resetCapoSquadraServizioFormRestrictions();
@@ -3073,6 +3242,7 @@ function openNuovoVolontarioModal() {
     resetVolontarioFotoField();
     resetVolontarioCartaIdentitaField();
     resetVolontarioPatentiFields();
+    setVolontarioQualificheCoordinamentoFiles(null);
     resetVolontarioQualificationDateFields();
     setModalFormMode('modal-volontario', { title: 'Aggiungi Nuovo Volontario', submitText: 'Registra' });
     toggleVolontarioMatricolaField();
@@ -3102,6 +3272,7 @@ function openEditVolontarioModal(id) {
     setCheckedValues("v-qualifica-antincendio", vol.qualifica_antincendio || []);
     setCheckedValues("v-qualifiche-coordinamento", vol.qualifiche_coordinamento || []);
     renderVolontarioQualificationDateFields(vol);
+    setVolontarioQualificheCoordinamentoFiles(vol);
     setVolontarioPatentiFields(vol);
     document.getElementById("v-stato").value = vol.stato;
     document.getElementById("v-telefono").value = vol.telefono;
@@ -3156,6 +3327,7 @@ async function saveVolontario(event) {
     const qualifiche_coordinamento = collectCheckedValues("v-qualifiche-coordinamento");
     const qualifica_antincendio_date = collectQualificationDateMap("v-qualifica-antincendio-date-fields", qualifica_antincendio);
     const qualifiche_coordinamento_date = collectQualificationDateMap("v-qualifiche-coordinamento-date-fields", qualifiche_coordinamento);
+    const qualificheCoordinamentoFiles = getSelectedVolontarioQualificheCoordinamentoFiles();
     const patentePresente = document.getElementById("v-patente-presente")?.value === "Si";
     const patenti = patentePresente ? collectCheckedValues("v-patenti") : [];
     const patentiFiles = getSelectedVolontarioPatentiFiles();
@@ -3166,6 +3338,7 @@ async function saveVolontario(event) {
     const cartaIdentitaFile = getSelectedVolontarioCartaIdentitaFile();
     const fotoValidationError = validateVolontarioFotoFile(fotoFile);
     const cartaIdentitaValidationError = validateVolontarioCartaIdentitaFile(cartaIdentitaFile);
+    const qualificheCoordinamentoValidationError = validateVolontarioQualificheCoordinamentoFiles(qualificheCoordinamentoFiles);
     const patentiValidationError = validateVolontarioPatentiFiles(patentiFiles);
     const currentVolontario = editingVolontarioId ? volontari.find(v => v.id === editingVolontarioId) : null;
     if (!associazione_appartenenza) {
@@ -3194,6 +3367,10 @@ async function saveVolontario(event) {
     }
     if (patentiValidationError) {
         showToast("File patente non valido", patentiValidationError);
+        return;
+    }
+    if (qualificheCoordinamentoValidationError) {
+        showToast("Attestato non valido", qualificheCoordinamentoValidationError);
         return;
     }
 
@@ -3245,6 +3422,13 @@ async function saveVolontario(event) {
                 getVolontarioPatentiFilesMap(currentVolontario),
                 pendingVolontarioFileDeletes.patenti
             );
+            payload.qualifiche_coordinamento_files = await uploadVolontarioQualificheCoordinamentoFiles(
+                editingVolontarioId,
+                qualifiche_coordinamento,
+                qualificheCoordinamentoFiles,
+                getVolontarioQualificheCoordinamentoFilesMap(currentVolontario),
+                pendingVolontarioFileDeletes.qualificheCoordinamento
+            );
 
             const { error } = await supabase.from('volontari').update(payload).eq('id', editingVolontarioId);
             if (error) throw error;
@@ -3278,6 +3462,14 @@ async function saveVolontario(event) {
                     .update({ patenti_files })
                     .eq('id', newVolontario.id);
                 if (patentiUpdateError) throw patentiUpdateError;
+            }
+            if (qualifiche_coordinamento.length > 0) {
+                const qualifiche_coordinamento_files = await uploadVolontarioQualificheCoordinamentoFiles(newVolontario.id, qualifiche_coordinamento, qualificheCoordinamentoFiles, {});
+                const { error: qualificheUpdateError } = await supabase
+                    .from('volontari')
+                    .update({ qualifiche_coordinamento_files })
+                    .eq('id', newVolontario.id);
+                if (qualificheUpdateError) throw qualificheUpdateError;
             }
 
             toggleModal('modal-volontario', false);
@@ -3347,6 +3539,15 @@ async function deleteVolontario(id) {
                     .remove(patentePaths);
                 if (patentiStorageError) {
                     console.error("Volontario eliminato, ma file patenti non rimossi:", patentiStorageError);
+                }
+            }
+            const attestatiPaths = Object.values(getVolontarioQualificheCoordinamentoFilesMap(vol)).filter(Boolean);
+            if (attestatiPaths.length > 0) {
+                const { error: attestatiStorageError } = await supabase.storage
+                    .from(VOLONTARI_ATTESTATI_BUCKET)
+                    .remove(attestatiPaths);
+                if (attestatiStorageError) {
+                    console.error("Volontario eliminato, ma attestati non rimossi:", attestatiStorageError);
                 }
             }
 
