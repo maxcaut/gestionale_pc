@@ -803,6 +803,8 @@ let editingSquadraAibId = null;
 let editingProtocolloIngressoId = null;
 let isSavingVolontario = false;
 let isSavingProtocolloIngresso = false;
+let isSavingPrelievoMagazzino = false;
+let savingRientriPrelievoMagazzino = new Set();
 let editingAttrezzaturaId = null;
 let editingPrelievoMagazzinoId = null;
 let pendingVolontarioFileDeletes = { foto: false, cartaIdentita: false, patenti: new Set(), qualificheCoordinamento: new Set() };
@@ -4291,6 +4293,7 @@ async function applyPrelievoQuantita(rows, oldRows = []) {
 
 async function savePrelievoMagazzino(event) {
     event.preventDefault();
+    if (isSavingPrelievoMagazzino) return;
 
     const data_prelievo = document.getElementById('pm-data')?.value;
     const consegnato_a = document.getElementById('pm-consegnato-a')?.value.trim();
@@ -4303,50 +4306,39 @@ async function savePrelievoMagazzino(event) {
     }
     if (!validatePrelievoMagazzinoRows(rows)) return;
 
+    isSavingPrelievoMagazzino = true;
+    const submitEl = document.getElementById('modal-prelievo-magazzino-submit');
+    const submitText = submitEl?.innerText || '';
     let saveSucceeded = false;
+    if (submitEl) submitEl.disabled = true;
     showPdfExportProgress('Salvataggio prelievo in corso', 'Attendere il completamento del salvataggio...');
     await new Promise(resolve => requestAnimationFrame(resolve));
 
     try {
         if (editingPrelievoMagazzinoId) {
-            const oldRows = getPrelievoRighe(editingPrelievoMagazzinoId);
-            await applyPrelievoQuantita(rows, oldRows);
-            const { error: updateError } = await supabase
-                .from('magazzino_prelievi')
-                .update({ data_prelievo, consegnato_a, associazione_appartenenza })
-                .eq('id', editingPrelievoMagazzinoId);
-            if (updateError) throw updateError;
-
-            const { error: deleteError } = await supabase
-                .from('magazzino_prelievi_righe')
-                .delete()
-                .eq('prelievo_id', editingPrelievoMagazzinoId);
-            if (deleteError) throw deleteError;
-
-            const { error: insertRowsError } = await supabase
-                .from('magazzino_prelievi_righe')
-                .insert(rows.map(row => ({ ...row, prelievo_id: editingPrelievoMagazzinoId })));
-            if (insertRowsError) throw insertRowsError;
-
+            const { error } = await supabase.rpc('save_magazzino_prelievo', {
+                p_prelievo_id: editingPrelievoMagazzinoId,
+                p_data_prelievo: data_prelievo,
+                p_consegnato_a: consegnato_a,
+                p_associazione_appartenenza: associazione_appartenenza,
+                p_righe: rows,
+            });
+            if (error) throw error;
             showToast('Prelievo aggiornato', 'La transazione è stata modificata.');
         } else {
-            await applyPrelievoQuantita(rows);
-            const { data, error } = await supabase
-                .from('magazzino_prelievi')
-                .insert([{ data_prelievo, consegnato_a, associazione_appartenenza, stato: 'aperto' }])
-                .select('id')
-                .single();
+            const { error } = await supabase.rpc('save_magazzino_prelievo', {
+                p_prelievo_id: null,
+                p_data_prelievo: data_prelievo,
+                p_consegnato_a: consegnato_a,
+                p_associazione_appartenenza: associazione_appartenenza,
+                p_righe: rows,
+            });
             if (error) throw error;
-
-            const { error: rowsError } = await supabase
-                .from('magazzino_prelievi_righe')
-                .insert(rows.map(row => ({ ...row, prelievo_id: data.id })));
-            if (rowsError) throw rowsError;
-
             showToast('Prelievo registrato', 'Le quantità sono state aggiornate.');
         }
 
         toggleModal('modal-prelievo-magazzino', false);
+        editingPrelievoMagazzinoId = null;
         await fetchDataFromSupabase();
         saveSucceeded = true;
     } catch (err) {
@@ -4355,39 +4347,35 @@ async function savePrelievoMagazzino(event) {
         await fetchDataFromSupabase();
     } finally {
         hidePdfExportProgress(saveSucceeded);
+        isSavingPrelievoMagazzino = false;
+        if (submitEl) {
+            submitEl.disabled = false;
+            submitEl.innerText = submitText;
+        }
     }
 }
 
 async function rientroPrelievoMagazzino(id) {
     const prelievo = prelieviMagazzino.find(item => item.id === id);
     if (!prelievo || prelievo.stato === 'completato') return;
+    if (savingRientriPrelievoMagazzino.has(id)) return;
     if (!confirm('Confermare il rientro in magazzino di questo prelievo?')) return;
 
+    savingRientriPrelievoMagazzino.add(id);
     try {
-        const righe = getPrelievoRighe(id);
-        const quantitaByItem = new Map();
-        righe.forEach(riga => {
-            quantitaByItem.set(riga.attrezzatura_id, (quantitaByItem.get(riga.attrezzatura_id) || 0) + Number(riga.quantita || 0));
+        const { error } = await supabase.rpc('rientro_magazzino_prelievo', {
+            p_prelievo_id: id,
         });
-
-        for (const [itemId, quantita] of quantitaByItem.entries()) {
-            const item = getAttrezzaturaById(itemId);
-            if (!item) continue;
-            await setAttrezzaturaQuantita(item.id, Number(item.quantita || 0) + quantita);
-        }
-
-        const { error } = await supabase
-            .from('magazzino_prelievi')
-            .update({ stato: 'completato' })
-            .eq('id', id);
         if (error) throw error;
 
         showToast('Rientro completato', 'La transazione è stata completata.');
         await fetchDataFromSupabase();
     } catch (err) {
         console.error('Errore rientro prelievo magazzino:', err);
-        showToast('Errore', 'Impossibile completare il rientro.');
+        showToast('Errore', err?.message || 'Impossibile completare il rientro.');
         await fetchDataFromSupabase();
+    } finally {
+        savingRientriPrelievoMagazzino.delete(id);
     }
 }
 
