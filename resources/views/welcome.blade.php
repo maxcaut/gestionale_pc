@@ -282,7 +282,7 @@
                     </svg>
                 </button>
 
-                <h1 id="page-title" class="text-base font-bold text-white tracking-tight leading-tight min-w-0 shrink-0 lg:text-2xl lg:flex-1 lg:truncate">Dashboard</h1>
+                <h1 id="page-title" class="text-base font-bold text-white tracking-tight leading-tight min-w-0 flex-1 truncate lg:text-2xl">Dashboard</h1>
 
                 <div class="ml-auto flex items-center justify-end gap-2 min-w-0 shrink-0 lg:gap-6">
                     <!-- Data/Ora Reale in tempo reale -->
@@ -300,6 +300,14 @@
                     </div>
 
                     <div class="h-8 w-px bg-slate-800 hidden sm:block"></div>
+
+                    <!-- Pulsante Cambio Password -->
+                    <button onclick="openChangePasswordModal()" id="change-password-btn" title="Cambia password" class="flex items-center gap-2 p-2 lg:px-3 lg:py-2 rounded-xl text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 transition-all duration-200 text-xs font-semibold border border-transparent hover:border-amber-500/20 shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25V19.5H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                        </svg>
+                        <span class="hidden sm:inline">Password</span>
+                    </button>
 
                     <!-- Pulsante Logout -->
                     <button onclick="handleLogout()" id="logout-btn" title="Esci dal sistema" class="flex items-center gap-2 p-2 lg:px-3 lg:py-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all duration-200 text-xs font-semibold border border-transparent hover:border-rose-500/20 shrink-0">
@@ -1524,6 +1532,35 @@
             <div class="p-6 border-t border-slate-800 flex justify-end">
                 <button type="button" onclick="toggleModal('modal-servizio-view', false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">Chiudi</button>
             </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: CAMBIO PASSWORD ================= -->
+    <div id="modal-change-password" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl slide-in">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-amber-500">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25V19.5H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                    </svg>
+                    <span>Cambia password</span>
+                </h3>
+                <button type="button" onclick="toggleModal('modal-change-password', false)" class="text-slate-400 hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <form id="form-change-password" onsubmit="saveCurrentUserPassword(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Nuova password <span class="text-amber-500">*</span></label>
+                    <input type="password" id="current-user-password" minlength="6" autocomplete="new-password" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors" placeholder="Minimo 6 caratteri">
+                </div>
+                <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">
+                    <button type="button" onclick="toggleModal('modal-change-password', false)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">Annulla</button>
+                    <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-amber-500/10">Salva</button>
+                </div>
+            </form>
         </div>
     </div>
 

@@ -766,6 +766,29 @@ async function handleLogout() {
     await showLogin();
 }
 
+function openChangePasswordModal() {
+    toggleModal('modal-change-password', true);
+}
+
+async function saveCurrentUserPassword(event) {
+    event.preventDefault();
+
+    const password = document.getElementById('current-user-password').value;
+    if (!password || password.length < 6) {
+        showToast('Errore', 'La password deve contenere almeno 6 caratteri.');
+        return;
+    }
+
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) {
+        showToast('Errore', error.message || 'Impossibile modificare la password.');
+        return;
+    }
+
+    toggleModal('modal-change-password', false);
+    showToast('Password aggiornata', 'La password è stata modificata con successo.');
+}
+
 // --- MEMORIA DATI INITIALI (MOCK DATABASE) ---
 const DEFAULT_VOLONTARI = [
     { id: "v1", nome: "Mario", cognome: "Rossi", data_nascita: "1980-01-01", luogo_nascita: "Roma", cf: "RSSMRA80A01H501U", comune_residenza: "Massa di Somma", via_residenza: "Via Roma", censito: false, matricola_regionale: null, ruolo: "Coordinatore", qualifica_antincendio: [], qualifiche_coordinamento: [], qualifica_antincendio_date: {}, qualifiche_coordinamento_date: {}, patenti: [], patenti_files: {}, telefono: "3331234567", stato: "Operativo", associazione_appartenenza: "G.C. Massa di Somma" },
@@ -7619,6 +7642,8 @@ window.renderAttivita = renderAttivita;
 window.updateUI = updateUI;
 window.handleLogin = handleLogin;
 window.handleLogout = handleLogout;
+window.openChangePasswordModal = openChangePasswordModal;
+window.saveCurrentUserPassword = saveCurrentUserPassword;
 window.toggleSidebar = toggleSidebar;
 window.closeSidebar = closeSidebar;
 window.openNuovoProfiloModal = openNuovoProfiloModal;
