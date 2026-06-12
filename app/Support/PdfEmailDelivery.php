@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 class PdfEmailDelivery
 {
@@ -22,13 +23,19 @@ class PdfEmailDelivery
             $body = 'in allegato il file '.$filename;
         }
 
-        Mail::raw($body, static function ($message) use ($email, $subject, $pdf, $filename): void {
-            $message
-                ->to($email['to'])
-                ->subject($subject)
-                ->attachData($pdf->output(), $filename, [
-                    'mime' => 'application/pdf',
-                ]);
+        defer(static function () use ($email, $subject, $body, $pdf, $filename): void {
+            try {
+                Mail::raw($body, static function ($message) use ($email, $subject, $pdf, $filename): void {
+                    $message
+                        ->to($email['to'])
+                        ->subject($subject)
+                        ->attachData($pdf->output(), $filename, [
+                            'mime' => 'application/pdf',
+                        ]);
+                });
+            } catch (Throwable $exception) {
+                report($exception);
+            }
         });
     }
 }

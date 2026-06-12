@@ -4964,7 +4964,7 @@ async function exportSquadraAibPdf(id, delivery = 'download', email = null) {
 
         if (delivery === 'email') {
             const data = await response.json().catch(() => ({}));
-            showToast('Email inviata', data.message || 'Il PDF della squadra A.I.B. è stato inviato.');
+            showToast('Invio email avviato', data.message || 'Il PDF della squadra A.I.B. verrà inviato a breve.');
             hidePdfExportProgress(true);
             return;
         }
@@ -6925,7 +6925,7 @@ async function exportServizioPdf(id, template = 'servizio-programmato', delivery
 
         if (delivery === 'email') {
             const data = await response.json().catch(() => ({}));
-            showToast('Email inviata', data.message || 'Il PDF è stato inviato.');
+            showToast('Invio email avviato', data.message || 'Il PDF verrà inviato a breve.');
             hidePdfExportProgress(true);
             return;
         }

@@ -268,9 +268,9 @@ class ServizioPdfController extends Controller
         }
 
         return response()->json([
-            'message' => 'Email inviata correttamente.',
+            'message' => 'Invio email avviato. Il PDF verrà inviato a breve.',
             'filename' => $filename,
-        ]);
+        ], 202);
     }
 
     /**
