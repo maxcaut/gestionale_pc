@@ -5018,6 +5018,9 @@ function renderSquadreAib() {
         const matchSearch = !search || `${s.nome} ${s.associazione_appartenenza}`.toLowerCase().includes(search);
         const matchStato = !stato || s.stato === stato;
         return matchSearch && matchStato;
+    }).sort((a, b) => {
+        const statoOrder = { 'Operativa': 0, 'Non operativa': 1, 'Turno Terminato': 2 };
+        return (statoOrder[a.stato] ?? 1) - (statoOrder[b.stato] ?? 1);
     });
 
     if (filtered.length === 0) {
