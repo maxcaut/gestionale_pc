@@ -796,27 +796,6 @@ async function saveCurrentUserPassword(event) {
     showToast('Password aggiornata', 'La password è stata modificata con successo.');
 }
 
-// --- MEMORIA DATI INITIALI (MOCK DATABASE) ---
-const DEFAULT_VOLONTARI = [
-    { id: "v1", nome: "Mario", cognome: "Rossi", data_nascita: "1980-01-01", luogo_nascita: "Roma", cf: "RSSMRA80A01H501U", comune_residenza: "Massa di Somma", via_residenza: "Via Roma", censito: false, matricola_regionale: null, ruolo: "Coordinatore", qualifica_antincendio: [], qualifiche_coordinamento: [], qualifica_antincendio_date: {}, qualifiche_coordinamento_date: {}, patenti: [], patenti_files: {}, telefono: "3331234567", stato: "Operativo", associazione_appartenenza: "G.C. Massa di Somma" },
-    { id: "v2", nome: "Laura", cognome: "Bianchi", data_nascita: "1985-02-01", luogo_nascita: "Roma", cf: "BNCLRA85B41H501X", comune_residenza: "Cercola", via_residenza: "Via Napoli", censito: false, matricola_regionale: null, ruolo: "Volontario", qualifica_antincendio: [], qualifiche_coordinamento: [], qualifica_antincendio_date: {}, qualifiche_coordinamento_date: {}, patenti: [], patenti_files: {}, telefono: "3459876543", stato: "Operativo", associazione_appartenenza: "G.C. Cercola" },
-    { id: "v3", nome: "Giuseppe", cognome: "Verdi", data_nascita: "1978-03-12", luogo_nascita: "Roma", cf: "VRDGPP78C12H501Z", comune_residenza: "Massa di Somma", via_residenza: "Via Vesuvio", censito: false, matricola_regionale: null, ruolo: "Volontario", qualifica_antincendio: [], qualifiche_coordinamento: [], qualifica_antincendio_date: {}, qualifiche_coordinamento_date: {}, patenti: [], patenti_files: {}, telefono: "3287654321", stato: "In riposo", associazione_appartenenza: "G.C. Massa di Somma" },
-    { id: "v4", nome: "Anna", cognome: "Neri", data_nascita: "1990-04-10", luogo_nascita: "Roma", cf: "NRANNA90D50H501W", comune_residenza: "Pomigliano", via_residenza: "Via Nazionale", censito: false, matricola_regionale: null, ruolo: "Volontario", qualifica_antincendio: [], qualifiche_coordinamento: [], qualifica_antincendio_date: {}, qualifiche_coordinamento_date: {}, patenti: [], patenti_files: {}, telefono: "3394567890", stato: "Operativo", associazione_appartenenza: "Save Me" }
-];
-
-const DEFAULT_MEZZI = [
-    { id: "m1", modello: "Land Rover Defender 110", targa: "PC 001 AA", tipo: "Fuoristrada", stato: "Disponibile" },
-    { id: "m2", modello: "Fiat Ducato Ambulanza", targa: "PC 002 AB", tipo: "Ambulanza", stato: "In servizio" },
-    { id: "m3", modello: "Iveco Magirus 4x4", targa: "PC 003 AC", tipo: "Autobotte", stato: "Disponibile" },
-    { id: "m4", modello: "Fiat Panda 4x4", targa: "PC 004 AD", tipo: "Unità Mobile", stato: "In manutenzione" }
-];
-
-const DEFAULT_SERVIZI = [
-    { id: "s1", tipo: "Pattugliamento Territorio", data: "2026-05-29T09:00", mezziIds: ["m1"], volontariIds: ["v1", "v4"], note: "Monitoraggio idrogeologico fiumi post allerta meteo gialla.", stato: "Programmato" },
-    { id: "s2", tipo: "Supporto Sanitario", data: "2026-05-28T14:30", mezziIds: ["m2"], volontariIds: ["v2"], note: "Assistenza sanitaria per la gara podistica cittadina.", stato: "In corso" },
-    { id: "s3", tipo: "Antincendio Boschivo", data: "2026-05-27T08:00", mezziIds: ["m3"], volontariIds: ["v1", "v3"], note: "Pronto intervento e bonifica area boschiva collinare.", stato: "Completato" }
-];
-
 // --- STATO IN-MEMORY DELL'APPLICAZIONE ---
 let volontari = [];
 let mezzi = [];
@@ -2262,54 +2241,12 @@ async function fetchDataFromSupabase() {
             prelievoRigheMagazzino = [];
         }
 
-        if (hasMasterAccess() && volontari.length === 0 && mezzi.length === 0 && servizi.length === 0) {
-            await initializeDefaultData();
-            return;
-        }
-
         setSystemStatus(true);
         updateUI();
     } catch (err) {
         setSystemStatus(false);
         console.error("Errore durante il caricamento da Supabase:", err);
         showToast("Errore di caricamento", "Impossibile caricare i dati da Supabase.");
-    }
-}
-
-// Funzione helper per inserire i dati di mock su Supabase se vuoto
-async function initializeDefaultData() {
-    if (!hasMasterAccess()) return;
-
-    try {
-        const { error: volErr } = await supabase.from('volontari').insert(DEFAULT_VOLONTARI);
-        if (volErr) throw volErr;
-
-        const { error: mezErr } = await supabase.from('mezzi').insert(DEFAULT_MEZZI);
-        if (mezErr) throw mezErr;
-
-        const supabaseServizi = DEFAULT_SERVIZI.map(s => ({
-            id: s.id,
-            richiedente: s.richiedente,
-            tipo: s.tipo,
-            data: s.data,
-            latitudine: s.latitudine,
-            longitudine: s.longitudine,
-            indirizzo_intervento: s.indirizzo,
-            mezzi_ids: s.mezziIds,
-            carrelli_trainanti: {},
-            volontari_ids: s.volontariIds,
-            note: s.note,
-            altri_enti_coinvolti: s.altriEnti,
-            stato: s.stato
-        }));
-        const { error: serErr } = await supabase.from('servizi').insert(supabaseServizi);
-        if (serErr) throw serErr;
-
-        console.log("Dati di default inseriti correttamente su Supabase.");
-        await fetchDataFromSupabase();
-    } catch (err) {
-        console.error("Errore durante il popolamento iniziale su Supabase:", err);
-        showToast("Errore inizializzazione", "Impossibile caricare i dati iniziali su Supabase.");
     }
 }
 
