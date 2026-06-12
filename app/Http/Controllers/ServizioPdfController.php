@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\PdfEmailDelivery;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Throwable;
 
 class ServizioPdfController extends Controller
 {
@@ -12,6 +14,11 @@ class ServizioPdfController extends Controller
     {
         $validated = $request->validate([
             'template' => 'nullable|string|in:riepilogo-intervento,template_aib,servizio-programmato,modello-3-2',
+            'delivery' => 'nullable|string|in:download,email',
+            'email' => 'required_if:delivery,email|array',
+            'email.to' => 'required_if:delivery,email|email',
+            'email.subject' => 'nullable|string|max:255',
+            'email.body' => 'nullable|string|max:5000',
             'servizio' => 'required|array',
             'servizio.id' => 'required|string',
             'servizio.tipo' => 'required|string',
@@ -57,6 +64,10 @@ class ServizioPdfController extends Controller
         $dataIntervento = $this->formatDataIntervento($validated['servizio']['data']);
 
         if ($template === 'servizio-programmato') {
+            if (($validated['delivery'] ?? 'download') === 'email') {
+                return response()->json(['message' => 'Invio email disponibile solo per i modelli dei servizi completati.'], 422);
+            }
+
             if (! in_array($validated['servizio']['stato'], ['Programmato', 'In corso'], true)) {
                 return response()->json(['message' => 'Il PDF servizio programmato è disponibile solo per servizi programmati o in corso.'], 422);
             }
@@ -135,7 +146,7 @@ class ServizioPdfController extends Controller
 
         $filename = 'Riepilogo intervento-'.Str::slug($validated['servizio']['tipo']).'-'.$dataIntervento['file'].'.pdf';
 
-        return $pdf->download($filename);
+        return $this->deliverPdf($pdf, $filename, $validated);
     }
 
     /**
@@ -216,7 +227,7 @@ class ServizioPdfController extends Controller
 
         $filename = 'Modello AIB-'.Str::slug($servizio['tipo']).'-'.$dataIntervento['file'].'.pdf';
 
-        return $pdf->download($filename);
+        return $this->deliverPdf($pdf, $filename, $validated);
     }
 
     /**
@@ -234,7 +245,32 @@ class ServizioPdfController extends Controller
 
         $filename = 'Modello 3.2-'.Str::slug($validated['servizio']['tipo']).'-'.$dataIntervento['file'].'.pdf';
 
-        return $pdf->download($filename);
+        return $this->deliverPdf($pdf, $filename, $validated);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function deliverPdf(mixed $pdf, string $filename, array $validated)
+    {
+        if (($validated['delivery'] ?? 'download') !== 'email') {
+            return $pdf->download($filename);
+        }
+
+        try {
+            PdfEmailDelivery::send($pdf, $filename, $validated['email']);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' => 'Errore invio email: '.$exception->getMessage(),
+            ], 502);
+        }
+
+        return response()->json([
+            'message' => 'Email inviata correttamente.',
+            'filename' => $filename,
+        ]);
     }
 
     /**

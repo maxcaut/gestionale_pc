@@ -14,7 +14,8 @@
     <script>
     window.laravelConfig = {
         supabaseUrl: "{{ env('VITE_SUPABASE_URL') }}",
-        supabaseKey: "{{ env('VITE_SUPABASE_PUBLISHABLE_KEY') }}"
+        supabaseKey: "{{ env('VITE_SUPABASE_PUBLISHABLE_KEY') }}",
+        pdfMailTo: "{{ config('mail.pdf_recipient') }}"
     };
 </script>
 
@@ -74,6 +75,45 @@
             </div>
             <div class="px-6 pb-6">
                 <button type="button" onclick="closePdfTemplateModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">Annulla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal scelta invio PDF -->
+    <div id="modal-pdf-delivery" class="fixed inset-0 z-[56] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl slide-in">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-amber-500">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5A2.25 2.25 0 0119.5 19.5h-15A2.25 2.25 0 012.25 17.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0l-7.5-4.615A2.25 2.25 0 012.25 6.993V6.75" />
+                    </svg>
+                    Genera PDF
+                </h3>
+                <button type="button" onclick="closePdfDeliveryModal()" class="text-slate-400 hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <p id="pdf-delivery-description" class="text-sm text-slate-400">Scegli se scaricare il PDF oppure inviarlo via email.</p>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Destinatario</label>
+                    <input type="email" id="pdf-delivery-to" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Oggetto</label>
+                    <input type="text" id="pdf-delivery-subject" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Testo email</label>
+                    <textarea id="pdf-delivery-body" rows="4" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors resize-none"></textarea>
+                </div>
+            </div>
+            <div class="px-6 pb-6 flex gap-3">
+                <button type="button" onclick="closePdfDeliveryModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">Annulla</button>
+                <button type="button" onclick="confirmPdfDeliveryDownload()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">Scarica PDF</button>
+                <button type="button" onclick="confirmPdfDeliveryEmail()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-sm transition-colors">Invia email</button>
             </div>
         </div>
     </div>

@@ -824,6 +824,7 @@ let serviziMapActiveBaseLayer = "road";
 const geocodeCache = new Map();
 let serviziMapUpdateToken = 0;
 let pdfExportProgressTimer = null;
+let pendingPdfDelivery = null;
 let pendingPdfServizioId = null;
 let pendingVolontarioDocumentiId = null;
 let squadreAibScadenzaTimer = null;
@@ -3142,7 +3143,7 @@ async function exportVolontarioPdf(id) {
 
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
-            throw new Error(err.message || 'Errore durante la generazione del PDF');
+            throw new Error(err.message || (delivery === 'email' ? 'Errore durante l\'invio dell\'email' : 'Errore durante la generazione del PDF'));
         }
 
         const blob = await response.blob();
@@ -4869,7 +4870,7 @@ function renderSquadreAib() {
                 <td class="py-4 px-6 text-slate-300 font-semibold">${formatSquadraAibDisponibileFino(s.disponibileFino)}</td>
                 <td class="py-4 px-6 text-right">
                     <div class="inline-flex gap-2">
-                        <button type="button" onclick="exportSquadraAibPdf('${s.id}')" title="Scarica PDF" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">${ICON_DOWNLOAD}</button>
+                        <button type="button" onclick="openSquadraAibPdfDeliveryModal('${s.id}')" title="Genera PDF" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">${ICON_DOWNLOAD}</button>
                         <button type="button" onclick="openEditSquadraAibModal('${s.id}')" title="Modifica" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-colors">${ICON_EDIT}</button>
                         <button type="button" onclick="deleteSquadraAib('${s.id}')" title="Elimina squadra" class="p-2 hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-500 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
@@ -4883,7 +4884,19 @@ function renderSquadreAib() {
     });
 }
 
-async function exportSquadraAibPdf(id) {
+function openSquadraAibPdfDeliveryModal(id) {
+    const squadra = squadreAib.find(s => s.id === id);
+    if (!squadra) return;
+
+    openPdfDeliveryModal({
+        type: 'squadra-aib',
+        id,
+        filename: getSquadraAibPdfFilename(squadra),
+        description: 'PDF squadra A.I.B.',
+    });
+}
+
+async function exportSquadraAibPdf(id, delivery = 'download', email = null) {
     const squadra = squadreAib.find(s => s.id === id);
     if (!squadra) return;
 
@@ -4900,18 +4913,23 @@ async function exportSquadraAibPdf(id) {
     }
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    showPdfExportProgress('Generazione PDF in corso', 'Attendere il completamento del download...');
+    showPdfExportProgress(
+        delivery === 'email' ? 'Invio email in corso' : 'Generazione PDF in corso',
+        delivery === 'email' ? 'Attendere il completamento dell\'invio...' : 'Attendere il completamento del download...'
+    );
 
     try {
         const response = await fetch('/squadre-aib/pdf', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/pdf',
+                'Accept': delivery === 'email' ? 'application/json' : 'application/pdf',
                 'X-CSRF-TOKEN': csrfToken || '',
                 'X-Requested-With': 'XMLHttpRequest',
             },
             body: JSON.stringify({
+                delivery,
+                ...(delivery === 'email' ? { email } : {}),
                 squadra: {
                     id: squadra.id,
                     nome: squadra.nome,
@@ -4944,6 +4962,13 @@ async function exportSquadraAibPdf(id) {
             throw new Error(err.message || 'Errore durante la generazione del PDF');
         }
 
+        if (delivery === 'email') {
+            const data = await response.json().catch(() => ({}));
+            showToast('Email inviata', data.message || 'Il PDF della squadra A.I.B. è stato inviato.');
+            hidePdfExportProgress(true);
+            return;
+        }
+
         const blob = await response.blob();
         const disposition = response.headers.get('Content-Disposition');
         let filename = 'squadra-aib.pdf';
@@ -4957,7 +4982,7 @@ async function exportSquadraAibPdf(id) {
         hidePdfExportProgress(true);
     } catch (err) {
         console.error('Errore export PDF squadra AIB:', err);
-        showToast('Errore export PDF', err.message || 'Impossibile generare il file PDF.');
+        showToast(delivery === 'email' ? 'Errore invio email' : 'Errore export PDF', err.message || (delivery === 'email' ? 'Impossibile inviare l\'email.' : 'Impossibile generare il file PDF.'));
         hidePdfExportProgress(false);
     }
 }
@@ -6654,6 +6679,123 @@ async function completaServizio(id) {
     }
 }
 
+function slugForPdfFilename(value) {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'documento';
+}
+
+function getPdfDateFile(value = new Date()) {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return new Date().toISOString().slice(0, 10);
+    }
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+}
+
+function getServizioPdfFilename(servizio, template) {
+    const tipo = slugForPdfFilename(servizio?.tipo);
+    const data = getPdfDateFile(servizio?.data);
+
+    if (template === 'template_aib') {
+        return `Modello AIB-${tipo}-${data}.pdf`;
+    }
+
+    if (template === 'modello-3-2') {
+        return `Modello 3.2-${tipo}-${data}.pdf`;
+    }
+
+    return `Riepilogo intervento-${tipo}-${data}.pdf`;
+}
+
+function getServizioPdfDescription(template) {
+    if (template === 'template_aib') return 'Modello AIB - Antincendio Boschivo';
+    if (template === 'modello-3-2') return 'Modello 3.2';
+    return 'Modello A - Presenze ODV';
+}
+
+function getSquadraAibPdfFilename(squadra) {
+    return `Squadra AIB-${slugForPdfFilename(squadra?.nome)}-${getPdfDateFile()}.pdf`;
+}
+
+function openPdfDeliveryModal(options) {
+    pendingPdfDelivery = options;
+
+    const filename = options.filename || 'documento.pdf';
+    const recipient = window.laravelConfig?.pdfMailTo || '';
+    const description = document.getElementById('pdf-delivery-description');
+    const toInput = document.getElementById('pdf-delivery-to');
+    const subjectInput = document.getElementById('pdf-delivery-subject');
+    const bodyInput = document.getElementById('pdf-delivery-body');
+
+    if (description) {
+        description.innerText = `${options.description || 'PDF'}: scegli se scaricare il file oppure inviarlo via email.`;
+    }
+    if (toInput) toInput.value = recipient;
+    if (subjectInput) subjectInput.value = filename;
+    if (bodyInput) bodyInput.value = `in allegato il file ${filename}`;
+
+    toggleModal('modal-pdf-delivery', true);
+}
+
+function closePdfDeliveryModal() {
+    pendingPdfDelivery = null;
+    toggleModal('modal-pdf-delivery', false);
+}
+
+function getPdfDeliveryEmailPayload() {
+    const to = document.getElementById('pdf-delivery-to')?.value.trim() || '';
+    const subject = document.getElementById('pdf-delivery-subject')?.value.trim() || '';
+    const body = document.getElementById('pdf-delivery-body')?.value.trim() || '';
+
+    if (!to) {
+        showToast('Destinatario mancante', 'Inserisci un indirizzo email.');
+        return null;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+        showToast('Email non valida', 'Controlla l\'indirizzo del destinatario.');
+        return null;
+    }
+
+    return { to, subject, body };
+}
+
+function runPendingPdfDelivery(delivery, email = null) {
+    const pending = pendingPdfDelivery;
+    if (!pending) return;
+
+    closePdfDeliveryModal();
+
+    if (pending.type === 'servizio') {
+        exportServizioPdf(pending.id, pending.template, delivery, email);
+        return;
+    }
+
+    if (pending.type === 'squadra-aib') {
+        exportSquadraAibPdf(pending.id, delivery, email);
+    }
+}
+
+function confirmPdfDeliveryDownload() {
+    runPendingPdfDelivery('download');
+}
+
+function confirmPdfDeliveryEmail() {
+    const email = getPdfDeliveryEmailPayload();
+    if (!email) return;
+
+    runPendingPdfDelivery('email', email);
+}
+
 function openPdfTemplateModal(id) {
     const serv = servizi.find(s => s.id === id);
     if (!serv) return;
@@ -6676,11 +6818,20 @@ function confirmPdfTemplate(template) {
     const id = pendingPdfServizioId;
     closePdfTemplateModal();
     if (id) {
-        exportServizioPdf(id, template);
+        const serv = servizi.find(s => s.id === id);
+        if (!serv) return;
+
+        openPdfDeliveryModal({
+            type: 'servizio',
+            id,
+            template,
+            filename: getServizioPdfFilename(serv, template),
+            description: getServizioPdfDescription(template),
+        });
     }
 }
 
-async function exportServizioPdf(id, template = 'servizio-programmato') {
+async function exportServizioPdf(id, template = 'servizio-programmato', delivery = 'download', email = null) {
     const serv = servizi.find(s => s.id === id);
     if (!serv) return;
 
@@ -6705,19 +6856,24 @@ async function exportServizioPdf(id, template = 'servizio-programmato') {
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
-    showPdfExportProgress();
+    showPdfExportProgress(
+        delivery === 'email' ? 'Invio email in corso' : 'Generazione PDF in corso',
+        delivery === 'email' ? 'Attendere il completamento dell\'invio...' : 'Attendere il completamento del download...'
+    );
 
     try {
         const response = await fetch('/servizi/pdf', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/pdf',
+                'Accept': delivery === 'email' ? 'application/json' : 'application/pdf',
                 'X-CSRF-TOKEN': csrfToken || '',
                 'X-Requested-With': 'XMLHttpRequest',
             },
             body: JSON.stringify({
                 template,
+                delivery,
+                ...(delivery === 'email' ? { email } : {}),
                 servizio: {
                     id: serv.id,
                     tipo: serv.tipo,
@@ -6764,7 +6920,14 @@ async function exportServizioPdf(id, template = 'servizio-programmato') {
 
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
-            throw new Error(err.message || 'Errore durante la generazione del PDF');
+            throw new Error(err.message || (delivery === 'email' ? 'Errore durante l\'invio dell\'email' : 'Errore durante la generazione del PDF'));
+        }
+
+        if (delivery === 'email') {
+            const data = await response.json().catch(() => ({}));
+            showToast('Email inviata', data.message || 'Il PDF è stato inviato.');
+            hidePdfExportProgress(true);
+            return;
         }
 
         const blob = await response.blob();
@@ -6788,7 +6951,7 @@ async function exportServizioPdf(id, template = 'servizio-programmato') {
         hidePdfExportProgress(true);
     } catch (err) {
         console.error("Errore export PDF:", err);
-        showToast("Errore export PDF", err.message || "Impossibile generare il file PDF.");
+        showToast(delivery === 'email' ? 'Errore invio email' : 'Errore export PDF', err.message || (delivery === 'email' ? "Impossibile inviare l'email." : "Impossibile generare il file PDF."));
         hidePdfExportProgress(false);
     }
 }
@@ -7427,6 +7590,7 @@ window.openNuovaSquadraAibModal = openNuovaSquadraAibModal;
 window.openEditSquadraAibModal = openEditSquadraAibModal;
 window.saveSquadraAib = saveSquadraAib;
 window.deleteSquadraAib = deleteSquadraAib;
+window.openSquadraAibPdfDeliveryModal = openSquadraAibPdfDeliveryModal;
 window.exportSquadraAibPdf = exportSquadraAibPdf;
 window.renderSquadreAib = renderSquadreAib;
 window.populateSquadraAibModalOptions = populateSquadraAibModalOptions;
@@ -7444,6 +7608,9 @@ window.completaServizio = completaServizio;
 window.openPdfTemplateModal = openPdfTemplateModal;
 window.closePdfTemplateModal = closePdfTemplateModal;
 window.confirmPdfTemplate = confirmPdfTemplate;
+window.closePdfDeliveryModal = closePdfDeliveryModal;
+window.confirmPdfDeliveryDownload = confirmPdfDeliveryDownload;
+window.confirmPdfDeliveryEmail = confirmPdfDeliveryEmail;
 window.exportServizioPdf = exportServizioPdf;
 window.exportStatistiche = exportStatistiche;
 window.deleteServizio = deleteServizio;

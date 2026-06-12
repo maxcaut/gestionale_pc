@@ -2,15 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\PdfEmailDelivery;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Throwable;
 
 class SquadraAibPdfController extends Controller
 {
     public function export(Request $request)
     {
         $validated = $request->validate([
+            'delivery' => 'nullable|string|in:download,email',
+            'email' => 'required_if:delivery,email|array',
+            'email.to' => 'required_if:delivery,email|email',
+            'email.subject' => 'nullable|string|max:255',
+            'email.body' => 'nullable|string|max:5000',
             'squadra' => 'required|array',
             'squadra.id' => 'required|string',
             'squadra.nome' => 'required|string',
@@ -58,6 +65,23 @@ class SquadraAibPdfController extends Controller
         ])->setPaper('a4', 'portrait');
 
         $filename = 'Squadra AIB-'.Str::slug($squadra['nome']).'-'.$dataIntervento['file'].'.pdf';
+
+        if (($validated['delivery'] ?? 'download') === 'email') {
+            try {
+                PdfEmailDelivery::send($pdf, $filename, $validated['email']);
+            } catch (Throwable $exception) {
+                report($exception);
+
+                return response()->json([
+                    'message' => 'Errore invio email: '.$exception->getMessage(),
+                ], 502);
+            }
+
+            return response()->json([
+                'message' => 'Email inviata correttamente.',
+                'filename' => $filename,
+            ]);
+        }
 
         return $pdf->download($filename);
     }
