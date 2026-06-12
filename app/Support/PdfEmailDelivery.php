@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class PdfEmailDelivery
@@ -23,8 +24,22 @@ class PdfEmailDelivery
             $body = 'in allegato il file '.$filename;
         }
 
+        Log::warning('PDF email queued after response.', [
+            'to' => $email['to'],
+            'filename' => $filename,
+            'mailer' => config('mail.default'),
+            'host' => config('mail.mailers.smtp.host'),
+            'port' => config('mail.mailers.smtp.port'),
+            'scheme' => config('mail.mailers.smtp.scheme'),
+        ]);
+
         defer(static function () use ($email, $subject, $body, $pdf, $filename): void {
             try {
+                Log::warning('PDF email send started.', [
+                    'to' => $email['to'],
+                    'filename' => $filename,
+                ]);
+
                 Mail::raw($body, static function ($message) use ($email, $subject, $pdf, $filename): void {
                     $message
                         ->to($email['to'])
@@ -33,7 +48,18 @@ class PdfEmailDelivery
                             'mime' => 'application/pdf',
                         ]);
                 });
+
+                Log::warning('PDF email send completed.', [
+                    'to' => $email['to'],
+                    'filename' => $filename,
+                ]);
             } catch (Throwable $exception) {
+                Log::error('PDF email send failed.', [
+                    'to' => $email['to'],
+                    'filename' => $filename,
+                    'error' => $exception->getMessage(),
+                ]);
+
                 report($exception);
             }
         });
