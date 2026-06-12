@@ -261,7 +261,7 @@
 
     <div class="field-row">
         <div class="field">
-            <span class="label">EVENTO/EMERGENZA</span><span class="line evento"></span>
+            <span class="label">EVENTO/EMERGENZA</span><span class="line evento"><span class="value">{{ $servizio['tipo'] ?? '' }}</span></span>
         </div>
     </div>
 
