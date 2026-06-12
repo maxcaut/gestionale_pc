@@ -15,6 +15,7 @@
                                 <option value="">Tutti gli stati</option>
                                 <option value="Operativa">Operativa</option>
                                 <option value="Non operativa">Non operativa</option>
+                                <option value="Turno Terminato">Turno Terminato</option>
                             </select>
                         </div>
 

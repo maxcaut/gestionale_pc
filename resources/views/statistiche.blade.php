@@ -65,6 +65,24 @@
                         </div>
                     </div>
 
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                        <div class="px-6 py-4 border-b border-slate-800">
+                            <h3 class="text-sm font-bold text-white uppercase tracking-wider">Ore a vuoto squadre A.I.B.</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-900/60 border-b border-slate-800 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                                        <th class="py-4 px-6">Associazione</th>
+                                        <th class="py-4 px-6">Squadra</th>
+                                        <th class="py-4 px-6 text-right">Ore a vuoto</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="statistiche-squadre-aib-vuoto-body" class="text-sm divide-y divide-slate-800/40"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <div id="statistiche-soru-senza-protocollo" class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div>

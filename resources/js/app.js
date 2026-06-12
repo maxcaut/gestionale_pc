@@ -2060,30 +2060,32 @@ function mapSquadraAibRow(s) {
         volontariIds: s.volontari_ids || [],
         stato: s.stato || 'Operativa',
         disponibileFino: s.disponibile_fino || null,
+        createdAt: s.created_at || null,
     };
 }
 
 async function cleanupSquadreAibScadute() {
     if (!canAccessSquadreAib() || squadreAib.length === 0) return;
 
-    const expiredIds = squadreAib
+    const expiredSquadre = squadreAib
         .filter(s => {
             if (!s.disponibileFino) return false;
             return isTimeValuePassedToday(s.disponibileFino)
                 && canManageSquadraAib(s)
+                && s.stato !== 'Turno Terminato'
                 && !isSquadraAibAssegnataAInterventoAttivo(s.id);
-        })
-        .map(s => s.id);
+        });
 
-    if (expiredIds.length === 0) return;
+    if (expiredSquadre.length === 0) return;
+    const expiredIds = expiredSquadre.map(s => s.id);
 
     const { error } = await supabase
         .from('squadre_aib')
-        .delete()
+        .update({ stato: 'Turno Terminato' })
         .in('id', expiredIds);
     if (error) throw error;
 
-    squadreAib = squadreAib.filter(s => !expiredIds.includes(s.id));
+    squadreAib = squadreAib.map(s => expiredIds.includes(s.id) ? { ...s, stato: 'Turno Terminato' } : s);
 }
 
 function startSquadreAibScadenzaTimer() {
@@ -2717,6 +2719,96 @@ function renderStatisticheGroupedTable(tbodyId, rows, emptyMessage) {
         });
 }
 
+function getSquadraAibAvailabilityInterval(squadra, now = new Date()) {
+    if (!squadra?.createdAt || !squadra?.disponibileFino) return null;
+
+    const start = new Date(squadra.createdAt);
+    if (Number.isNaN(start.getTime())) return null;
+
+    const endTime = normalizeTimeValue(squadra.disponibileFino);
+    if (!endTime) return null;
+
+    const [hours, minutes] = endTime.split(':').map(Number);
+    const end = new Date(start);
+    end.setHours(hours, minutes, 0, 0);
+    if (end <= start) {
+        end.setDate(end.getDate() + 1);
+    }
+
+    const effectiveEnd = squadra.stato === 'Turno Terminato' ? end : new Date(Math.min(now.getTime(), end.getTime()));
+    return effectiveEnd > start ? { start, end: effectiveEnd } : null;
+}
+
+function getServizioAibInterval(servizio) {
+    if (servizio.stato !== 'Completato' || !servizio.data) return null;
+
+    const start = new Date(servizio.data);
+    if (Number.isNaN(start.getTime())) return null;
+
+    const endTime = normalizeTimeValue(servizio.oraRientroSede || servizio.oraFineIntervento);
+    if (!endTime) return null;
+
+    const [hours, minutes] = endTime.split(':').map(Number);
+    const end = new Date(start);
+    end.setHours(hours, minutes, 0, 0);
+    if (end <= start) {
+        end.setDate(end.getDate() + 1);
+    }
+
+    return end > start ? { start, end } : null;
+}
+
+function getOverlappedHours(baseInterval, intervals) {
+    const baseStart = baseInterval.start.getTime();
+    const baseEnd = baseInterval.end.getTime();
+    const clipped = intervals
+        .map(interval => ({
+            start: Math.max(baseStart, interval.start.getTime()),
+            end: Math.min(baseEnd, interval.end.getTime()),
+        }))
+        .filter(interval => interval.end > interval.start)
+        .sort((a, b) => a.start - b.start);
+
+    if (clipped.length === 0) return 0;
+
+    const merged = [];
+    clipped.forEach(interval => {
+        const last = merged[merged.length - 1];
+        if (!last || interval.start > last.end) {
+            merged.push({ ...interval });
+        } else {
+            last.end = Math.max(last.end, interval.end);
+        }
+    });
+
+    return merged.reduce((total, interval) => total + ((interval.end - interval.start) / 3600000), 0);
+}
+
+function renderStatisticheSquadreAibVuoto(rows) {
+    const tbody = document.getElementById('statistiche-squadre-aib-vuoto-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+    if (rows.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="3" class="py-8 px-6 text-center text-slate-500 font-medium">Nessuna ora a vuoto calcolabile.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    rows.forEach(row => {
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-800/10 transition-colors">
+                <td class="py-4 px-6 text-slate-300">${escapeHtml(row.associazione)}</td>
+                <td class="py-4 px-6 text-slate-100 font-semibold">${escapeHtml(row.nome)}</td>
+                <td class="py-4 px-6 text-right text-amber-400 font-bold">${formatHours(row.hours)}</td>
+            </tr>
+        `;
+    });
+}
+
 function renderStatisticheNonCalcolabili(serviziList) {
     const wrap = document.getElementById('statistiche-non-calcolabili');
     const list = document.getElementById('statistiche-non-calcolabili-list');
@@ -2774,11 +2866,13 @@ function getStatisticheData() {
     const volontariList = getDB('pc_volontari');
     const mezziList = getDB('pc_mezzi');
     const serviziList = getDB('pc_servizi');
+    const squadreAibList = getDB('pc_squadre_aib');
     const volontariById = new Map(volontariList.map(v => [v.id, v]));
     const mezziById = new Map(mezziList.map(m => [m.id, m]));
     const volontariStats = new Map();
     const mezziStats = new Map();
     const tipologieStats = new Map();
+    const squadreAibVuotoStats = new Map();
     const nonCalcolabili = [];
     let soruTotale = 0;
     const soruSenzaProtocollo = [];
@@ -2819,13 +2913,45 @@ function getStatisticheData() {
         });
     });
 
+    const now = new Date();
+    squadreAibList
+        .filter(squadra => ['Operativa', 'Turno Terminato'].includes(squadra.stato))
+        .forEach(squadra => {
+            const availabilityInterval = getSquadraAibAvailabilityInterval(squadra, now);
+            if (!availabilityInterval) return;
+
+            const interventiIntervals = serviziList
+                .filter(servizio => (
+                    isAntincendioBoschivo(servizio.tipo)
+                    && (servizio.squadreAibIds || []).includes(squadra.id)
+                ))
+                .map(getServizioAibInterval)
+                .filter(Boolean);
+
+            const totalHours = (availabilityInterval.end.getTime() - availabilityInterval.start.getTime()) / 3600000;
+            const busyHours = getOverlappedHours(availabilityInterval, interventiIntervals);
+            const emptyHours = Math.max(0, totalHours - busyHours);
+            if (emptyHours <= 0) return;
+
+            const key = `${squadra.associazione_appartenenza || ''}__${squadra.nome || ''}`;
+            const current = squadreAibVuotoStats.get(key) || {
+                associazione: squadra.associazione_appartenenza || '—',
+                nome: squadra.nome || 'Senza nome',
+                hours: 0,
+            };
+            current.hours += emptyHours;
+            squadreAibVuotoStats.set(key, current);
+        });
+
     const byLabelAndTipologia = (a, b) => a.label.localeCompare(b.label, 'it') || a.tipologia.localeCompare(b.tipologia, 'it');
     const byTipologia = (a, b) => a.tipologia.localeCompare(b.tipologia, 'it');
+    const byAssociazioneAndNome = (a, b) => a.associazione.localeCompare(b.associazione, 'it') || a.nome.localeCompare(b.nome, 'it');
 
     return {
         volontariStats: [...volontariStats.values()].sort(byLabelAndTipologia),
         mezziStats: [...mezziStats.values()].sort(byLabelAndTipologia),
         tipologieStats: [...tipologieStats.values()].sort(byTipologia),
+        squadreAibVuotoStats: [...squadreAibVuotoStats.values()].sort(byAssociazioneAndNome),
         nonCalcolabili,
         soruTotale,
         soruSenzaProtocollo,
@@ -2844,6 +2970,7 @@ function exportStatistiche() {
         volontariStats,
         mezziStats,
         tipologieStats,
+        squadreAibVuotoStats,
         nonCalcolabili,
     } = getStatisticheData();
 
@@ -2869,6 +2996,11 @@ function exportStatistiche() {
         row.tipologia,
         formatHours(row.hours),
     ]));
+    addSection('Ore a vuoto squadre AIB', ['Associazione', 'Squadra', 'Ore a vuoto'], squadreAibVuotoStats.map(row => [
+        row.associazione,
+        row.nome,
+        formatHours(row.hours),
+    ]));
     addSection('Servizi senza ore calcolabili', ['ID', 'Tipologia'], nonCalcolabili.map(servizio => [
         servizio.id,
         servizio.tipo,
@@ -2892,6 +3024,7 @@ function renderStatistiche() {
         volontariStats,
         mezziStats,
         tipologieStats,
+        squadreAibVuotoStats,
         nonCalcolabili,
         soruTotale,
         soruSenzaProtocollo,
@@ -2913,6 +3046,7 @@ function renderStatistiche() {
         'Nessuna ora per tipologia calcolabile.',
         2
     );
+    renderStatisticheSquadreAibVuoto(squadreAibVuotoStats);
     renderStatisticheSoruSenzaProtocollo(soruSenzaProtocollo, soruTotale);
     renderStatisticheNonCalcolabili(nonCalcolabili);
 }

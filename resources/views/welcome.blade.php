@@ -1494,6 +1494,7 @@
                     <select id="aib-squadra-stato" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
                         <option value="Operativa">Operativa</option>
                         <option value="Non operativa">Non operativa</option>
+                        <option value="Turno Terminato">Turno Terminato</option>
                     </select>
                 </div>
 
