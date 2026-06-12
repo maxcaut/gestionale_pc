@@ -685,6 +685,8 @@ async function bootstrapApp(user) {
     if (pendingViewAfterRefresh) {
         sessionStorage.removeItem(PENDING_VIEW_AFTER_REFRESH_KEY);
         switchTab(pendingViewAfterRefresh);
+    } else if (!document.querySelector(".tab-content:not(.hidden)")) {
+        switchTab('dashboard');
     }
     showApp(user);
     await checkDatabaseConnection();
@@ -698,7 +700,9 @@ async function bootstrapApp(user) {
 // --- AUTENTICAZIONE SUPABASE ---
 
 function showApp(user) {
-    document.getElementById('login-screen').style.display = 'none';
+    const loginScreen = document.getElementById('login-screen');
+    loginScreen.classList.add('hidden');
+    loginScreen.style.display = 'none';
     const appLayout = document.getElementById('app-layout');
     appLayout.classList.remove('hidden');
     appLayout.style.display = 'flex';
@@ -710,8 +714,10 @@ function showApp(user) {
 
 async function showLogin() {
     document.getElementById('app-layout').classList.add('hidden');
-    document.getElementById('app-layout').style.display = '';
-    document.getElementById('login-screen').style.display = '';
+    document.getElementById('app-layout').style.display = 'none';
+    const loginScreen = document.getElementById('login-screen');
+    loginScreen.classList.remove('hidden');
+    loginScreen.style.display = 'flex';
     document.getElementById('login-form').reset();
     document.getElementById('login-error').classList.add('hidden');
 
