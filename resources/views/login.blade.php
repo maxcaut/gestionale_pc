@@ -16,7 +16,7 @@
                     </svg>-->
                     <img src="/img/logo-regione.png" alt="Logo Regione Campania" class="w-50 h-50 object-contain">
                 </div>
-                <h1 class="text-3xl font-extrabold text-white tracking-tight">Coordinamento Vesuvius</h1>
+                <h1 class="text-3xl font-extrabold text-white tracking-tight">VIGOR</h1>
                 <p class="text-sm text-slate-400 mt-2 font-medium">Protezione Civile — Accesso Operatori</p>
             </div>
 
