@@ -680,15 +680,15 @@ async function bootstrapApp(user) {
         return false;
     }
 
-    showApp(user);
     applyRoleBasedUI();
-    await checkDatabaseConnection();
-    await fetchDataFromSupabase();
     const pendingViewAfterRefresh = sessionStorage.getItem(PENDING_VIEW_AFTER_REFRESH_KEY);
     if (pendingViewAfterRefresh) {
         sessionStorage.removeItem(PENDING_VIEW_AFTER_REFRESH_KEY);
         switchTab(pendingViewAfterRefresh);
     }
+    showApp(user);
+    await checkDatabaseConnection();
+    await fetchDataFromSupabase();
     appNavigationRefreshEnabled = true;
     startRealtimeClock();
     startSquadreAibScadenzaTimer();
