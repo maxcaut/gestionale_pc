@@ -674,13 +674,14 @@
                 </div>
                 <div id="a-associazione-select-wrap">
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Associazione di appartenenza <span class="text-amber-500">*</span></label>
-                    <select id="a-associazione" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                    <select id="a-associazione" data-associazione-select required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
                         <option value="G.C. Massa di Somma">G.C. Massa di Somma</option>
                         <option value="G.C. Cercola">G.C. Cercola</option>
                         <option value="Cobra 2">Cobra 2</option>
                         <option value="G.C. Sant'Anastasia">G.C. Sant'Anastasia</option>
                         <option value="Save Me">Save Me</option>
                         <option value="NVPC Pomigliano">NVPC Pomigliano</option>
+                        <option value="COPCSV Pomigliano">COPCSV Pomigliano</option>
                     </select>
                 </div>
                 <div id="a-associazione-fissa-wrap" class="hidden">
@@ -1060,13 +1061,14 @@
 
                 <div id="v-associazione-select-wrap">
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Associazione di appartenenza <span class="text-amber-500">*</span></label>
-                    <select id="v-associazione" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                    <select id="v-associazione" data-associazione-select required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
                         <option value="G.C. Massa di Somma">G.C. Massa di Somma</option>
                         <option value="G.C. Cercola">G.C. Cercola</option>
                         <option value="Cobra 2">Cobra 2</option>
                         <option value="G.C. Sant'Anastasia">G.C. Sant'Anastasia</option>
                         <option value="Save Me">Save Me</option>
                         <option value="NVPC Pomigliano">NVPC Pomigliano</option>
+                        <option value="COPCSV Pomigliano">COPCSV Pomigliano</option>
                     </select>
                 </div>
                 <div id="v-associazione-fissa-wrap" class="hidden">
@@ -1158,13 +1160,14 @@
 
                 <div id="m-associazione-select-wrap">
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Associazione di appartenenza <span class="text-amber-500">*</span></label>
-                    <select id="m-associazione" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                    <select id="m-associazione" data-associazione-select required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
                         <option value="G.C. Massa di Somma">G.C. Massa di Somma</option>
                         <option value="G.C. Cercola">G.C. Cercola</option>
                         <option value="Cobra 2">Cobra 2</option>
                         <option value="G.C. Sant'Anastasia">G.C. Sant'Anastasia</option>
                         <option value="Save Me">Save Me</option>
                         <option value="NVPC Pomigliano">NVPC Pomigliano</option>
+                        <option value="COPCSV Pomigliano">COPCSV Pomigliano</option>
                     </select>
                 </div>
                 <div id="m-associazione-fissa-wrap" class="hidden">
@@ -1463,13 +1466,14 @@
 
                 <div id="aib-squadra-associazione-select-wrap">
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Associazione <span class="text-amber-500">*</span></label>
-                    <select id="aib-squadra-associazione" required onchange="populateSquadraAibModalOptions()" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                    <select id="aib-squadra-associazione" data-associazione-select required onchange="populateSquadraAibModalOptions()" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
                         <option value="G.C. Massa di Somma">G.C. Massa di Somma</option>
                         <option value="G.C. Cercola">G.C. Cercola</option>
                         <option value="Cobra 2">Cobra 2</option>
                         <option value="G.C. Sant'Anastasia">G.C. Sant'Anastasia</option>
                         <option value="Save Me">Save Me</option>
                         <option value="NVPC Pomigliano">NVPC Pomigliano</option>
+                        <option value="COPCSV Pomigliano">COPCSV Pomigliano</option>
                     </select>
                 </div>
 
@@ -1604,13 +1608,14 @@
                 </div>
                 <div id="p-associazione-wrap">
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Associazione <span class="text-amber-500">*</span></label>
-                    <select id="p-associazione" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                    <select id="p-associazione" data-associazione-select class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
                         <option value="G.C. Massa di Somma">G.C. Massa di Somma</option>
                         <option value="G.C. Cercola">G.C. Cercola</option>
                         <option value="Cobra 2">Cobra 2</option>
                         <option value="G.C. Sant'Anastasia">G.C. Sant'Anastasia</option>
                         <option value="Save Me">Save Me</option>
                         <option value="NVPC Pomigliano">NVPC Pomigliano</option>
+                        <option value="COPCSV Pomigliano">COPCSV Pomigliano</option>
                     </select>
                 </div>
                 <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">

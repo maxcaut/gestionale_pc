@@ -32,9 +32,20 @@ const VOLONTARI_ALLEGATO_V_BUCKET = "volontari-allegato-v";
 const VOLONTARI_ALLEGATO_V_MAX_SIZE = 10 * 1024 * 1024;
 const VOLONTARI_ALLEGATO_V_ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
 const PROTOCOLLO_INGRESSO_BUCKET = "protocollo-ingresso";
+const DEFAULT_ASSOCIAZIONI = [
+    "G.C. Massa di Somma",
+    "G.C. Cercola",
+    "Cobra 2",
+    "G.C. Sant'Anastasia",
+    "Save Me",
+    "NVPC Pomigliano",
+    "COPCSV Pomigliano",
+];
 
 // --- PROFILO UTENTE (ruolo + associazione) ---
 let currentUserProfile = null;
+let associazioniDisponibili = DEFAULT_ASSOCIAZIONI.map((nome, index) => ({ id: `default-${index}`, nome }));
+let associazioniLoadedFromApi = false;
 
 function isMaster() {
     return currentUserProfile?.ruolo === 'master';
@@ -160,6 +171,44 @@ function formatRuoloLabel(ruolo) {
 
 function getUserAssociazione() {
     return currentUserProfile?.associazione || null;
+}
+
+function getAssociazioniNomi() {
+    const nomi = associazioniDisponibili.map(a => a.nome).filter(Boolean);
+    return nomi.length ? nomi : DEFAULT_ASSOCIAZIONI;
+}
+
+function getDefaultAssociazione() {
+    return getAssociazioniNomi()[0] || '';
+}
+
+function renderAssociazioniOptions(selectedValue = '') {
+    const options = getAssociazioniNomi().map(nome => (
+        `<option value="${escapeAttr(nome)}">${escapeHtml(nome)}</option>`
+    )).join('');
+
+    document.querySelectorAll('select[data-associazione-select]').forEach(select => {
+        const valueToKeep = selectedValue || select.value || DEFAULT_ASSOCIAZIONI[0];
+        select.innerHTML = options;
+        if (valueToKeep && getAssociazioniNomi().includes(valueToKeep)) {
+            select.value = valueToKeep;
+        }
+    });
+}
+
+async function loadAssociazioni() {
+    try {
+        const { associazioni } = await adminApiFetch('/api/admin/associazioni');
+        if (Array.isArray(associazioni)) {
+            associazioniDisponibili = associazioni;
+            associazioniLoadedFromApi = true;
+        }
+    } catch (err) {
+        associazioniLoadedFromApi = false;
+        console.warn('Lista associazioni non disponibile, uso valori predefiniti:', err);
+    }
+
+    renderAssociazioniOptions();
 }
 
 function canSeeAllVolontari() {
@@ -678,6 +727,12 @@ async function bootstrapApp(user) {
             errorDiv.classList.remove('hidden');
         }
         return false;
+    }
+
+    if (hasMasterAccess()) {
+        await loadAssociazioni();
+    } else {
+        renderAssociazioniOptions();
     }
 
     applyRoleBasedUI();
@@ -2400,6 +2455,7 @@ function switchTab(tabId) {
 
     if (tabId === "admin") {
         renderAdminProfiles();
+        renderAdminAssociazioni();
     }
 
     if (tabId === "servizi") {
@@ -3606,7 +3662,7 @@ function openEditVolontarioModal(id) {
     document.getElementById("v-email").value = vol.email || "";
     setupVolontarioAssociazioneField();
     if (hasMasterAccess()) {
-        document.getElementById("v-associazione").value = vol.associazione_appartenenza || "G.C. Massa di Somma";
+        document.getElementById("v-associazione").value = vol.associazione_appartenenza || getDefaultAssociazione();
     }
     document.getElementById("v-foto").value = "";
     setVolontarioFotoPreview(vol, vol.foto_url);
@@ -4071,7 +4127,7 @@ function openEditMezzoModal(id) {
     setupMezzoAssociazioneField();
     const mAssocSelect = document.getElementById("m-associazione");
     if (mAssocSelect) {
-        mAssocSelect.value = mezzo.associazione_appartenenza || "G.C. Massa di Somma";
+        mAssocSelect.value = mezzo.associazione_appartenenza || getDefaultAssociazione();
     }
 
     toggleModal('modal-mezzo', true);
@@ -4374,7 +4430,7 @@ function openEditAttrezzaturaModal(id) {
     setupAttrezzaturaAssociazioneField();
     const associazioneSelect = document.getElementById('a-associazione');
     if (associazioneSelect) {
-        associazioneSelect.value = attrezzatura.associazione_appartenenza || 'G.C. Massa di Somma';
+        associazioneSelect.value = attrezzatura.associazione_appartenenza || getDefaultAssociazione();
     }
 
     toggleModal('modal-attrezzatura', true);
@@ -5116,7 +5172,7 @@ function openNuovaSquadraAibModal() {
     document.getElementById('aib-squadra-nome').value = '';
     document.getElementById('aib-squadra-stato').value = 'Operativa';
     document.getElementById('aib-squadra-disponibile-fino').value = '';
-    if (!isSegreteria()) document.getElementById('aib-squadra-associazione').value = 'G.C. Massa di Somma';
+    if (!isSegreteria()) document.getElementById('aib-squadra-associazione').value = getDefaultAssociazione();
     populateSquadraAibModalOptions([], []);
     toggleModal('modal-squadra-aib', true);
 }
@@ -5131,7 +5187,7 @@ function openEditSquadraAibModal(id) {
     document.getElementById('aib-squadra-nome').value = squadra.nome || '';
     document.getElementById('aib-squadra-stato').value = squadra.stato || 'Operativa';
     document.getElementById('aib-squadra-disponibile-fino').value = normalizeTimeValue(squadra.disponibileFino);
-    if (!isSegreteria()) document.getElementById('aib-squadra-associazione').value = squadra.associazione_appartenenza || 'G.C. Massa di Somma';
+    if (!isSegreteria()) document.getElementById('aib-squadra-associazione').value = squadra.associazione_appartenenza || getDefaultAssociazione();
     populateSquadraAibModalOptions(squadra.mezziIds || [], squadra.volontariIds || []);
     toggleModal('modal-squadra-aib', true);
 }
@@ -7548,6 +7604,42 @@ async function renderAdminProfiles() {
     });
 }
 
+async function renderAdminAssociazioni() {
+    if (!hasMasterAccess()) return;
+
+    const list = document.getElementById('admin-associazioni-list');
+    if (!list) return;
+
+    list.innerHTML = '<div class="p-6 text-sm text-slate-500 font-medium">Caricamento...</div>';
+
+    try {
+        await loadAssociazioni();
+    } catch (err) {
+        console.error('Errore caricamento associazioni:', err);
+    }
+
+    if (!associazioniLoadedFromApi) {
+        list.innerHTML = '<div class="p-6 text-sm text-amber-400 font-medium">Esegui la migration associazioni su Supabase per abilitare aggiunta e rimozione.</div>';
+        return;
+    }
+
+    if (!associazioniDisponibili.length) {
+        list.innerHTML = '<div class="p-6 text-sm text-slate-500 font-medium">Nessuna associazione configurata.</div>';
+        return;
+    }
+
+    list.innerHTML = associazioniDisponibili.map(associazione => `
+        <div class="flex items-center justify-between gap-4 px-6 py-4">
+            <span class="min-w-0 truncate text-sm font-semibold text-slate-200">${escapeHtml(associazione.nome)}</span>
+            <button type="button" onclick="deleteAssociazione('${escapeAttr(associazione.id)}')" title="Rimuovi" class="shrink-0 p-2 hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-500 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                </svg>
+            </button>
+        </div>
+    `).join('');
+}
+
 function openNuovoProfiloModal() {
     editingProfileId = null;
     document.getElementById('modal-profilo-title').innerText = 'Nuovo utente';
@@ -7559,7 +7651,8 @@ function openNuovoProfiloModal() {
     document.getElementById('p-password-required').classList.remove('hidden');
     document.getElementById('p-password-hint').classList.add('hidden');
     document.getElementById('p-ruolo').value = 'segreteria';
-    document.getElementById('p-associazione').value = 'G.C. Massa di Somma';
+    renderAssociazioniOptions(getDefaultAssociazione());
+    document.getElementById('p-associazione').value = getDefaultAssociazione();
     configureProfiloRuoloOptions();
     toggleProfiloAssociazioneField();
     toggleModal('modal-profilo', true);
@@ -7587,7 +7680,8 @@ async function openEditProfiloModal(id) {
     document.getElementById('p-password-required').classList.add('hidden');
     document.getElementById('p-password-hint').classList.remove('hidden');
     document.getElementById('p-ruolo').value = data.ruolo;
-    document.getElementById('p-associazione').value = data.associazione || 'G.C. Massa di Somma';
+    renderAssociazioniOptions(data.associazione || getDefaultAssociazione());
+    document.getElementById('p-associazione').value = data.associazione || getDefaultAssociazione();
     configureProfiloRuoloOptions();
     toggleProfiloAssociazioneField();
     toggleModal('modal-profilo', true);
@@ -7676,6 +7770,45 @@ async function deleteProfilo(id, ruolo) {
     }
 }
 
+async function saveAssociazione(event) {
+    event.preventDefault();
+    if (!hasMasterAccess()) return;
+
+    const input = document.getElementById('admin-associazione-nome');
+    const nome = input?.value.trim() || '';
+    if (!nome) {
+        showToast('Errore', 'Inserisci il nome dell\'associazione.');
+        return;
+    }
+
+    try {
+        await adminApiFetch('/api/admin/associazioni', {
+            method: 'POST',
+            body: JSON.stringify({ nome }),
+        });
+        if (input) input.value = '';
+        showToast('Associazione aggiunta', 'La voce è ora disponibile nei menu.');
+        await renderAdminAssociazioni();
+    } catch (err) {
+        console.error('Errore salvataggio associazione:', err);
+        showToast('Errore', err.message || 'Impossibile salvare l\'associazione.');
+    }
+}
+
+async function deleteAssociazione(id) {
+    if (!hasMasterAccess()) return;
+    if (!confirm('Rimuovere questa associazione?')) return;
+
+    try {
+        await adminApiFetch(`/api/admin/associazioni/${id}`, { method: 'DELETE' });
+        showToast('Associazione rimossa', 'La voce non è più disponibile nei menu.');
+        await renderAdminAssociazioni();
+    } catch (err) {
+        console.error('Errore eliminazione associazione:', err);
+        showToast('Errore', err.message || 'Impossibile rimuovere l\'associazione.');
+    }
+}
+
 // Esporta le funzioni globalmente affinché gli event handler in HTML (onclick, onsubmit, oninput, onchange) possano trovarle
 window.switchTab = switchTab;
 window.toggleModal = toggleModal;
@@ -7750,6 +7883,9 @@ window.saveProfilo = saveProfilo;
 window.deleteProfilo = deleteProfilo;
 window.toggleProfiloAssociazioneField = toggleProfiloAssociazioneField;
 window.renderAdminProfiles = renderAdminProfiles;
+window.renderAdminAssociazioni = renderAdminAssociazioni;
+window.saveAssociazione = saveAssociazione;
+window.deleteAssociazione = deleteAssociazione;
 window.openNuovoProtocolloIngressoModal = openNuovoProtocolloIngressoModal;
 window.openEditProtocolloIngressoModal = openEditProtocolloIngressoModal;
 window.saveProtocolloIngresso = saveProtocolloIngresso;
