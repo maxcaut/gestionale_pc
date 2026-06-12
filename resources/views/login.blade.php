@@ -74,6 +74,7 @@
             </div>
 
             <p class="text-center text-xs text-slate-600 mt-6">Accesso riservato al personale autorizzato</p>
+            <p class="text-center text-xs text-slate-600 mt-6">Developed by: M.C.  ❤️  with V.M.</p>
         </div>
 
         <!-- <div class="fixed bottom-0 left-0 right-0 p-4 border-t border-slate-800 bg-slate-950/40 z-50">
