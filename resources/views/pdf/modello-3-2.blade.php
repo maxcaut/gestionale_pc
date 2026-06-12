@@ -24,6 +24,10 @@
             position: relative;
         }
 
+        .page + .page {
+            page-break-before: always;
+        }
+
         .model-title {
             position: absolute;
             top: 30px;
@@ -241,46 +245,8 @@
     $logo = public_path('img/modello-3-2-logo.jpeg');
     $servizio = $servizio ?? [];
     $veicoli = array_values($mezzi ?? []);
-    $volontari = array_values($equipaggio ?? []);
-    $mezzo = $veicoli[0] ?? null;
-
-    $volontariMezzi = $servizio['volontari_mezzi'] ?? [];
-    $conducente = null;
-    if ($mezzo && !empty($mezzo['id'])) {
-        foreach ($volontari as $volontario) {
-            $volontarioId = (string) ($volontario['id'] ?? '');
-            if ($volontarioId !== '' && (string) ($volontariMezzi[$volontarioId] ?? '') === (string) $mezzo['id']) {
-                $conducente = $volontario;
-                break;
-            }
-        }
-    }
-    $conducente = $conducente ?? ($volontari[0] ?? null);
-
-    $nomeConducente = $conducente
-        ? trim(($conducente['cognome'] ?? '').' '.($conducente['nome'] ?? ''))
-        : '';
-
-    $indirizzo = trim((string) ($servizio['indirizzo'] ?? ''));
-    $comune = '';
-    $localita = $indirizzo;
-    if ($indirizzo !== '') {
-        $parts = array_values(array_filter(array_map('trim', explode(',', $indirizzo)), static fn ($part) => $part !== ''));
-        if (count($parts) >= 2) {
-            $comune = array_pop($parts);
-            $localita = implode(', ', $parts);
-        }
-    }
-
-    $noteParts = array_filter([
-        trim((string) ($servizio['altriEnti'] ?? '')),
-        trim((string) ($servizio['note'] ?? '')),
-    ], static fn ($value) => $value !== '');
-    $noteOperative = implode(' - ', $noteParts);
-
-    $oraRientro = trim((string) ($servizio['oraRientroSede'] ?? ''));
-    $dataRientro = $oraRientro !== '' ? ($dataIntervento['data'] ?? '') : '';
 @endphp
+@foreach ($veicoli as $mezzo)
 <div class="page">
     <div class="model-title">Modello 3.2</div>
 
@@ -295,7 +261,7 @@
 
     <div class="field-row">
         <div class="field">
-            <span class="label">EVENTO/EMERGENZA</span><span class="line evento"><span class="value">{{ $servizio['tipo'] ?? '' }}</span></span>
+            <span class="label">EVENTO/EMERGENZA</span><span class="line evento"></span>
         </div>
     </div>
 
@@ -314,16 +280,10 @@
 
     <div class="field-row">
         <div class="field" style="width: 56%;">
-            <span class="label">COMUNE:</span><span class="line comune"><span class="value">{{ $comune }}</span></span>
+            <span class="label">COMUNE:</span><span class="line comune"></span>
         </div>
         <div class="field" style="width: 44%;">
             <span class="label">PROVINCIA:</span><span class="line provincia"></span>
-        </div>
-    </div>
-
-    <div class="field-row tight">
-        <div class="field">
-            <span class="label">CONDUCENTE</span><span class="line conducente"><span class="value">{{ $nomeConducente }}</span></span>
         </div>
     </div>
 
@@ -331,7 +291,7 @@
         <span class="bullet">&bull;</span>
         <span class="bullet-text">
             TIPOLOGIA MEZZO ASSOCIATIVO (MARCA E MODELLO):
-            <span class="line mezzo"><span class="value">{{ $mezzo['modello'] ?? '' }}</span></span>
+            <span class="line mezzo"><span class="value">{{ $mezzo['tipo'] ?? '' }} - {{ $mezzo['modello'] ?? '' }}</span></span>
         </span>
     </div>
 
@@ -343,13 +303,13 @@
 
     <div class="field-row indent">
         <div class="field">
-            <span class="label">LOCALITA DELL&rsquo;INTERVENTO</span><span class="line localita"><span class="value">{{ $localita }}</span></span>
+            <span class="label">LOCALITA DELL&rsquo;INTERVENTO</span><span class="line localita"></span>
         </div>
     </div>
 
     <div class="field-row indent">
         <div class="field" style="width: 50%;">
-            <span class="label">DATA PARTENZA:</span><span class="line data-partenza"><span class="value">{{ $dataIntervento['data'] ?? '' }}</span></span>
+            <span class="label">DATA PARTENZA:</span><span class="line data-partenza"></span>
         </div>
         <div class="field" style="width: 50%;">
             <span class="label">KM ALLA PARTENZA:</span><span class="line km-partenza"></span>
@@ -358,7 +318,7 @@
 
     <div class="field-row indent">
         <div class="field" style="width: 50%;">
-            <span class="label">DATA RIENTRO IN SEDE:</span><span class="line data-rientro"><span class="value">{{ $dataRientro }}</span></span>
+            <span class="label">DATA RIENTRO IN SEDE:</span><span class="line data-rientro"></span>
         </div>
         <div class="field" style="width: 50%;">
             <span class="label">KM AL RIENTRO IN SEDE:</span><span class="line km-rientro"></span>
@@ -373,7 +333,7 @@
 
     <div class="field-row indent tight">
         <div class="field">
-            <span class="label">Note:</span><span class="line note"><span class="value">{{ $noteOperative }}</span></span>
+            <span class="label">Note:</span><span class="line note"></span>
         </div>
     </div>
 
@@ -424,5 +384,6 @@
         A tal fine il richiedente dovr&agrave; produrre tutta la documentazione che sar&agrave; richiesta.
     </div>
 </div>
+@endforeach
 </body>
 </html>
