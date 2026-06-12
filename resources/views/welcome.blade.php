@@ -1128,9 +1128,10 @@
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Tipologia Mezzo <span class="text-amber-500">*</span></label>
                         <select id="m-tipo" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
                             <option value="Fuoristrada">Fuoristrada</option>
-                            <option value="Ambulanza">Ambulanza</option>
-                            <option value="Autobotte">Autobotte</option>
-                            <option value="Unità Mobile">Unità Mobile</option>
+                            <option value="Mezzo A.I.B">Mezzo A.I.B.</option>
+                            <option value="Pickup con gancio traino">Pickup con gancio traino</option>
+                            <option value="Autovettura">Autovettura</option>
+                            <option value="Motorino">Motorino</option>
                             <option value="Carrello appendice">Carrello appendice</option>
                         </select>
                     </div>

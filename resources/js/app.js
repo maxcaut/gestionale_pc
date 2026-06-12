@@ -2428,7 +2428,7 @@ function switchTab(tabId) {
         mezzi: "Gestione Flotta Mezzi",
         magazzino: "Gestione Magazzino",
         "squadre-aib": "Squadre A.I.B.",
-        servizi: "Sala Opeerativa",
+        servizi: "Sala Operativa",
         statistiche: "Statistiche",
         attivita: "Attività",
         "protocollo-ingresso": "Protocollo in Ingresso",
@@ -3892,13 +3892,17 @@ function renderMezzi() {
 
         let iconSvg = "";
         if (m.tipo === TIPO_FUORISTRADA) {
-            iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-amber-500"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177V3.75A1.125 1.125 0 0013.125 2.625h-2.25a1.125 1.125 0 00-1.125 1.125v11.177M14.25 7.5H9.75M16.5 18.75a1.875 1.875 0 11-3.75 0m3.75 0a1.875 1.875 0 00-3.75 0m-9.75 0h9.75" /></svg>`;
-        } else if (m.tipo === "Ambulanza") {
-            iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-amber-500"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
-        } else if (m.tipo === "Autobotte") {
-            iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-amber-500"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a3 3 0 116 0 3 3 0 01-6 0zm13.5 0a3 3 0 116 0 3 3 0 01-6 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 7.5h12m-9-3h6m-12 12V6a1 1 0 011-1h11a1 1 0 011 1v10.5m-15 0H21" /></svg>`;
+            iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-amber-500"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5l2.5-4.25A2.5 2.5 0 017.65 11h5.7a2.5 2.5 0 012.15 1.25L18 16.5M5 16.5h14M7 16.5a2.5 2.5 0 105 0m5 0a2.5 2.5 0 105 0M8 11l2-3h4l2 3M2.75 19.5l3-1.25 3 1.25 3-1.25 3 1.25 3-1.25 3 1.25" /></svg>`;
+        } else if (m.tipo === "Mezzo A.I.B") {
+            iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-amber-500"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16.5h1.5m13 0H20m-13 0a2 2 0 104 0m-4 0a2 2 0 114 0m5 0a2 2 0 104 0m-4 0a2 2 0 114 0m-5 0h5M4 16.5V9a1 1 0 011-1h7.5a1 1 0 011 1v7.5M13.5 11H18a1 1 0 011 1v4.5M6.5 8V5.5M9 8V5.5M5.75 5.5h4M16.5 4.5c1.25 1.15 2 2.2 2 3.25a2 2 0 11-4 0c0-1.05.75-2.1 2-3.25z" /></svg>`;
+        } else if (m.tipo === "Pickup con gancio traino") {
+            iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-amber-500"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5h1.5m10 0H16m-10 0a2 2 0 104 0m-4 0a2 2 0 114 0m5.5 0a2 2 0 104 0m-4 0a2 2 0 114 0m-5.5 0h5.5M3 16.5V10a1 1 0 011-1h6l2.25 3H16a1 1 0 011 1v3.5M3 12h9.25M17 16.5h1.75c.69 0 1.25.56 1.25 1.25S20.56 19 21.25 19H22" /></svg>`;
+        } else if (m.tipo === "Autovettura") {
+            iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-amber-500"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17.5a1.75 1.75 0 11-3.5 0 1.75 1.75 0 013.5 0zm13.5 0a1.75 1.75 0 11-3.5 0 1.75 1.75 0 013.5 0zM5.25 15.75h13.5m-14.5 0H3V12.5a2 2 0 012-2h1.25l1.55-3.1A2.5 2.5 0 0110.04 6h3.92a2.5 2.5 0 012.24 1.4l1.55 3.1H19a2 2 0 012 2v3.25h-1.25M7 10.5h10" /></svg>`;
+        } else if (m.tipo === "Motorino") {
+            iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-amber-500"><path stroke-linecap="round" stroke-linejoin="round" d="M7 17.25a2.75 2.75 0 11-5.5 0 2.75 2.75 0 015.5 0zm15.5 0a2.75 2.75 0 11-5.5 0 2.75 2.75 0 015.5 0zM7 17.25h3.25l2.25-5.5H15l2.25 5.5M8.5 9.25h3.25m5.75 0H20m-7.5 2.5l-2-4.5H8.75M15 11.75l2.5-2.5" /></svg>`;
         } else if (m.tipo === TIPO_CARRELLO_APPENDICE) {
-            iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-amber-500"><path stroke-linecap="round" stroke-linejoin="round" d="M3 14.25h10.5m0 0v-5.5a1 1 0 011-1h2.75c.46 0 .86.31.97.76l1.45 5.74M13.5 14.25h7.25m-15.5 3a1.75 1.75 0 103.5 0 1.75 1.75 0 00-3.5 0zm11 0a1.75 1.75 0 103.5 0 1.75 1.75 0 00-3.5 0zM3 10.5h10.5M3 17.25h2.25m3.5 0h7.5m3.5 0H21" /></svg>`;
+            iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-amber-500"><path stroke-linecap="round" stroke-linejoin="round" d="M5 9.5h11a1 1 0 011 1v6H5v-7zM5 16.5H3.5M17 16.5h2.5L22 14M7 18.25a1.75 1.75 0 103.5 0 1.75 1.75 0 00-3.5 0zm7 0a1.75 1.75 0 103.5 0 1.75 1.75 0 00-3.5 0zM6.5 12.25h9" /></svg>`;
         } else {
             iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-amber-500"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10M21 16V10a2 2 0 00-2-2h-4.25m-.75 0H14M16.5 13H21" /></svg>`;
         }
