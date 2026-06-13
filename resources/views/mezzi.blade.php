@@ -21,6 +21,8 @@
                                 <option value="Ambulanza">Ambulanza</option>
                                 <option value="Autobotte">Autobotte</option>
                                 <option value="Unità Mobile">Unità Mobile</option>
+                                <option value="Furgone">Furgone</option>
+                                <option value="Camper UCM">Camper UCM</option>
                                 <option value="Carrello appendice">Carrello appendice</option>
                             </select>
                             

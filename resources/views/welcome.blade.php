@@ -937,8 +937,8 @@
                             Sanitario
                         </label>
                         <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
-                            <input type="checkbox" name="v-qualifiche-coordinamento" value="telecomunicazioni" onchange="renderVolontarioQualificationDateFields()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
-                            telecomunicazioni
+                            <input type="checkbox" name="v-qualifiche-coordinamento" value="Telecomunicazioni" onchange="renderVolontarioQualificationDateFields()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
+                            Telecomunicazioni
                         </label>
                         <label class="flex items-center gap-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm">
                             <input type="checkbox" name="v-qualifiche-coordinamento" value="Corso BLSD" onchange="renderVolontarioQualificationDateFields()" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900">
@@ -1135,6 +1135,8 @@
                             <option value="Pickup con gancio traino">Pickup con gancio traino</option>
                             <option value="Autovettura">Autovettura</option>
                             <option value="Motorino">Motorino</option>
+                            <option value="Furgone">Furgone</option>
+                            <option value="Camper UCM">Camper UCM</option>
                             <option value="Carrello appendice">Carrello appendice</option>
                         </select>
                     </div>
