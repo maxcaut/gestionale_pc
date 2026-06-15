@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Support\PdfEmailDelivery;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -38,6 +39,7 @@ class ServizioPdfController extends Controller
             'servizio.superficieNonBoscato' => 'nullable|array',
             'servizio.completato_da_nome' => 'nullable|string',
             'servizio.completato_da_cognome' => 'nullable|string',
+            'servizio.completato_da_telefono' => 'nullable|string',
             'servizio.volontariIds' => 'nullable|array',
             'servizio.volontari_art39' => 'nullable|array',
             'servizio.volontari_mezzi' => 'nullable|array',
@@ -200,12 +202,16 @@ class ServizioPdfController extends Controller
         ]);
         $noteOperative = implode(' — ', $noteParts);
 
-        $primoVolontario = $equipaggio[0] ?? null;
-        $firma = $primoVolontario
-            ? trim(($primoVolontario['nome'] ?? '').' '.($primoVolontario['cognome'] ?? ''))
-            : '';
+        $caposquadraNome = trim((string) ($servizio['completato_da_nome'] ?? ''));
+        $caposquadraCognome = trim((string) ($servizio['completato_da_cognome'] ?? ''));
+        $caposquadra = [
+            'nome' => $caposquadraNome,
+            'cognome' => $caposquadraCognome,
+            'telefono' => $this->resolveCaposquadraTelefono($caposquadraNome, $caposquadraCognome, $servizio),
+        ];
+        $firma = trim($caposquadraNome.' '.$caposquadraCognome);
         $reportRedattoDa = trim(
-            ($servizio['completato_da_nome'] ?? '').' '.($servizio['completato_da_cognome'] ?? '')
+            $caposquadraNome.' '.$caposquadraCognome
         );
 
         $pdf = Pdf::loadView('pdf.template_aib', [
@@ -227,6 +233,7 @@ class ServizioPdfController extends Controller
             'superficieAltoFusto' => $servizio['superficieAltoFusto'] ?? [],
             'superficieNonBoscato' => $servizio['superficieNonBoscato'] ?? [],
             'noteOperative' => $noteOperative,
+            'caposquadra' => $caposquadra,
             'firma' => $firma,
             'reportRedattoDa' => $reportRedattoDa,
         ])->setPaper('a4', 'portrait');
@@ -234,6 +241,64 @@ class ServizioPdfController extends Controller
         $filename = 'Modello AIB-'.Str::slug($servizio['tipo']).'-'.$dataIntervento['file'].'.pdf';
 
         return $this->deliverPdf($pdf, $filename, $validated);
+    }
+
+    /**
+     * @param  array<string, mixed>  $servizio
+     */
+    private function resolveCaposquadraTelefono(string $nome, string $cognome, array $servizio): string
+    {
+        $telefono = trim((string) ($servizio['completato_da_telefono'] ?? ''));
+        if ($telefono !== '' || $nome === '' || $cognome === '') {
+            return $telefono;
+        }
+
+        $serviceKey = (string) config('services.supabase.service_role_key');
+        $url = rtrim((string) config('services.supabase.url'), '/');
+        if ($serviceKey === '' || $url === '') {
+            return '';
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'apikey' => $serviceKey,
+                'Authorization' => 'Bearer '.$serviceKey,
+            ])->get($url.'/rest/v1/volontari', [
+                'select' => 'nome,cognome,ruolo,telefono',
+                'ruolo' => 'ilike.*capo*',
+                'limit' => '200',
+            ]);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return '';
+        }
+
+        if (! $response->successful()) {
+            return '';
+        }
+
+        $nomeMatch = $this->normalizePersonMatchValue($nome);
+        $cognomeMatch = $this->normalizePersonMatchValue($cognome);
+        foreach ($response->json() ?: [] as $volontario) {
+            if (! is_array($volontario)) {
+                continue;
+            }
+
+            if (
+                $this->normalizePersonMatchValue($volontario['nome'] ?? '') === $nomeMatch
+                && $this->normalizePersonMatchValue($volontario['cognome'] ?? '') === $cognomeMatch
+            ) {
+                return trim((string) ($volontario['telefono'] ?? ''));
+            }
+        }
+
+        return '';
+    }
+
+    private function normalizePersonMatchValue(mixed $value): string
+    {
+        return strtolower(trim((string) preg_replace('/\s+/', ' ', (string) $value)));
     }
 
     /**

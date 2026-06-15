@@ -271,6 +271,29 @@ function getCurrentProfileCompletionSnapshot() {
     };
 }
 
+function normalizeCaposquadraMatchValue(value) {
+    return (value || '')
+        .toString()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, ' ');
+}
+
+function findCaposquadraVolontarioByCompletatore(servizio) {
+    const nome = normalizeCaposquadraMatchValue(servizio?.completatoDaNome);
+    const cognome = normalizeCaposquadraMatchValue(servizio?.completatoDaCognome);
+    if (!nome || !cognome) return null;
+
+    return volontari.find(v => {
+        const ruolo = normalizeCaposquadraMatchValue(v.ruolo);
+        return normalizeCaposquadraMatchValue(v.nome) === nome
+            && normalizeCaposquadraMatchValue(v.cognome) === cognome
+            && ruolo.includes('capo');
+    }) || null;
+}
+
 function getServizioCompletionSnapshot(existing, stato) {
     if (stato !== "Completato" || existing?.stato === "Completato") {
         return {};
@@ -7090,6 +7113,9 @@ async function exportServizioPdf(id, template = 'servizio-programmato', delivery
         .filter(vId => !isConsuntivo || !isVolontarioFlagNo((serv.volontariInReport || {})[vId]))
         .map(vId => volontari.find(v => v.id === vId))
         .filter(Boolean);
+    const caposquadraVolontario = template === "template_aib"
+        ? findCaposquadraVolontarioByCompletatore(serv)
+        : null;
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
@@ -7136,6 +7162,7 @@ async function exportServizioPdf(id, template = 'servizio-programmato', delivery
                     superficieNonBoscato: serv.superficieNonBoscato || {},
                     completato_da_nome: serv.completatoDaNome || '',
                     completato_da_cognome: serv.completatoDaCognome || '',
+                    completato_da_telefono: caposquadraVolontario?.telefono || '',
                 },
                 mezzi: mezziExport.map(m => ({
                     id: m.id,

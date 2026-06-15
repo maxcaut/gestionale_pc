@@ -23,7 +23,7 @@
         .container {
             max-width: 750px;
             margin: 0 auto;
-            border: 1px solid #000000;
+            /*border: 1px solid #000000;*/
             padding: 10px;
         }
 
@@ -214,6 +214,21 @@
             }
             return trim(($volontario['cognome'] ?? '').' '.($volontario['nome'] ?? ''));
         };
+        $normalizzaNomePersona = static function (?string $value): string {
+            return strtolower(trim(preg_replace('/\s+/', ' ', (string) $value)));
+        };
+        $caposquadraNome = trim((string) ($caposquadra['nome'] ?? ''));
+        $caposquadraCognome = trim((string) ($caposquadra['cognome'] ?? ''));
+        $caposquadraLabel = trim($caposquadraCognome.' '.$caposquadraNome);
+        $caposquadraTelefono = trim((string) ($caposquadra['telefono'] ?? ''));
+        $operatori = array_values(array_filter($volontari, static function (array $volontario) use ($normalizzaNomePersona, $caposquadraNome, $caposquadraCognome): bool {
+            if ($caposquadraNome === '' || $caposquadraCognome === '') {
+                return true;
+            }
+
+            return $normalizzaNomePersona($volontario['nome'] ?? '') !== $normalizzaNomePersona($caposquadraNome)
+                || $normalizzaNomePersona($volontario['cognome'] ?? '') !== $normalizzaNomePersona($caposquadraCognome);
+        }));
     @endphp
 
 <div class="container">
@@ -297,8 +312,8 @@
         <tbody>
             <tr>
                 <td class="col-center">1</td>
-                <td class="input-space-sm">{{ $nomeVolontario($volontari[0] ?? null) }}</td>
-                <td>{{ $volontari[0]['telefono'] ?? '' }}</td>
+                <td class="input-space-sm">{{ $caposquadraLabel }}</td>
+                <td>{{ $caposquadraTelefono }}</td>
             </tr>
             <tr>
                 <th class="col-center"></th>
@@ -307,23 +322,23 @@
             </tr>
             <tr>
                 <td class="col-center">2</td>
-                <td class="input-space-sm">{{ $nomeVolontario($volontari[1] ?? null) }}</td>
-                <td>{{ $volontari[1]['telefono'] ?? '' }}</td>
+                <td class="input-space-sm">{{ $nomeVolontario($operatori[0] ?? null) }}</td>
+                <td></td>
             </tr>
             <tr>
                 <td class="col-center">3</td>
-                <td class="input-space-sm">{{ $nomeVolontario($volontari[2] ?? null) }}</td>
-                <td>{{ $volontari[2]['telefono'] ?? '' }}</td>
+                <td class="input-space-sm">{{ $nomeVolontario($operatori[1] ?? null) }}</td>
+                <td></td>
             </tr>
             <tr>
                 <td class="col-center">4</td>
-                <td class="input-space-sm">{{ $nomeVolontario($volontari[3] ?? null) }}</td>
-                <td>{{ $volontari[3]['telefono'] ?? '' }}</td>
+                <td class="input-space-sm">{{ $nomeVolontario($operatori[2] ?? null) }}</td>
+                <td></td>
             </tr>
             <tr>
                 <td class="col-center">5</td>
-                <td class="input-space-sm">{{ $nomeVolontario($volontari[4] ?? null) }}</td>
-                <td>{{ $volontari[4]['telefono'] ?? '' }}</td>
+                <td class="input-space-sm">{{ $nomeVolontario($operatori[3] ?? null) }}</td>
+                <td></td>
             </tr>
         </tbody>
     </table>
