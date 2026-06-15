@@ -7749,8 +7749,24 @@ async function renderAdminAssociazioni() {
     }
 
     list.innerHTML = associazioniDisponibili.map(associazione => `
-        <div class="flex items-center justify-between gap-4 px-6 py-4">
-            <span class="min-w-0 truncate text-sm font-semibold text-slate-200">${escapeHtml(associazione.nome)}</span>
+        <div class="flex flex-col gap-4 px-6 py-4 lg:flex-row lg:items-start lg:justify-between">
+            <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-semibold text-slate-200">${escapeHtml(associazione.nome || '—')}</p>
+                <div class="mt-3 grid gap-3 text-xs sm:grid-cols-2 xl:grid-cols-3">
+                    <div>
+                        <p class="font-bold uppercase tracking-wider text-slate-500">Legale rappresentante</p>
+                        <p class="mt-1 text-slate-300">${escapeHtml(associazione.legale_rappresentante || '—')}</p>
+                    </div>
+                    <div>
+                        <p class="font-bold uppercase tracking-wider text-slate-500">Telefono</p>
+                        <p class="mt-1 text-slate-300">${escapeHtml(associazione.recapito_telefonico || '—')}</p>
+                    </div>
+                    <div>
+                        <p class="font-bold uppercase tracking-wider text-slate-500">PEC</p>
+                        <p class="mt-1 break-all text-slate-300">${escapeHtml(associazione.mail_pec || '—')}</p>
+                    </div>
+                </div>
+            </div>
             <div class="shrink-0 flex items-center gap-2">
                 <button type="button" onclick="openEditAssociazioneModal('${escapeAttr(associazione.id)}')" title="Modifica" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-all">
                     ${ICON_EDIT}
