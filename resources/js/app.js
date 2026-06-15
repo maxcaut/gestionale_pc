@@ -158,6 +158,10 @@ function roleRequiresAssociazione(ruolo) {
     return ruolo === 'segreteria' || ruolo === 'capo_squadra';
 }
 
+function roleAllowsProfiloIdentita(ruolo) {
+    return ['capo_squadra', 'master', 'super_user'].includes(ruolo);
+}
+
 function formatRuoloLabel(ruolo) {
     const labels = {
         master: 'Master',
@@ -7622,6 +7626,27 @@ function toggleProfiloAssociazioneField() {
         wrap.classList.add('hidden');
         select.required = false;
     }
+
+    toggleProfiloIdentitaFields();
+}
+
+function toggleProfiloIdentitaFields() {
+    const wrap = document.getElementById('p-identita-wrap');
+    const nomeInput = document.getElementById('p-nome');
+    const cognomeInput = document.getElementById('p-cognome');
+    const ruolo = document.getElementById('p-ruolo')?.value;
+    if (!wrap || !nomeInput || !cognomeInput) return;
+
+    const allowed = roleAllowsProfiloIdentita(ruolo);
+    wrap.classList.toggle('hidden', !allowed);
+    nomeInput.disabled = !allowed;
+    nomeInput.required = allowed;
+    cognomeInput.disabled = !allowed;
+    cognomeInput.required = allowed;
+    if (!allowed) {
+        nomeInput.value = '';
+        cognomeInput.value = '';
+    }
 }
 
 async function renderAdminProfiles() {
@@ -7670,11 +7695,12 @@ async function renderAdminProfiles() {
         else if (p.ruolo === 'capo_squadra') ruoloBadge = 'bg-violet-500/10 text-violet-400 border-violet-500/20';
         const isSelf = p.id === currentUserProfile?.id;
         const canDelete = !isSelf && (p.ruolo !== 'super_user' || canManageSuperUser());
+        const profileName = [p.nome, p.cognome].filter(Boolean).join(' ');
 
         tbody.innerHTML += `
             <tr class="hover:bg-slate-800/20 transition-all">
                 <td class="py-4 px-6">
-                    <p class="text-slate-200 font-semibold">${escapeHtml([p.nome, p.cognome].filter(Boolean).join(' ') || '—')}</p>
+                    ${profileName ? `<p class="text-slate-200 font-semibold">${escapeHtml(profileName)}</p>` : ''}
                     <p class="text-xs text-slate-500 mt-1">${escapeHtml(p.email || '—')}</p>
                 </td>
                 <td class="py-4 px-6">
@@ -7832,12 +7858,15 @@ async function saveProfilo(event) {
     const password = document.getElementById('p-password').value;
     const ruolo = document.getElementById('p-ruolo').value;
     const associazione = document.getElementById('p-associazione').value;
+    const identityAllowed = roleAllowsProfiloIdentita(ruolo);
+    const profileNome = identityAllowed ? nome : null;
+    const profileCognome = identityAllowed ? cognome : null;
 
     try {
         if (editingProfileId) {
             const payload = {
-                nome,
-                cognome,
+                nome: profileNome,
+                cognome: profileCognome,
                 ruolo,
                 associazione: roleRequiresAssociazione(ruolo) ? associazione : null,
             };
@@ -7866,8 +7895,8 @@ async function saveProfilo(event) {
                 body: JSON.stringify({
                     email,
                     password,
-                    nome,
-                    cognome,
+                    nome: profileNome,
+                    cognome: profileCognome,
                     ruolo,
                     associazione: roleRequiresAssociazione(ruolo) ? associazione : null,
                 }),

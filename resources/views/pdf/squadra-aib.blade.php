@@ -283,8 +283,8 @@
             <td colspan="2">ODV: {{ $associazione }}</td>
         </tr>
         <tr>
-            <td style="width: 36%;">TELEFONO:</td>
-            <td>EMAIL:</td>
+            <td style="width: 36%;">TELEFONO: 081-8423510</td>
+            <td>EMAIL: sop@coordinamentovesuvius.it</td>
         </tr>
     </table>
 
@@ -330,7 +330,7 @@
         </tr>
         <tr>
             <td style="width: 26%; text-align: center;">{{ strtoupper($squadra['nome'] ?? '') }}</td>
-            <td></td>
+            <td style="width: 26%; text-align: center;"> Versante Nord-Occidentale Complesso Somma-Vesuvio.</td>
         </tr>
     </table>
 

@@ -15,8 +15,8 @@ class AdminProfileController extends Controller
         $validated = $request->validate([
             'email' => 'required|email',
             'password' => 'required|string|min:6',
-            'nome' => 'required|string|max:255',
-            'cognome' => 'required|string|max:255',
+            'nome' => 'nullable|string|max:255',
+            'cognome' => 'nullable|string|max:255',
             'ruolo' => ['required', Rule::in(['segreteria', 'master', 'capo_squadra', 'sala_operativa', 'super_user'])],
             'associazione' => 'nullable|string|max:255',
         ]);
@@ -30,6 +30,11 @@ class AdminProfileController extends Controller
         $associazione = in_array($validated['ruolo'], ['master', 'sala_operativa', 'super_user'], true)
             ? null
             : trim((string) $validated['associazione']);
+        $anagrafica = $this->profileAnagraficaForRuolo(
+            $validated['ruolo'],
+            $validated['nome'] ?? null,
+            $validated['cognome'] ?? null,
+        );
 
         $serviceKey = (string) config('services.supabase.service_role_key');
         $url = rtrim((string) config('services.supabase.url'), '/');
@@ -68,8 +73,8 @@ class AdminProfileController extends Controller
         $profileResponse = Http::withHeaders($adminHeaders)->post($url.'/rest/v1/profiles', [
             'id' => $userId,
             'email' => $validated['email'],
-            'nome' => trim($validated['nome']),
-            'cognome' => trim($validated['cognome']),
+            'nome' => $anagrafica['nome'],
+            'cognome' => $anagrafica['cognome'],
             'ruolo' => $validated['ruolo'],
             'associazione' => $associazione,
         ]);
@@ -93,8 +98,8 @@ class AdminProfileController extends Controller
     public function update(Request $request, string $id): JsonResponse
     {
         $validated = $request->validate([
-            'nome' => 'sometimes|required|string|max:255',
-            'cognome' => 'sometimes|required|string|max:255',
+            'nome' => 'sometimes|nullable|string|max:255',
+            'cognome' => 'sometimes|nullable|string|max:255',
             'ruolo' => ['sometimes', Rule::in(['segreteria', 'master', 'capo_squadra', 'sala_operativa', 'super_user'])],
             'associazione' => 'nullable|string|max:255',
             'password' => 'nullable|string|min:6',
@@ -117,18 +122,32 @@ class AdminProfileController extends Controller
         ];
 
         $profilePayload = [];
-        if (array_key_exists('nome', $validated)) {
-            $profilePayload['nome'] = trim($validated['nome']);
-        }
-        if (array_key_exists('cognome', $validated)) {
-            $profilePayload['cognome'] = trim($validated['cognome']);
-        }
         if (array_key_exists('ruolo', $validated)) {
             $profilePayload['ruolo'] = $validated['ruolo'];
+            $profilePayload = [
+                ...$profilePayload,
+                ...$this->profileAnagraficaForRuolo(
+                    $validated['ruolo'],
+                    $validated['nome'] ?? null,
+                    $validated['cognome'] ?? null,
+                ),
+            ];
             $profilePayload['associazione'] = in_array($validated['ruolo'], ['master', 'sala_operativa', 'super_user'], true)
                 ? null
                 : trim((string) ($validated['associazione'] ?? ''));
-        } elseif (array_key_exists('associazione', $validated)) {
+        } elseif (array_key_exists('nome', $validated) || array_key_exists('cognome', $validated)) {
+            $profilePayload = [
+                ...$profilePayload,
+                ...$this->profileAnagraficaForExistingProfile(
+                    $url,
+                    $adminHeaders,
+                    $id,
+                    $validated['nome'] ?? null,
+                    $validated['cognome'] ?? null,
+                ),
+            ];
+        }
+        if (! array_key_exists('ruolo', $validated) && array_key_exists('associazione', $validated)) {
             $profilePayload['associazione'] = $validated['associazione'];
         }
 
@@ -222,6 +241,37 @@ class AdminProfileController extends Controller
                 'associazione' => 'Associazione obbligatoria per segreteria e capo squadra.',
             ]);
         }
+    }
+
+    private function profileAnagraficaForRuolo(string $ruolo, ?string $nome, ?string $cognome): array
+    {
+        if (! in_array($ruolo, ['capo_squadra', 'master', 'super_user'], true)) {
+            return [
+                'nome' => null,
+                'cognome' => null,
+            ];
+        }
+
+        $nome = trim((string) $nome);
+        $cognome = trim((string) $cognome);
+
+        return [
+            'nome' => $nome === '' ? null : $nome,
+            'cognome' => $cognome === '' ? null : $cognome,
+        ];
+    }
+
+    private function profileAnagraficaForExistingProfile(string $url, array $headers, string $id, ?string $nome, ?string $cognome): array
+    {
+        $profileResponse = Http::withHeaders($headers)->get($url.'/rest/v1/profiles', [
+            'id' => 'eq.'.$id,
+            'select' => 'ruolo',
+        ]);
+
+        $profiles = $profileResponse->json();
+        $ruolo = is_array($profiles) && isset($profiles[0]['ruolo']) ? (string) $profiles[0]['ruolo'] : '';
+
+        return $this->profileAnagraficaForRuolo($ruolo, $nome, $cognome);
     }
 
     private function denyMasterManagingSuperUser(Request $request, string $targetRuolo): ?JsonResponse

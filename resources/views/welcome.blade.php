@@ -1635,7 +1635,7 @@
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Email <span class="text-amber-500">*</span></label>
                     <input type="email" id="p-email" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div id="p-identita-wrap" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Nome <span class="text-amber-500">*</span></label>
                         <input type="text" id="p-nome" maxlength="255" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
