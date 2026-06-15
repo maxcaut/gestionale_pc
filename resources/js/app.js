@@ -7704,7 +7704,7 @@ async function renderAdminProfiles() {
                     <p class="text-xs text-slate-500 mt-1">${escapeHtml(p.email || '—')}</p>
                 </td>
                 <td class="py-4 px-6">
-                    <span class="px-2.5 py-1 text-xs font-bold border rounded-full ${ruoloBadge}">${formatRuoloLabel(p.ruolo)}</span>
+                    <span class="px-2.5 py-1 text-xs font-bold border rounded-full whitespace-nowrap ${ruoloBadge}">${formatRuoloLabel(p.ruolo)}</span>
                 </td>
                 <td class="py-4 px-6 text-slate-400">${p.associazione || '—'}</td>
                 <td class="py-4 px-6 text-right">
