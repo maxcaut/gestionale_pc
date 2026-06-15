@@ -20,6 +20,7 @@ Route::post('/magazzino/prelievi/pdf', [MagazzinoPrelievoPdfController::class, '
 Route::middleware('supabase.master')->prefix('api/admin')->group(function () {
     Route::get('/associazioni', [AdminAssociazioneController::class, 'index']);
     Route::post('/associazioni', [AdminAssociazioneController::class, 'store']);
+    Route::patch('/associazioni/{id}', [AdminAssociazioneController::class, 'update']);
     Route::delete('/associazioni/{id}', [AdminAssociazioneController::class, 'destroy']);
     Route::post('/profiles', [AdminProfileController::class, 'store']);
     Route::patch('/profiles/{id}', [AdminProfileController::class, 'update']);

@@ -872,6 +872,7 @@ let editingVolontarioId = null;
 let editingMezzoId = null;
 let editingServizioId = null;
 let editingProfileId = null;
+let editingAssociazioneId = null;
 let editingSquadraAibId = null;
 let editingProtocolloIngressoId = null;
 let isSavingVolontario = false;
@@ -7638,13 +7639,50 @@ async function renderAdminAssociazioni() {
     list.innerHTML = associazioniDisponibili.map(associazione => `
         <div class="flex items-center justify-between gap-4 px-6 py-4">
             <span class="min-w-0 truncate text-sm font-semibold text-slate-200">${escapeHtml(associazione.nome)}</span>
-            <button type="button" onclick="deleteAssociazione('${escapeAttr(associazione.id)}')" title="Rimuovi" class="shrink-0 p-2 hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-500 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                </svg>
-            </button>
+            <div class="shrink-0 flex items-center gap-2">
+                <button type="button" onclick="openEditAssociazioneModal('${escapeAttr(associazione.id)}')" title="Modifica" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-all">
+                    ${ICON_EDIT}
+                </button>
+                <button type="button" onclick="deleteAssociazione('${escapeAttr(associazione.id)}')" title="Rimuovi" class="p-2 hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-500 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                    </svg>
+                </button>
+            </div>
         </div>
     `).join('');
+}
+
+function openNuovaAssociazioneModal() {
+    if (!hasMasterAccess()) return;
+
+    editingAssociazioneId = null;
+    const form = document.getElementById('form-associazione');
+    if (form) form.reset();
+    document.getElementById('modal-associazione-title').innerText = 'Nuova associazione';
+    document.getElementById('modal-associazione-submit').innerText = 'Salva';
+
+    toggleModal('modal-associazione', true);
+}
+
+function openEditAssociazioneModal(id) {
+    if (!hasMasterAccess()) return;
+
+    const associazione = associazioniDisponibili.find(item => String(item.id) === String(id));
+    if (!associazione) {
+        showToast('Errore', 'Associazione non trovata.');
+        return;
+    }
+
+    editingAssociazioneId = id;
+    document.getElementById('modal-associazione-title').innerText = 'Modifica associazione';
+    document.getElementById('modal-associazione-submit').innerText = 'Salva modifiche';
+    document.getElementById('associazione-nome').value = associazione.nome || '';
+    document.getElementById('associazione-legale-rappresentante').value = associazione.legale_rappresentante || '';
+    document.getElementById('associazione-recapito-telefonico').value = associazione.recapito_telefonico || '';
+    document.getElementById('associazione-mail-pec').value = associazione.mail_pec || '';
+
+    toggleModal('modal-associazione', true);
 }
 
 function openNuovoProfiloModal() {
@@ -7781,24 +7819,46 @@ async function saveAssociazione(event) {
     event.preventDefault();
     if (!hasMasterAccess()) return;
 
-    const input = document.getElementById('admin-associazione-nome');
-    const nome = input?.value.trim() || '';
+    const form = document.getElementById('form-associazione');
+    const nome = document.getElementById('associazione-nome')?.value.trim() || '';
+    const legaleRappresentante = document.getElementById('associazione-legale-rappresentante')?.value.trim() || '';
+    const recapitoTelefonico = document.getElementById('associazione-recapito-telefonico')?.value.trim() || '';
+    const mailPec = document.getElementById('associazione-mail-pec')?.value.trim() || '';
     if (!nome) {
-        showToast('Errore', 'Inserisci il nome dell\'associazione.');
+        showToast('Errore', 'Inserisci la denominazione dell\'associazione.');
         return;
     }
 
+    if (!legaleRappresentante) {
+        showToast('Errore', 'Inserisci il legale rappresentante.');
+        return;
+    }
+
+    let saveSucceeded = false;
+    const isEditingAssociazione = Boolean(editingAssociazioneId);
+    showPdfExportProgress('Salvataggio associazione in corso', 'Attendere il completamento del salvataggio...');
+
     try {
-        await adminApiFetch('/api/admin/associazioni', {
-            method: 'POST',
-            body: JSON.stringify({ nome }),
+        await adminApiFetch(isEditingAssociazione ? `/api/admin/associazioni/${editingAssociazioneId}` : '/api/admin/associazioni', {
+            method: isEditingAssociazione ? 'PATCH' : 'POST',
+            body: JSON.stringify({
+                nome,
+                legale_rappresentante: legaleRappresentante,
+                recapito_telefonico: recapitoTelefonico || null,
+                mail_pec: mailPec || null,
+            }),
         });
-        if (input) input.value = '';
-        showToast('Associazione aggiunta', 'La voce è ora disponibile nei menu.');
+        saveSucceeded = true;
+        editingAssociazioneId = null;
+        if (form) form.reset();
+        toggleModal('modal-associazione', false);
+        showToast(isEditingAssociazione ? 'Associazione aggiornata' : 'Associazione aggiunta', isEditingAssociazione ? 'Modifiche salvate con successo.' : 'La voce è ora disponibile nei menu.');
         await renderAdminAssociazioni();
     } catch (err) {
         console.error('Errore salvataggio associazione:', err);
         showToast('Errore', err.message || 'Impossibile salvare l\'associazione.');
+    } finally {
+        hidePdfExportProgress(saveSucceeded);
     }
 }
 
@@ -7888,6 +7948,8 @@ window.openNuovoProfiloModal = openNuovoProfiloModal;
 window.openEditProfiloModal = openEditProfiloModal;
 window.saveProfilo = saveProfilo;
 window.deleteProfilo = deleteProfilo;
+window.openNuovaAssociazioneModal = openNuovaAssociazioneModal;
+window.openEditAssociazioneModal = openEditAssociazioneModal;
 window.toggleProfiloAssociazioneField = toggleProfiloAssociazioneField;
 window.renderAdminProfiles = renderAdminProfiles;
 window.renderAdminAssociazioni = renderAdminAssociazioni;

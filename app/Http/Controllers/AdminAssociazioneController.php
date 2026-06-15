@@ -17,7 +17,7 @@ class AdminAssociazioneController extends Controller
 
         [$url, $headers] = $client;
         $response = Http::withHeaders($headers)->get($url.'/rest/v1/associazioni', [
-            'select' => 'id,nome,created_at',
+            'select' => 'id,nome,legale_rappresentante,recapito_telefonico,mail_pec,created_at',
             'order' => 'nome.asc',
         ]);
 
@@ -32,11 +32,19 @@ class AdminAssociazioneController extends Controller
     {
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
+            'legale_rappresentante' => 'required|string|max:255',
+            'recapito_telefonico' => 'nullable|string|max:50',
+            'mail_pec' => 'nullable|email|max:255',
         ]);
 
         $nome = trim($validated['nome']);
         if ($nome === '') {
             return response()->json(['message' => 'Nome associazione obbligatorio.'], 422);
+        }
+
+        $legaleRappresentante = trim($validated['legale_rappresentante']);
+        if ($legaleRappresentante === '') {
+            return response()->json(['message' => 'Legale rappresentante obbligatorio.'], 422);
         }
 
         $client = $this->supabaseClient();
@@ -50,6 +58,9 @@ class AdminAssociazioneController extends Controller
             'Prefer' => 'return=representation',
         ]))->post($url.'/rest/v1/associazioni', [
             'nome' => $nome,
+            'legale_rappresentante' => $legaleRappresentante,
+            'recapito_telefonico' => $this->nullableTrim($validated['recapito_telefonico'] ?? null),
+            'mail_pec' => $this->nullableTrim($validated['mail_pec'] ?? null),
         ]);
 
         if ($response->status() === 409) {
@@ -64,6 +75,79 @@ class AdminAssociazioneController extends Controller
         $associazione = is_array($associazioni) && isset($associazioni[0]) ? $associazioni[0] : null;
 
         return response()->json(['associazione' => $associazione], 201);
+    }
+
+    private function nullableTrim(?string $value): ?string
+    {
+        $trimmed = trim((string) $value);
+
+        return $trimmed === '' ? null : $trimmed;
+    }
+
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'nome' => 'required|string|max:255',
+            'legale_rappresentante' => 'required|string|max:255',
+            'recapito_telefonico' => 'nullable|string|max:50',
+            'mail_pec' => 'nullable|email|max:255',
+        ]);
+
+        $nome = trim($validated['nome']);
+        if ($nome === '') {
+            return response()->json(['message' => 'Nome associazione obbligatorio.'], 422);
+        }
+
+        $legaleRappresentante = trim($validated['legale_rappresentante']);
+        if ($legaleRappresentante === '') {
+            return response()->json(['message' => 'Legale rappresentante obbligatorio.'], 422);
+        }
+
+        $client = $this->supabaseClient();
+        if ($client instanceof JsonResponse) {
+            return $client;
+        }
+
+        [$url, $headers] = $client;
+        $associazioneResponse = Http::withHeaders($headers)->get($url.'/rest/v1/associazioni', [
+            'id' => 'eq.'.$id,
+            'select' => 'nome',
+        ]);
+
+        $rows = $associazioneResponse->json();
+        $oldNome = is_array($rows) && isset($rows[0]['nome']) ? $rows[0]['nome'] : null;
+        if (! is_string($oldNome) || $oldNome === '') {
+            return response()->json(['message' => 'Associazione non trovata.'], 404);
+        }
+
+        if ($nome !== $oldNome && $this->isAssociazioneInUse($url, $headers, $oldNome)) {
+            return response()->json([
+                'message' => 'Associazione già usata: la denominazione non può essere modificata.',
+            ], 422);
+        }
+
+        $response = Http::withHeaders(array_merge($headers, [
+            'Content-Type' => 'application/json',
+            'Prefer' => 'return=representation',
+        ]))->patch($url.'/rest/v1/associazioni?id=eq.'.$id, [
+            'nome' => $nome,
+            'legale_rappresentante' => $legaleRappresentante,
+            'recapito_telefonico' => $this->nullableTrim($validated['recapito_telefonico'] ?? null),
+            'mail_pec' => $this->nullableTrim($validated['mail_pec'] ?? null),
+        ]);
+
+        if ($response->status() === 409) {
+            return response()->json(['message' => 'Associazione già presente.'], 422);
+        }
+
+        if (! $response->successful()) {
+            return response()->json(['message' => 'Impossibile aggiornare l\'associazione.'], 500);
+        }
+
+        $associazioni = $response->json();
+        $associazione = is_array($associazioni) && isset($associazioni[0]) ? $associazioni[0] : null;
+
+        return response()->json(['associazione' => $associazione]);
     }
 
     public function destroy(string $id): JsonResponse
