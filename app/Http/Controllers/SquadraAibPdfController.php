@@ -22,6 +22,7 @@ class SquadraAibPdfController extends Controller
             'squadra.id' => 'required|string',
             'squadra.nome' => 'required|string',
             'squadra.associazione_appartenenza' => 'nullable|string',
+            'squadra.legale_rappresentante' => 'nullable|string',
             'squadra.stato' => 'nullable|string',
             'squadra.disponibile_fino' => 'nullable|string',
             'mezzi' => 'nullable|array',

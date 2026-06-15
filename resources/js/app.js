@@ -5155,6 +5155,7 @@ async function exportSquadraAibPdf(id, delivery = 'download', email = null) {
     const equipaggio = (squadra.volontariIds || [])
         .map(vId => volontari.find(v => v.id === vId))
         .filter(Boolean);
+    const associazioneSquadra = associazioniDisponibili.find(a => a.nome === squadra.associazione_appartenenza);
 
     if (equipaggio.length === 0) {
         showToast('PDF non disponibile', 'La squadra non ha volontari associati.');
@@ -5183,6 +5184,7 @@ async function exportSquadraAibPdf(id, delivery = 'download', email = null) {
                     id: squadra.id,
                     nome: squadra.nome,
                     associazione_appartenenza: squadra.associazione_appartenenza || '',
+                    legale_rappresentante: associazioneSquadra?.legale_rappresentante || '',
                     stato: squadra.stato || '',
                     disponibile_fino: squadra.disponibileFino || '',
                 },

@@ -250,6 +250,7 @@
 
     $protocollo = trim((string) ($protocollo ?? ''));
     $associazione = trim((string) ($squadra['associazione_appartenenza'] ?? ''));
+    $legaleRappresentante = trim((string) ($squadra['legale_rappresentante'] ?? ''));
     $data = $dataIntervento['data'] ?? '';
     $oraInizio = trim((string) ($oraInizio ?? ''));
     $oraFine = trim((string) ($oraFine ?? ''));
@@ -359,7 +360,7 @@
 
     <div class="signature">
         <strong>Il Legale Rappresentante dell'ETS</strong>
-        <span></span>
+        <span>{{ $legaleRappresentante }}</span>
     </div>
 </div>
 
