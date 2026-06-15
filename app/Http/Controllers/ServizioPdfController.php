@@ -36,6 +36,8 @@ class ServizioPdfController extends Controller
             'servizio.superficieCeduo' => 'nullable|array',
             'servizio.superficieAltoFusto' => 'nullable|array',
             'servizio.superficieNonBoscato' => 'nullable|array',
+            'servizio.completato_da_nome' => 'nullable|string',
+            'servizio.completato_da_cognome' => 'nullable|string',
             'servizio.volontariIds' => 'nullable|array',
             'servizio.volontari_art39' => 'nullable|array',
             'servizio.volontari_mezzi' => 'nullable|array',
@@ -202,6 +204,9 @@ class ServizioPdfController extends Controller
         $firma = $primoVolontario
             ? trim(($primoVolontario['nome'] ?? '').' '.($primoVolontario['cognome'] ?? ''))
             : '';
+        $reportRedattoDa = trim(
+            ($servizio['completato_da_nome'] ?? '').' '.($servizio['completato_da_cognome'] ?? '')
+        );
 
         $pdf = Pdf::loadView('pdf.template_aib', [
             'servizio' => $servizio,
@@ -223,6 +228,7 @@ class ServizioPdfController extends Controller
             'superficieNonBoscato' => $servizio['superficieNonBoscato'] ?? [],
             'noteOperative' => $noteOperative,
             'firma' => $firma,
+            'reportRedattoDa' => $reportRedattoDa,
         ])->setPaper('a4', 'portrait');
 
         $filename = 'Modello AIB-'.Str::slug($servizio['tipo']).'-'.$dataIntervento['file'].'.pdf';

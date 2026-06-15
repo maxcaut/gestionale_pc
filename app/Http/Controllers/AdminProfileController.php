@@ -15,6 +15,8 @@ class AdminProfileController extends Controller
         $validated = $request->validate([
             'email' => 'required|email',
             'password' => 'required|string|min:6',
+            'nome' => 'required|string|max:255',
+            'cognome' => 'required|string|max:255',
             'ruolo' => ['required', Rule::in(['segreteria', 'master', 'capo_squadra', 'sala_operativa', 'super_user'])],
             'associazione' => 'nullable|string|max:255',
         ]);
@@ -66,6 +68,8 @@ class AdminProfileController extends Controller
         $profileResponse = Http::withHeaders($adminHeaders)->post($url.'/rest/v1/profiles', [
             'id' => $userId,
             'email' => $validated['email'],
+            'nome' => trim($validated['nome']),
+            'cognome' => trim($validated['cognome']),
             'ruolo' => $validated['ruolo'],
             'associazione' => $associazione,
         ]);
@@ -89,6 +93,8 @@ class AdminProfileController extends Controller
     public function update(Request $request, string $id): JsonResponse
     {
         $validated = $request->validate([
+            'nome' => 'sometimes|required|string|max:255',
+            'cognome' => 'sometimes|required|string|max:255',
             'ruolo' => ['sometimes', Rule::in(['segreteria', 'master', 'capo_squadra', 'sala_operativa', 'super_user'])],
             'associazione' => 'nullable|string|max:255',
             'password' => 'nullable|string|min:6',
@@ -111,6 +117,12 @@ class AdminProfileController extends Controller
         ];
 
         $profilePayload = [];
+        if (array_key_exists('nome', $validated)) {
+            $profilePayload['nome'] = trim($validated['nome']);
+        }
+        if (array_key_exists('cognome', $validated)) {
+            $profilePayload['cognome'] = trim($validated['cognome']);
+        }
         if (array_key_exists('ruolo', $validated)) {
             $profilePayload['ruolo'] = $validated['ruolo'];
             $profilePayload['associazione'] = in_array($validated['ruolo'], ['master', 'sala_operativa', 'super_user'], true)
@@ -120,9 +132,13 @@ class AdminProfileController extends Controller
             $profilePayload['associazione'] = $validated['associazione'];
         }
 
-        if (isset($profilePayload['ruolo']) && $profilePayload['ruolo'] === 'segreteria' && empty($profilePayload['associazione'])) {
+        if (
+            isset($profilePayload['ruolo'])
+            && in_array($profilePayload['ruolo'], ['segreteria', 'capo_squadra'], true)
+            && empty($profilePayload['associazione'])
+        ) {
             throw ValidationException::withMessages([
-                'associazione' => 'Associazione obbligatoria per utenti segreteria.',
+                'associazione' => 'Associazione obbligatoria per segreteria e capo squadra.',
             ]);
         }
 
@@ -147,7 +163,7 @@ class AdminProfileController extends Controller
 
         $fetchResponse = Http::withHeaders($adminHeaders)->get($url.'/rest/v1/profiles', [
             'id' => 'eq.'.$id,
-            'select' => 'id,email,ruolo,associazione,created_at',
+            'select' => 'id,email,nome,cognome,ruolo,associazione,created_at',
         ]);
 
         $profiles = $fetchResponse->json();

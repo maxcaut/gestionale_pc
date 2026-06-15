@@ -37,6 +37,10 @@ CREATE TABLE IF NOT EXISTS servizi (
     art39 TEXT NOT NULL DEFAULT 'Si',
     note TEXT,
     stato TEXT NOT NULL,
+    completato_da_profile_id UUID,
+    completato_da_nome TEXT,
+    completato_da_cognome TEXT,
+    completato_il TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

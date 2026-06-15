@@ -246,7 +246,7 @@ async function loadUserProfile(user) {
 
     const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, ruolo, associazione')
+        .select('id, email, nome, cognome, ruolo, associazione')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -257,6 +257,42 @@ async function loadUserProfile(user) {
 
     currentUserProfile = data;
     return data;
+}
+
+function getCurrentProfileCompletionSnapshot() {
+    const nome = currentUserProfile?.nome?.trim() || null;
+    const cognome = currentUserProfile?.cognome?.trim() || null;
+
+    return {
+        completato_da_profile_id: currentUserProfile?.id || null,
+        completato_da_nome: nome,
+        completato_da_cognome: cognome,
+        completato_il: new Date().toISOString(),
+    };
+}
+
+function getServizioCompletionSnapshot(existing, stato) {
+    if (stato !== "Completato" || existing?.stato === "Completato") {
+        return {};
+    }
+
+    return getCurrentProfileCompletionSnapshot();
+}
+
+function canCompleteServizioWithCurrentProfile(existing, stato) {
+    if (stato !== "Completato" || existing?.stato === "Completato") {
+        return true;
+    }
+
+    if (currentUserProfile?.nome?.trim() && currentUserProfile?.cognome?.trim()) {
+        return true;
+    }
+
+    showToast(
+        "Nominativo mancante",
+        "Completa nome e cognome del profilo utente prima di segnare il servizio come completato."
+    );
+    return false;
 }
 
 const CAPO_SQUADRA_SERVIZIO_READONLY_IDS = ['s-richiedente', 's-tipo'];
@@ -507,6 +543,7 @@ function buildCapoSquadraServizioUpdatePayload(existing, stato) {
         note,
         altri_enti_coinvolti: altriEnti || null,
         stato,
+        ...getServizioCompletionSnapshot(existing, stato),
         ...buildServizioAibPayload(existing.tipo),
     };
 }
@@ -2104,6 +2141,10 @@ function mapServizioRow(s) {
         superficieNonBoscato: s.superficie_non_boscato || {},
         tipologiaAib: s.tipologia_aib || '',
         squadreAibIds: s.squadre_aib_ids || [],
+        completatoDaProfileId: s.completato_da_profile_id || null,
+        completatoDaNome: s.completato_da_nome || '',
+        completatoDaCognome: s.completato_da_cognome || '',
+        completatoIl: s.completato_il || null,
     };
 }
 
@@ -6623,6 +6664,7 @@ async function saveServizio(event) {
     if (isCapoSquadra() && editingServizioId) {
         const existing = servizi.find(s => s.id === editingServizioId);
         if (!existing) return;
+        if (!canCompleteServizioWithCurrentProfile(existing, stato)) return;
 
         let payload = buildCapoSquadraServizioUpdatePayload(existing, stato);
 
@@ -6668,6 +6710,7 @@ async function saveServizio(event) {
     const note = document.getElementById("s-note").value;
     const altriEnti = document.getElementById("s-altri-enti").value.trim();
     const existingServizio = editingServizioId ? servizi.find(s => s.id === editingServizioId) : null;
+    if (!canCompleteServizioWithCurrentProfile(existingServizio, stato)) return;
 
     const mezziCheckboxes = document.querySelectorAll('input[name="s-mezzi-check"]:checked');
     let mezziIds = [];
@@ -6798,6 +6841,7 @@ async function saveServizio(event) {
         note,
         altri_enti_coinvolti: altriEnti || null,
         stato,
+        ...getServizioCompletionSnapshot(existingServizio, stato),
         ...buildServizioAibPayload(tipo),
     };
 
@@ -6844,8 +6888,16 @@ async function saveServizio(event) {
 async function completaServizio(id) {
     const serv = servizi.find(s => s.id === id);
     if (serv) {
+        if (!canCompleteServizioWithCurrentProfile(serv, "Completato")) return;
+
         try {
-            const { error: sErr } = await supabase.from('servizi').update({ stato: "Completato" }).eq('id', id);
+            const { error: sErr } = await supabase
+                .from('servizi')
+                .update({
+                    stato: "Completato",
+                    ...getServizioCompletionSnapshot(serv, "Completato"),
+                })
+                .eq('id', id);
             if (sErr) throw sErr;
 
             for (const mId of (serv.mezziIds || [])) {
@@ -7082,6 +7134,8 @@ async function exportServizioPdf(id, template = 'servizio-programmato', delivery
                     superficieCeduo: serv.superficieCeduo || {},
                     superficieAltoFusto: serv.superficieAltoFusto || {},
                     superficieNonBoscato: serv.superficieNonBoscato || {},
+                    completato_da_nome: serv.completatoDaNome || '',
+                    completato_da_cognome: serv.completatoDaCognome || '',
                 },
                 mezzi: mezziExport.map(m => ({
                     id: m.id,
@@ -7555,7 +7609,7 @@ async function renderAdminProfiles() {
 
     const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, ruolo, associazione, created_at')
+        .select('id, email, nome, cognome, ruolo, associazione, created_at')
         .order('created_at', { ascending: false });
 
     if (error) {
@@ -7590,7 +7644,10 @@ async function renderAdminProfiles() {
 
         tbody.innerHTML += `
             <tr class="hover:bg-slate-800/20 transition-all">
-                <td class="py-4 px-6 text-slate-200 font-medium">${p.email || '—'}</td>
+                <td class="py-4 px-6">
+                    <p class="text-slate-200 font-semibold">${escapeHtml([p.nome, p.cognome].filter(Boolean).join(' ') || '—')}</p>
+                    <p class="text-xs text-slate-500 mt-1">${escapeHtml(p.email || '—')}</p>
+                </td>
                 <td class="py-4 px-6">
                     <span class="px-2.5 py-1 text-xs font-bold border rounded-full ${ruoloBadge}">${formatRuoloLabel(p.ruolo)}</span>
                 </td>
@@ -7691,6 +7748,8 @@ function openNuovoProfiloModal() {
     document.getElementById('modal-profilo-submit').innerText = 'Crea utente';
     document.getElementById('p-email').disabled = false;
     document.getElementById('p-email').value = '';
+    document.getElementById('p-nome').value = '';
+    document.getElementById('p-cognome').value = '';
     document.getElementById('p-password').value = '';
     document.getElementById('p-password').required = true;
     document.getElementById('p-password-required').classList.remove('hidden');
@@ -7706,7 +7765,7 @@ function openNuovoProfiloModal() {
 async function openEditProfiloModal(id) {
     const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, ruolo, associazione')
+        .select('id, email, nome, cognome, ruolo, associazione')
         .eq('id', id)
         .maybeSingle();
 
@@ -7720,6 +7779,8 @@ async function openEditProfiloModal(id) {
     document.getElementById('modal-profilo-submit').innerText = 'Salva modifiche';
     document.getElementById('p-email').value = data.email || '';
     document.getElementById('p-email').disabled = true;
+    document.getElementById('p-nome').value = data.nome || '';
+    document.getElementById('p-cognome').value = data.cognome || '';
     document.getElementById('p-password').value = '';
     document.getElementById('p-password').required = false;
     document.getElementById('p-password-required').classList.add('hidden');
@@ -7737,6 +7798,8 @@ async function saveProfilo(event) {
     if (!hasMasterAccess()) return;
 
     const email = document.getElementById('p-email').value.trim();
+    const nome = document.getElementById('p-nome').value.trim();
+    const cognome = document.getElementById('p-cognome').value.trim();
     const password = document.getElementById('p-password').value;
     const ruolo = document.getElementById('p-ruolo').value;
     const associazione = document.getElementById('p-associazione').value;
@@ -7744,6 +7807,8 @@ async function saveProfilo(event) {
     try {
         if (editingProfileId) {
             const payload = {
+                nome,
+                cognome,
                 ruolo,
                 associazione: roleRequiresAssociazione(ruolo) ? associazione : null,
             };
@@ -7772,6 +7837,8 @@ async function saveProfilo(event) {
                 body: JSON.stringify({
                     email,
                     password,
+                    nome,
+                    cognome,
                     ruolo,
                     associazione: roleRequiresAssociazione(ruolo) ? associazione : null,
                 }),

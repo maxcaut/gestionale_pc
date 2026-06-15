@@ -121,6 +121,12 @@
             font-size: 11px;
         }
 
+        .report-redatto {
+            margin-top: 8px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
         .protocollo {
             position: fixed;
             top: 4mm;
@@ -408,6 +414,10 @@
             </tr>
         </tbody>
     </table>
+
+    <div class="report-redatto">
+        Report redatto da: {{ $reportRedattoDa ?? '' }}
+    </div>
 
 </div>
 
