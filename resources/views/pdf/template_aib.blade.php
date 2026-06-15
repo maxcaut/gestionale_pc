@@ -199,6 +199,11 @@
         $ceduo = $superficieCeduo ?? [];
         $altoFusto = $superficieAltoFusto ?? [];
         $nonBoscato = $superficieNonBoscato ?? [];
+        $latitudine = trim((string) ($servizio['latitudine'] ?? ''));
+        $longitudine = trim((string) ($servizio['longitudine'] ?? ''));
+        $coordinateLocalita = $latitudine !== '' && $longitudine !== ''
+            ? $latitudine.', '.$longitudine
+            : '';
 
         $logoSx = public_path('img/modello-logo-0.png');
         $logoDx = public_path('img/modello-logo-1.png');
@@ -271,7 +276,7 @@
                 <th style="width: 10%;">Mese</th>
                 <th style="width: 10%;">Anno</th>
                 <th style="width: 25%;">Comune</th>
-                <th style="width: 45%;">Località ( &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</th>
+                <th style="width: 45%;">Località ({{ $coordinateLocalita }})</th>
             </tr>
         </thead>
         <tbody>
