@@ -19,9 +19,11 @@
                             <select id="filter-ruolo" onchange="renderVolontari()" class="bg-slate-900 border border-slate-800 text-slate-300 py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-colors">
                                 <option value="">Tutti i ruoli</option>
                                 <option value="Coordinatore">Coordinatore</option>
-                                <option value="Soccorritore">Soccorritore</option>
-                                <option value="Autista">Autista</option>
-                                <option value="Logista">Logista</option>
+                                <option value="Vice Coordinatore">Vice Coordinatore</option>
+                                <option value="Caposquadra">Caposquadra</option>
+                                <option value="Consigliere direttivo">Consigliere direttivo</option>
+                                <option value="Tesoriere">Tesoriere</option>
+                                <option value="Volontario">Volontario</option>
                             </select>
                             
                             <!-- Filtro Stato -->
