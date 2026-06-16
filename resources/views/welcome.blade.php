@@ -603,7 +603,7 @@
 
 
     <!-- ================= MODAL: PROTOCOLLO IN INGRESSO ================= -->
-    <div id="modal-protocollo-ingresso" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div id="modal-protocollo-ingresso" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-start sm:items-center justify-center overflow-y-auto p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl slide-in">
             <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -641,7 +641,7 @@
     </div>
 
     <!-- ================= MODAL: NUOVA ATTREZZATURA MAGAZZINO ================= -->
-    <div id="modal-attrezzatura" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div id="modal-attrezzatura" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-start sm:items-center justify-center overflow-y-auto p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl slide-in">
             <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -700,7 +700,7 @@
     </div>
 
     <!-- ================= MODAL: PRELIEVO MAGAZZINO ================= -->
-    <div id="modal-prelievo-magazzino" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div id="modal-prelievo-magazzino" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-start sm:items-center justify-center overflow-y-auto p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 w-full max-w-3xl rounded-2xl overflow-hidden shadow-2xl slide-in">
             <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -739,7 +739,7 @@
     </div>
 
     <!-- ================= MODAL: NUOVO TIPO ATTREZZATURA ================= -->
-    <div id="modal-tipo-attrezzatura" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div id="modal-tipo-attrezzatura" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-start sm:items-center justify-center overflow-y-auto p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl slide-in">
             <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
                 <h3 class="text-lg font-bold text-white">Nuovo Tipo Attrezzatura</h3>
@@ -768,7 +768,7 @@
 
 
     <!-- ================= MODAL: NUOVO VOLONTARIO ================= -->
-    <div id="modal-volontario" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div id="modal-volontario" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-start sm:items-center justify-center overflow-y-auto p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl slide-in max-h-[90vh] flex flex-col">
             <!-- Modal Header -->
             <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
@@ -1098,7 +1098,7 @@
     </div>
 
     <!-- ================= MODAL: NUOVO MEZZO ================= -->
-    <div id="modal-mezzo" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div id="modal-mezzo" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-start sm:items-center justify-center overflow-y-auto p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl slide-in">
             <!-- Modal Header -->
             <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
@@ -1189,7 +1189,7 @@
     </div>
 
     <!-- ================= MODAL: NUOVA MISSIONE / SERVIZIO ================= -->
-    <div id="modal-servizio" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div id="modal-servizio" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-start sm:items-center justify-center overflow-y-auto p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl slide-in">
             <!-- Modal Header -->
             <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
@@ -1449,7 +1449,7 @@
     </div>
 
     <!-- ================= MODAL: SQUADRA A.I.B. ================= -->
-    <div id="modal-squadra-aib" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div id="modal-squadra-aib" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-start sm:items-center justify-center overflow-y-auto p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl slide-in">
             <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -1574,7 +1574,7 @@
     </div>
 
     <!-- ================= MODAL: ASSOCIAZIONE (ADMIN) ================= -->
-    <div id="modal-associazione" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div id="modal-associazione" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-start sm:items-center justify-center overflow-y-auto p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl slide-in">
             <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -1615,7 +1615,7 @@
     </div>
 
     <!-- ================= MODAL: UTENTE / PROFILO (ADMIN) ================= -->
-    <div id="modal-profilo" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div id="modal-profilo" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-start sm:items-center justify-center overflow-y-auto p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl slide-in">
             <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
