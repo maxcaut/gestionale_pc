@@ -4120,6 +4120,9 @@ function renderMezzi() {
         const avvisoScadenzaHtml = avvisiScadenza.length > 0
             ? `<div class="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-300">${avvisiScadenza.join('<br>')}</div>`
             : '';
+        const doveUbicatoHtml = m.dove_ubicato
+            ? `<p class="mb-4 text-xs text-slate-400"><span class="font-bold uppercase tracking-wider text-slate-500">Dove ubicato?</span><br>${m.dove_ubicato}</p>`
+            : '';
 
         let iconSvg = "";
         if (m.tipo === TIPO_FUORISTRADA) {
@@ -4159,6 +4162,7 @@ function renderMezzi() {
                         <div class="targa-italiana text-sm py-1 font-mono">${m.targa}</div>
                     </div>
 
+                    ${doveUbicatoHtml}
                     ${motivoManutenzioneHtml}
                     ${avvisoScadenzaHtml}
                 </div>
@@ -4209,6 +4213,7 @@ function openEditMezzoModal(id) {
     document.getElementById("m-stato").value = mezzo.stato;
     document.getElementById("m-scadenza-rca").value = mezzo.scadenza_rca || "";
     document.getElementById("m-scadenza-revisione").value = mezzo.scadenza_revisione || "";
+    document.getElementById("m-dove-ubicato").value = mezzo.dove_ubicato || "";
     setupMezzoAssociazioneField();
     const mAssocSelect = document.getElementById("m-associazione");
     if (mAssocSelect) {
@@ -4226,6 +4231,7 @@ async function saveMezzo(event) {
     const stato = document.getElementById("m-stato").value;
     const scadenza_rca = document.getElementById("m-scadenza-rca").value;
     const scadenza_revisione = document.getElementById("m-scadenza-revisione").value;
+    const dove_ubicato = document.getElementById("m-dove-ubicato").value;
     const associazione_appartenenza = getMezzoAssociazioneValue();
 
     if (!associazione_appartenenza) {
@@ -4233,7 +4239,7 @@ async function saveMezzo(event) {
         return;
     }
 
-    const payload = { modello, targa, tipo, stato, associazione_appartenenza, scadenza_rca, scadenza_revisione };
+    const payload = { modello, targa, tipo, stato, associazione_appartenenza, scadenza_rca, scadenza_revisione, dove_ubicato };
 
     try {
         if (editingMezzoId) {
