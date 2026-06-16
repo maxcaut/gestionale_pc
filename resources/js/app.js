@@ -7151,6 +7151,8 @@ async function exportServizioPdf(id, template = 'servizio-programmato', delivery
                     richiedente: serv.richiedente || '',
                     protocollo_regionale: serv.protocolloRegionale || '',
                     indirizzo: serv.indirizzo || '',
+                    latitudine: serv.latitudine ?? null,
+                    longitudine: serv.longitudine ?? null,
                     altriEnti: serv.altriEnti || '',
                     stato: serv.stato,
                     tipologia_aib: serv.tipologiaAib || '',

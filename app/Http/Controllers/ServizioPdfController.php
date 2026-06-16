@@ -30,6 +30,8 @@ class ServizioPdfController extends Controller
             'servizio.richiedente' => 'nullable|string',
             'servizio.protocollo_regionale' => 'nullable|string',
             'servizio.indirizzo' => 'nullable|string',
+            'servizio.latitudine' => 'nullable|numeric',
+            'servizio.longitudine' => 'nullable|numeric',
             'servizio.altriEnti' => 'nullable|string',
             'servizio.oraArrivoIncendio' => 'nullable|string',
             'servizio.oraFineIntervento' => 'nullable|string',
