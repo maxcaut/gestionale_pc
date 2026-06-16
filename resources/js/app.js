@@ -3256,11 +3256,13 @@ function renderVolontari() {
         return matchSearch && matchRuolo && matchStato;
     });
 
-    if (filterOrdine === "cognome-asc" || filterOrdine === "cognome-desc") {
+    if (["nome-asc", "nome-desc", "cognome-asc", "cognome-desc"].includes(filterOrdine)) {
         filtered = filtered.sort((a, b) => {
-            const result = String(a.cognome || "").localeCompare(String(b.cognome || ""), "it")
-                || String(a.nome || "").localeCompare(String(b.nome || ""), "it");
-            return filterOrdine === "cognome-desc" ? -result : result;
+            const field = filterOrdine.startsWith("nome") ? "nome" : "cognome";
+            const secondaryField = field === "nome" ? "cognome" : "nome";
+            const result = String(a[field] || "").localeCompare(String(b[field] || ""), "it")
+                || String(a[secondaryField] || "").localeCompare(String(b[secondaryField] || ""), "it");
+            return filterOrdine.endsWith("desc") ? -result : result;
         });
     }
 

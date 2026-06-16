@@ -37,6 +37,8 @@
                             <!-- Filtro Ordine Alfabetico -->
                             <select id="filter-ordine-volontari" onchange="renderVolontari()" class="bg-slate-900 border border-slate-800 text-slate-300 py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-colors">
                                 <option value="">Ordine alfabetico</option>
+                                <option value="nome-asc">Nome A-Z</option>
+                                <option value="nome-desc">Nome Z-A</option>
                                 <option value="cognome-asc">Cognome A-Z</option>
                                 <option value="cognome-desc">Cognome Z-A</option>
                             </select>
