@@ -3244,15 +3244,24 @@ function renderVolontari() {
     const search = document.getElementById("search-volontari").value.toLowerCase();
     const filterRuolo = document.getElementById("filter-ruolo").value;
     const filterStato = document.getElementById("filter-stato-volontario").value;
+    const filterOrdine = document.getElementById("filter-ordine-volontari").value;
 
     tbody.innerHTML = "";
 
-    const filtered = volontari.filter(v => {
+    let filtered = volontari.filter(v => {
         const matchSearch = `${v.nome} ${v.cognome} ${v.cf} ${v.telefono} ${v.associazione_appartenenza || ""}`.toLowerCase().includes(search);
         const matchRuolo = filterRuolo === "" || v.ruolo === filterRuolo;
         const matchStato = filterStato === "" || v.stato === filterStato;
         return matchSearch && matchRuolo && matchStato;
     });
+
+    if (filterOrdine === "cognome-asc" || filterOrdine === "cognome-desc") {
+        filtered = filtered.sort((a, b) => {
+            const result = String(a.cognome || "").localeCompare(String(b.cognome || ""), "it")
+                || String(a.nome || "").localeCompare(String(b.nome || ""), "it");
+            return filterOrdine === "cognome-desc" ? -result : result;
+        });
+    }
 
     if (filtered.length === 0) {
         tbody.innerHTML = `

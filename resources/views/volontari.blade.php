@@ -33,6 +33,13 @@
                                 <option value="In riposo">In riposo</option>
                                 <option value="Sospeso">Sospeso</option>
                             </select>
+
+                            <!-- Filtro Ordine Alfabetico -->
+                            <select id="filter-ordine-volontari" onchange="renderVolontari()" class="bg-slate-900 border border-slate-800 text-slate-300 py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                                <option value="">Ordine alfabetico</option>
+                                <option value="cognome-asc">Cognome A-Z</option>
+                                <option value="cognome-desc">Cognome Z-A</option>
+                            </select>
                         </div>
 
                         <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
