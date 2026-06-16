@@ -7007,7 +7007,7 @@ function openPdfDeliveryModal(options) {
     }
     if (toInput) toInput.value = recipient;
     if (subjectInput) subjectInput.value = filename;
-    if (bodyInput) bodyInput.value = `in allegato il file ${filename}`;
+    if (bodyInput) bodyInput.value = `in allegato il file ${filename} ⚠️ E-Mail generata automaticamente. L'indirizzzo di posta non è abilitato alla ricezione ⚠️`;
 
     toggleModal('modal-pdf-delivery', true);
 }

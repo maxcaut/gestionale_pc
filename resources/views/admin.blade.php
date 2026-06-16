@@ -14,6 +14,27 @@
                     </div>
 
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                        <div class="p-4 border-b border-slate-800 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                            <input type="search" id="admin-profiles-search" oninput="applyAdminProfilesFilters()" placeholder="Cerca utente" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/40">
+                            <select id="admin-profiles-role-filter" onchange="applyAdminProfilesFilters()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40">
+                                <option value="">Tutti i ruoli</option>
+                                <option value="master">Master</option>
+                                <option value="segreteria">Segreteria</option>
+                                <option value="capo_squadra">Capo Squadra</option>
+                                <option value="sala_operativa">Sala Operativa</option>
+                                <option value="super_user">SuperUser</option>
+                            </select>
+                            <select id="admin-profiles-associazione-filter" onchange="applyAdminProfilesFilters()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40">
+                                <option value="">Tutte le associazioni</option>
+                            </select>
+                            <select id="admin-profiles-sort" onchange="applyAdminProfilesFilters()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40">
+                                <option value="created_desc">Piu recenti</option>
+                                <option value="name_asc">Utente A-Z</option>
+                                <option value="name_desc">Utente Z-A</option>
+                                <option value="role_asc">Ruolo A-Z</option>
+                                <option value="association_asc">Associazione A-Z</option>
+                            </select>
+                        </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse">
                                 <thead>
@@ -42,6 +63,14 @@
                                 </svg>
                                 <span>Aggiungi</span>
                             </button>
+                        </div>
+                        <div class="p-4 border-b border-slate-800 grid gap-3 md:grid-cols-2">
+                            <input type="search" id="admin-associazioni-search" oninput="applyAdminAssociazioniFilters()" placeholder="Cerca associazione" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/40">
+                            <select id="admin-associazioni-sort" onchange="applyAdminAssociazioniFilters()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40">
+                                <option value="default">Ordine corrente</option>
+                                <option value="name_asc">Nome A-Z</option>
+                                <option value="name_desc">Nome Z-A</option>
+                            </select>
                         </div>
                         <div id="admin-associazioni-list" class="divide-y divide-slate-800/40">
                         </div>
