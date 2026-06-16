@@ -3303,7 +3303,7 @@ function renderVolontari() {
                 </td>
                 <td class="py-4 px-6 text-slate-300 font-mono text-xs uppercase">${v.cf}</td>
                 <td class="py-4 px-6">
-                    <span class="px-3 py-1 bg-slate-800 border border-slate-700/50 rounded-xl text-slate-300 font-medium text-xs">${v.ruolo}</span>
+                    <span class="px-3 py-1 bg-slate-800 border border-slate-700/50 rounded-xl text-slate-300 font-medium text-xs whitespace-nowrap">${v.ruolo}</span>
                 </td>
                 <td class="py-4 px-6 text-slate-300 font-medium">${v.associazione_appartenenza || "—"}</td>
                 <td class="py-4 px-6 text-slate-300 font-medium">

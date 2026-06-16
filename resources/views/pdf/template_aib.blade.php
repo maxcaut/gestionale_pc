@@ -325,26 +325,20 @@
                 <th>Cognome Nome – Operatore Volontario</th>
                 <th>Recapito Telefonico</th>
             </tr>
-            <tr>
-                <td class="col-center">2</td>
-                <td class="input-space-sm">{{ $nomeVolontario($operatori[0] ?? null) }}</td>
-                <td></td>
-            </tr>
-            <tr>
-                <td class="col-center">3</td>
-                <td class="input-space-sm">{{ $nomeVolontario($operatori[1] ?? null) }}</td>
-                <td></td>
-            </tr>
-            <tr>
-                <td class="col-center">4</td>
-                <td class="input-space-sm">{{ $nomeVolontario($operatori[2] ?? null) }}</td>
-                <td></td>
-            </tr>
-            <tr>
-                <td class="col-center">5</td>
-                <td class="input-space-sm">{{ $nomeVolontario($operatori[3] ?? null) }}</td>
-                <td></td>
-            </tr>
+            @foreach ($operatori as $index => $operatore)
+                <tr>
+                    <td class="col-center">{{ $index + 2 }}</td>
+                    <td class="input-space-sm">{{ $nomeVolontario($operatore) }}</td>
+                    <td></td>
+                </tr>
+            @endforeach
+            @for ($index = count($operatori); $index < 4; $index++)
+                <tr>
+                    <td class="col-center">{{ $index + 2 }}</td>
+                    <td class="input-space-sm"></td>
+                    <td></td>
+                </tr>
+            @endfor
         </tbody>
     </table>
 
