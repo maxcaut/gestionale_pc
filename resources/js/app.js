@@ -46,6 +46,7 @@ const DEFAULT_ASSOCIAZIONI = [
 let currentUserProfile = null;
 let associazioniDisponibili = DEFAULT_ASSOCIAZIONI.map((nome, index) => ({ id: `default-${index}`, nome }));
 let associazioniLoadedFromApi = false;
+let adminProfilesCache = [];
 
 function isMaster() {
     return currentUserProfile?.ruolo === 'master';
@@ -7660,38 +7661,66 @@ function toggleProfiloIdentitaFields() {
     }
 }
 
-async function renderAdminProfiles() {
-    if (!hasMasterAccess()) return;
+function getAdminProfileDisplayName(profile) {
+    return [profile.nome, profile.cognome].filter(Boolean).join(' ') || profile.email || '';
+}
 
+function renderAdminProfileAssociazioneFilterOptions(profiles) {
+    const select = document.getElementById('admin-profiles-associazione-filter');
+    if (!select) return;
+
+    const currentValue = select.value;
+    const associazioni = [...new Set(profiles.map(p => p.associazione).filter(Boolean))]
+        .sort((a, b) => String(a).localeCompare(String(b), 'it'));
+
+    select.innerHTML = '<option value="">Tutte le associazioni</option>' + associazioni.map(associazione => (
+        `<option value="${escapeAttr(associazione)}">${escapeHtml(associazione)}</option>`
+    )).join('');
+
+    if (currentValue && associazioni.includes(currentValue)) {
+        select.value = currentValue;
+    }
+}
+
+function getFilteredAdminProfiles() {
+    const search = document.getElementById('admin-profiles-search')?.value.trim().toLowerCase() || '';
+    const roleFilter = document.getElementById('admin-profiles-role-filter')?.value || '';
+    const associazioneFilter = document.getElementById('admin-profiles-associazione-filter')?.value || '';
+    const sort = document.getElementById('admin-profiles-sort')?.value || 'created_desc';
+
+    return [...adminProfilesCache]
+        .filter(profile => {
+            const searchText = `${getAdminProfileDisplayName(profile)} ${profile.email || ''} ${formatRuoloLabel(profile.ruolo)} ${profile.associazione || ''}`.toLowerCase();
+            const matchSearch = !search || searchText.includes(search);
+            const matchRole = !roleFilter || profile.ruolo === roleFilter;
+            const matchAssociazione = !associazioneFilter || profile.associazione === associazioneFilter;
+            return matchSearch && matchRole && matchAssociazione;
+        })
+        .sort((a, b) => {
+            if (sort === 'name_asc') {
+                return String(getAdminProfileDisplayName(a)).localeCompare(String(getAdminProfileDisplayName(b)), 'it');
+            }
+            if (sort === 'name_desc') {
+                return String(getAdminProfileDisplayName(b)).localeCompare(String(getAdminProfileDisplayName(a)), 'it');
+            }
+            if (sort === 'role_asc') {
+                return String(formatRuoloLabel(a.ruolo)).localeCompare(String(formatRuoloLabel(b.ruolo)), 'it');
+            }
+            if (sort === 'association_asc') {
+                return String(a.associazione || '').localeCompare(String(b.associazione || ''), 'it');
+            }
+            return 0;
+        });
+}
+
+function renderAdminProfilesRows(profiles, emptyMessage = 'Nessun utente trovato con i filtri selezionati.') {
     const tbody = document.getElementById('admin-profiles-table-body');
     if (!tbody) return;
 
-    tbody.innerHTML = `
-        <tr>
-            <td colspan="4" class="py-8 text-center text-slate-500 font-medium">Caricamento...</td>
-        </tr>
-    `;
-
-    const { data, error } = await supabase
-        .from('profiles')
-        .select('id, email, nome, cognome, ruolo, associazione, created_at')
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        console.error('Errore caricamento profili:', error);
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="4" class="py-8 text-center text-rose-400 font-medium">Impossibile caricare gli utenti. Esegui la migration 002 su Supabase.</td>
-            </tr>
-        `;
-        return;
-    }
-
-    const profiles = data || [];
     if (profiles.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="4" class="py-8 text-center text-slate-500 font-medium">Nessun utente configurato.</td>
+                <td colspan="4" class="py-8 text-center text-slate-500 font-medium">${emptyMessage}</td>
             </tr>
         `;
         return;
@@ -7735,31 +7764,72 @@ async function renderAdminProfiles() {
     });
 }
 
-async function renderAdminAssociazioni() {
+function applyAdminProfilesFilters() {
+    renderAdminProfilesRows(getFilteredAdminProfiles());
+}
+
+async function renderAdminProfiles() {
     if (!hasMasterAccess()) return;
 
+    const tbody = document.getElementById('admin-profiles-table-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="4" class="py-8 text-center text-slate-500 font-medium">Caricamento...</td>
+        </tr>
+    `;
+
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, nome, cognome, ruolo, associazione, created_at')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Errore caricamento profili:', error);
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="py-8 text-center text-rose-400 font-medium">Impossibile caricare gli utenti. Esegui la migration 002 su Supabase.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    adminProfilesCache = data || [];
+    renderAdminProfileAssociazioneFilterOptions(adminProfilesCache);
+    renderAdminProfilesRows(adminProfilesCache, 'Nessun utente configurato.');
+}
+
+function getFilteredAdminAssociazioni() {
+    const search = document.getElementById('admin-associazioni-search')?.value.trim().toLowerCase() || '';
+    const sort = document.getElementById('admin-associazioni-sort')?.value || 'default';
+
+    return [...associazioniDisponibili]
+        .filter(associazione => {
+            const searchText = `${associazione.nome || ''} ${associazione.legale_rappresentante || ''} ${associazione.recapito_telefonico || ''} ${associazione.mail_pec || ''}`.toLowerCase();
+            return !search || searchText.includes(search);
+        })
+        .sort((a, b) => {
+            if (sort === 'name_asc') {
+                return String(a.nome || '').localeCompare(String(b.nome || ''), 'it');
+            }
+            if (sort === 'name_desc') {
+                return String(b.nome || '').localeCompare(String(a.nome || ''), 'it');
+            }
+            return 0;
+        });
+}
+
+function renderAdminAssociazioniList(associazioni, emptyMessage = 'Nessuna associazione trovata con i filtri selezionati.') {
     const list = document.getElementById('admin-associazioni-list');
     if (!list) return;
 
-    list.innerHTML = '<div class="p-6 text-sm text-slate-500 font-medium">Caricamento...</div>';
-
-    try {
-        await loadAssociazioni();
-    } catch (err) {
-        console.error('Errore caricamento associazioni:', err);
-    }
-
-    if (!associazioniLoadedFromApi) {
-        list.innerHTML = '<div class="p-6 text-sm text-amber-400 font-medium">Esegui la migration associazioni su Supabase per abilitare aggiunta e rimozione.</div>';
+    if (!associazioni.length) {
+        list.innerHTML = `<div class="p-6 text-sm text-slate-500 font-medium">${emptyMessage}</div>`;
         return;
     }
 
-    if (!associazioniDisponibili.length) {
-        list.innerHTML = '<div class="p-6 text-sm text-slate-500 font-medium">Nessuna associazione configurata.</div>';
-        return;
-    }
-
-    list.innerHTML = associazioniDisponibili.map(associazione => `
+    list.innerHTML = associazioni.map(associazione => `
         <div class="flex flex-col gap-4 px-6 py-4 lg:flex-row lg:items-start lg:justify-between">
             <div class="min-w-0 flex-1">
                 <p class="truncate text-sm font-semibold text-slate-200">${escapeHtml(associazione.nome || '—')}</p>
@@ -7790,6 +7860,32 @@ async function renderAdminAssociazioni() {
             </div>
         </div>
     `).join('');
+}
+
+function applyAdminAssociazioniFilters() {
+    renderAdminAssociazioniList(getFilteredAdminAssociazioni());
+}
+
+async function renderAdminAssociazioni() {
+    if (!hasMasterAccess()) return;
+
+    const list = document.getElementById('admin-associazioni-list');
+    if (!list) return;
+
+    list.innerHTML = '<div class="p-6 text-sm text-slate-500 font-medium">Caricamento...</div>';
+
+    try {
+        await loadAssociazioni();
+    } catch (err) {
+        console.error('Errore caricamento associazioni:', err);
+    }
+
+    if (!associazioniLoadedFromApi) {
+        list.innerHTML = '<div class="p-6 text-sm text-amber-400 font-medium">Esegui la migration associazioni su Supabase per abilitare aggiunta e rimozione.</div>';
+        return;
+    }
+
+    renderAdminAssociazioniList(associazioniDisponibili, 'Nessuna associazione configurata.');
 }
 
 function openNuovaAssociazioneModal() {
@@ -8105,6 +8201,8 @@ window.openEditAssociazioneModal = openEditAssociazioneModal;
 window.toggleProfiloAssociazioneField = toggleProfiloAssociazioneField;
 window.renderAdminProfiles = renderAdminProfiles;
 window.renderAdminAssociazioni = renderAdminAssociazioni;
+window.applyAdminProfilesFilters = applyAdminProfilesFilters;
+window.applyAdminAssociazioniFilters = applyAdminAssociazioniFilters;
 window.saveAssociazione = saveAssociazione;
 window.deleteAssociazione = deleteAssociazione;
 window.openNuovoProtocolloIngressoModal = openNuovoProtocolloIngressoModal;
