@@ -1263,7 +1263,7 @@ function resetVolontarioPatentiFields() {
     document.querySelectorAll("[data-patente-filename]").forEach(el => {
         setVolontarioFileName(el, "");
     });
-    toggleVolontarioPatentiFiles();
+    toggleVolontarioPatentiPresence();
 }
 
 function getVolontarioPatentiFilesMap(volontario = null) {
