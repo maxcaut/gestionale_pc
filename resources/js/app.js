@@ -3272,6 +3272,79 @@ function exportVolontariNonCensiti() {
     showToast("Export completato", "Il file Excel dei volontari non censiti è stato scaricato.");
 }
 
+function formatVolontarioExportList(value) {
+    return Array.isArray(value) ? value.join(', ') : '';
+}
+
+function formatVolontarioExportDates(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
+
+    return Object.entries(value)
+        .map(([qualifica, data]) => `${qualifica}: ${data || ''}`)
+        .join(', ');
+}
+
+function exportTuttiVolontari() {
+    if (!canAccessVolontari()) return;
+
+    const headers = [
+        'Associazione di appartenenza',
+        'Cognome',
+        'Nome',
+        'Data di nascita',
+        'Luogo di nascita',
+        'Codice Fiscale',
+        'Via di residenza',
+        'Comune di residenza',
+        'Numero di telefono',
+        'Email',
+        'Censito',
+        'Matricola Regionale',
+        'Ruolo Operativo',
+        'Stato Disponibilità',
+        'Qualifica Antincendio',
+        'Date Qualifica Antincendio',
+        'Qualifiche Coordinamento',
+        'Date Qualifiche Coordinamento',
+        'Patenti',
+    ];
+    const rows = getDB("pc_volontari")
+        .slice()
+        .sort((a, b) => String(a.cognome || '').localeCompare(String(b.cognome || ''), 'it')
+            || String(a.nome || '').localeCompare(String(b.nome || ''), 'it'))
+        .map(v => [
+            v.associazione_appartenenza || '',
+            v.cognome || '',
+            v.nome || '',
+            v.data_nascita || '',
+            v.luogo_nascita || '',
+            v.cf || '',
+            v.via_residenza || '',
+            v.comune_residenza || '',
+            v.telefono || '',
+            v.email || '',
+            v.censito === true ? 'Si' : 'No',
+            v.matricola_regionale || '',
+            v.ruolo || '',
+            v.stato || '',
+            formatVolontarioExportList(v.qualifica_antincendio),
+            formatVolontarioExportDates(v.qualifica_antincendio_date),
+            formatVolontarioExportList(v.qualifiche_coordinamento),
+            formatVolontarioExportDates(v.qualifiche_coordinamento_date),
+            formatVolontarioExportList(v.patenti),
+        ]);
+
+    if (rows.length === 0) {
+        showToast("Nessun volontario", "Non ci sono volontari da esportare.");
+        return;
+    }
+
+    const xml = createExcelXmlWorksheet('Tutti i volontari', headers, rows);
+    const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    downloadBlob(blob, `tutti-volontari-${new Date().toISOString().slice(0, 10)}.xls`);
+    showToast("Export completato", "Il file Excel con tutti i volontari è stato scaricato.");
+}
+
 function renderVolontari() {
     const volontari = getDB("pc_volontari");
     const tbody = document.getElementById("volontari-table-body");
@@ -8207,6 +8280,7 @@ window.toggleVolontarioStato = toggleVolontarioStato;
 window.deleteVolontario = deleteVolontario;
 window.renderVolontari = renderVolontari;
 window.exportVolontariNonCensiti = exportVolontariNonCensiti;
+window.exportTuttiVolontari = exportTuttiVolontari;
 window.exportVolontarioPdf = exportVolontarioPdf;
 window.visualizzaDocumentiVolontario = visualizzaDocumentiVolontario;
 window.closeVolontarioDocumentiModal = closeVolontarioDocumentiModal;

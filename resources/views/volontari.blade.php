@@ -45,12 +45,27 @@
                         </div>
 
                         <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                            <button onclick="exportVolontariNonCensiti()" class="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/60 text-slate-200 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M7.5 12l4.5 4.5m0 0l4.5-4.5m-4.5 4.5V3" />
-                                </svg>
-                                <span>Export volontari non censiti</span>
-                            </button>
+                            <div class="relative w-full sm:w-auto group">
+                                <button type="button" class="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/60 text-slate-200 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M7.5 12l4.5 4.5m0 0l4.5-4.5m-4.5 4.5V3" />
+                                    </svg>
+                                    <span>Export volontari</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25L12 15.75 4.5 8.25" />
+                                    </svg>
+                                </button>
+                                <div class="absolute right-0 z-20 hidden group-hover:block group-focus-within:block w-full sm:w-72 pt-2">
+                                    <div class="bg-slate-900 border border-slate-800 rounded-xl shadow-xl overflow-hidden">
+                                        <button type="button" onclick="exportVolontariNonCensiti()" class="w-full px-4 py-3 text-left text-sm font-semibold text-slate-200 hover:bg-slate-800 hover:text-amber-500 transition-colors">
+                                            Export volontari non censiti
+                                        </button>
+                                        <button type="button" onclick="exportTuttiVolontari()" class="w-full px-4 py-3 text-left text-sm font-semibold text-slate-200 hover:bg-slate-800 hover:text-amber-500 transition-colors border-t border-slate-800">
+                                            Export tutti i volontari
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
 
                             <!-- Bottone Inserimento (Apre Modal) -->
                             <button onclick="openNuovoVolontarioModal()" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-slate-950 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20 transition-all">
