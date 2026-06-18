@@ -5599,7 +5599,7 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
             <label data-volontario-search="${searchText}" class="block p-2 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
                 <span class="flex items-start gap-3 min-w-0">
                     <input type="checkbox" name="s-volontari-check" value="${v.id}" ${checked} onchange="updateServizioVolontarioMezzoControl(this.value)" class="mt-0.5 rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4 shrink-0">
-                    <span class="text-xs ${fontClass} leading-snug break-words">${v.nome} ${v.cognome} (${v.ruolo})${v.associazione_appartenenza ? ` · ${v.associazione_appartenenza}` : ''}${extra}</span>
+                    <span class="text-xs ${fontClass} leading-snug break-words">${v.nome} ${v.cognome} (${v.ruolo})${v.associazione_appartenenza ? ` · ${v.associazione_appartenenza}` : ''}${v.matricola_regionale ? ` · Matricola Regionale: ${v.matricola_regionale}` : ''}${extra}</span>
                 </span>
                 <span class="mt-3 ml-7 ${controlsGridClass}">
                     <span class="flex flex-col gap-1 min-w-0">
