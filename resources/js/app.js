@@ -3231,6 +3231,22 @@ function createExcelXmlWorksheet(sheetName, headers, rows) {
 </Workbook>`;
 }
 
+function closeVolontariExportMenu() {
+    document.getElementById('volontari-export-menu')?.classList.add('hidden');
+}
+
+function toggleVolontariExportMenu(event) {
+    event?.stopPropagation();
+    document.getElementById('volontari-export-menu')?.classList.toggle('hidden');
+}
+
+document.addEventListener('click', event => {
+    const dropdown = document.getElementById('volontari-export-dropdown');
+    if (dropdown && !dropdown.contains(event.target)) {
+        closeVolontariExportMenu();
+    }
+});
+
 function exportVolontariNonCensiti() {
     if (!canAccessVolontari()) return;
 
@@ -8279,6 +8295,8 @@ window.saveVolontario = saveVolontario;
 window.toggleVolontarioStato = toggleVolontarioStato;
 window.deleteVolontario = deleteVolontario;
 window.renderVolontari = renderVolontari;
+window.closeVolontariExportMenu = closeVolontariExportMenu;
+window.toggleVolontariExportMenu = toggleVolontariExportMenu;
 window.exportVolontariNonCensiti = exportVolontariNonCensiti;
 window.exportTuttiVolontari = exportTuttiVolontari;
 window.exportVolontarioPdf = exportVolontarioPdf;
