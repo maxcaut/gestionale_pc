@@ -1510,8 +1510,19 @@
                     </select>
                 </div>
 
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Giorno inizio disponibilità <span class="text-amber-500">*</span></label>
+                        <input type="date" id="aib-squadra-disponibile-dal-data" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Ora inizio disponibilità <span class="text-amber-500">*</span></label>
+                        <input type="time" id="aib-squadra-disponibile-dal-ora" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                    </div>
+                </div>
+
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Fine disponibilità <span class="text-amber-500">*</span></label>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Ora fine disponibilità <span class="text-amber-500">*</span></label>
                     <input type="time" id="aib-squadra-disponibile-fino" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
                 </div>
 

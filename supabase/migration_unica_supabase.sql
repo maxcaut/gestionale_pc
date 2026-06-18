@@ -1590,3 +1590,12 @@ COMMENT ON COLUMN public.servizi.completato_da_profile_id IS 'Profilo utente che
 COMMENT ON COLUMN public.servizi.completato_da_nome IS 'Snapshot del nome del profilo che ha completato il servizio';
 COMMENT ON COLUMN public.servizi.completato_da_cognome IS 'Snapshot del cognome del profilo che ha completato il servizio';
 COMMENT ON COLUMN public.servizi.completato_il IS 'Data e ora in cui il servizio e stato portato allo stato Completato';
+
+
+-- ============================================================================
+-- supabase/migrations/040_squadre_aib_disponibile_dal.sql
+-- ============================================================================
+-- Squadre A.I.B.: data e ora di inizio disponibilità
+
+ALTER TABLE public.squadre_aib
+    ADD COLUMN IF NOT EXISTS disponibile_dal TIMESTAMPTZ;

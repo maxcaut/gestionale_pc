@@ -986,6 +986,48 @@ function normalizeTimeValue(value) {
     return match ? `${match[1]}:${match[2]}` : '';
 }
 
+function toLocalDateValue(value) {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function toLocalTimeValue(value) {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+
+    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+function getSquadraAibAvailabilityStart(squadra) {
+    const start = new Date(squadra?.disponibileDal || squadra?.createdAt || '');
+    return Number.isNaN(start.getTime()) ? null : start;
+}
+
+function getSquadraAibAvailabilityEnd(squadra) {
+    const start = getSquadraAibAvailabilityStart(squadra);
+    const endTime = normalizeTimeValue(squadra?.disponibileFino);
+    if (!start || !endTime) return null;
+
+    const [hours, minutes] = endTime.split(':').map(Number);
+    const end = new Date(start);
+    end.setHours(hours, minutes, 0, 0);
+    if (end <= start) {
+        end.setDate(end.getDate() + 1);
+    }
+    return end;
+}
+
+function isSquadraAibDisponibileOra(squadra, now = new Date()) {
+    const start = getSquadraAibAvailabilityStart(squadra);
+    const end = getSquadraAibAvailabilityEnd(squadra);
+    return Boolean(start && end && start <= now && now < end);
+}
+
 function escapeHtml(value) {
     return String(value ?? '')
         .replaceAll('&', '&amp;')
@@ -2184,6 +2226,7 @@ function mapSquadraAibRow(s) {
         mezziIds: s.mezzi_ids || [],
         volontariIds: s.volontari_ids || [],
         stato: s.stato || 'Operativa',
+        disponibileDal: s.disponibile_dal || null,
         disponibileFino: s.disponibile_fino || null,
         createdAt: s.created_at || null,
     };
@@ -2194,8 +2237,9 @@ async function cleanupSquadreAibScadute() {
 
     const expiredSquadre = squadreAib
         .filter(s => {
-            if (!s.disponibileFino) return false;
-            return isTimeValuePassedToday(s.disponibileFino)
+            const availabilityEnd = getSquadraAibAvailabilityEnd(s);
+            if (!availabilityEnd) return false;
+            return availabilityEnd <= new Date()
                 && canManageSquadraAib(s)
                 && s.stato !== 'Turno Terminato'
                 && !isSquadraAibAssegnataAInterventoAttivo(s.id);
@@ -2846,20 +2890,9 @@ function renderStatisticheGroupedTable(tbodyId, rows, emptyMessage) {
 }
 
 function getSquadraAibAvailabilityInterval(squadra, now = new Date()) {
-    if (!squadra?.createdAt || !squadra?.disponibileFino) return null;
-
-    const start = new Date(squadra.createdAt);
-    if (Number.isNaN(start.getTime())) return null;
-
-    const endTime = normalizeTimeValue(squadra.disponibileFino);
-    if (!endTime) return null;
-
-    const [hours, minutes] = endTime.split(':').map(Number);
-    const end = new Date(start);
-    end.setHours(hours, minutes, 0, 0);
-    if (end <= start) {
-        end.setDate(end.getDate() + 1);
-    }
+    const start = getSquadraAibAvailabilityStart(squadra);
+    const end = getSquadraAibAvailabilityEnd(squadra);
+    if (!start || !end || now <= start) return null;
 
     const effectiveEnd = squadra.stato === 'Turno Terminato' ? end : new Date(Math.min(now.getTime(), end.getTime()));
     return effectiveEnd > start ? { start, end: effectiveEnd } : null;
@@ -5263,10 +5296,14 @@ async function exportSquadraAibPdf(id, delivery = 'download', email = null) {
 function openNuovaSquadraAibModal() {
     if (!canAccessSquadreAib()) return;
     editingSquadraAibId = null;
+    const now = new Date();
     setModalFormMode('modal-squadra-aib', { title: 'Nuova Squadra A.I.B.', submitText: 'Salva' });
     setupSquadraAibAssociazioneField();
     document.getElementById('aib-squadra-nome').value = '';
     document.getElementById('aib-squadra-stato').value = 'Operativa';
+    document.getElementById('aib-squadra-disponibile-dal-data').value = toLocalDateValue(now);
+    document.getElementById('aib-squadra-disponibile-dal-data').min = toLocalDateValue(now);
+    document.getElementById('aib-squadra-disponibile-dal-ora').value = toLocalTimeValue(now);
     document.getElementById('aib-squadra-disponibile-fino').value = '';
     if (!isSegreteria()) document.getElementById('aib-squadra-associazione').value = getDefaultAssociazione();
     populateSquadraAibModalOptions([], []);
@@ -5282,6 +5319,10 @@ function openEditSquadraAibModal(id) {
     setupSquadraAibAssociazioneField();
     document.getElementById('aib-squadra-nome').value = squadra.nome || '';
     document.getElementById('aib-squadra-stato').value = squadra.stato || 'Operativa';
+    const disponibileDal = getSquadraAibAvailabilityStart(squadra);
+    document.getElementById('aib-squadra-disponibile-dal-data').value = disponibileDal ? toLocalDateValue(disponibileDal) : '';
+    document.getElementById('aib-squadra-disponibile-dal-data').min = '';
+    document.getElementById('aib-squadra-disponibile-dal-ora').value = disponibileDal ? toLocalTimeValue(disponibileDal) : '';
     document.getElementById('aib-squadra-disponibile-fino').value = normalizeTimeValue(squadra.disponibileFino);
     if (!isSegreteria()) document.getElementById('aib-squadra-associazione').value = squadra.associazione_appartenenza || getDefaultAssociazione();
     populateSquadraAibModalOptions(squadra.mezziIds || [], squadra.volontariIds || []);
@@ -5297,17 +5338,32 @@ async function saveSquadraAib(event) {
     const mezziIds = collectCheckedValues('aib-squadra-mezzi-check');
     const volontariIds = collectCheckedValues('aib-squadra-volontari-check');
     const stato = document.getElementById('aib-squadra-stato').value;
+    const disponibileDalData = document.getElementById('aib-squadra-disponibile-dal-data').value;
+    const disponibileDalOra = document.getElementById('aib-squadra-disponibile-dal-ora').value;
     const disponibileFino = document.getElementById('aib-squadra-disponibile-fino').value;
+    const disponibileDalDate = new Date(`${disponibileDalData}T${disponibileDalOra}:00`);
 
     if (!associazione) {
         showToast('Dati incompleti', 'Associazione non configurata.');
+        return;
+    }
+    if (!disponibileDalData || !disponibileDalOra || Number.isNaN(disponibileDalDate.getTime())) {
+        showToast('Dati incompleti', 'Inserisci il giorno e l\'ora di inizio disponibilità della squadra.');
+        return;
+    }
+    if (!editingSquadraAibId && disponibileDalDate.getTime() < Date.now() - 60000) {
+        showToast('Inizio disponibilità non valido', 'L\'inizio disponibilità non può essere precedente all\'orario attuale.');
         return;
     }
     if (!disponibileFino) {
         showToast('Dati incompleti', 'Inserisci la fine disponibilità della squadra.');
         return;
     }
-    if (isTimeValuePassedToday(disponibileFino)) {
+    const availabilityEnd = getSquadraAibAvailabilityEnd({
+        disponibileDal: disponibileDalDate.toISOString(),
+        disponibileFino,
+    });
+    if (!availabilityEnd || availabilityEnd <= new Date()) {
         showToast('Fine disponibilità non valida', 'La fine disponibilità deve essere successiva all\'orario attuale.');
         return;
     }
@@ -5332,6 +5388,7 @@ async function saveSquadraAib(event) {
         mezzi_ids: mezziIds,
         volontari_ids: volontariIds,
         stato,
+        disponibile_dal: disponibileDalDate.toISOString(),
         disponibile_fino: disponibileFino,
     };
 
@@ -5588,6 +5645,7 @@ function populateServizioSquadreAibOptions(selectedSquadreIds = []) {
     const selected = new Set(Array.isArray(selectedSquadreIds) ? selectedSquadreIds : []);
     const operative = squadreAib.filter(s => (
         s.stato === 'Operativa'
+        && (isSquadraAibDisponibileOra(s) || selected.has(s.id))
         && (!isSquadraAibAssegnataAInterventoAttivo(s.id) || selected.has(s.id))
     ));
     if (operative.length === 0) {
