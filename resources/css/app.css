@@ -53,6 +53,18 @@
     line-height: 1.4;
 }
 
+.servizi-map .servizio-marker-in-corso {
+    animation: servizioMarkerPulse 1.35s ease-out infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
+@keyframes servizioMarkerPulse {
+    0% { opacity: 1; stroke-width: 2; transform: scale(1); }
+    70% { opacity: 0.42; stroke-width: 7; transform: scale(1.55); }
+    100% { opacity: 1; stroke-width: 2; transform: scale(1); }
+}
+
 .servizi-map .leaflet-control-zoom a {
     background: #1e293b;
     color: #e2e8f0;

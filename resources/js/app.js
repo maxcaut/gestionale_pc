@@ -6419,7 +6419,8 @@ function addServizioMapMarker(servizio, lat, lng) {
         color: "#f8fafc",
         weight: 2,
         opacity: 1,
-        fillOpacity: 0.92
+        fillOpacity: 0.92,
+        className: servizio.stato === "In corso" ? "servizio-marker-in-corso" : ""
     })
         .bindPopup(buildServizioMapPopup(servizio), { maxWidth: 280 })
         .addTo(serviziMapMarkersLayer);
