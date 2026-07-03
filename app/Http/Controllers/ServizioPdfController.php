@@ -209,7 +209,7 @@ class ServizioPdfController extends Controller
         $caposquadra = [
             'nome' => $caposquadraNome,
             'cognome' => $caposquadraCognome,
-            'telefono' => $this->resolveCaposquadraTelefono($caposquadraNome, $caposquadraCognome, $servizio),
+            'telefono' => $this->resolveCaposquadraTelefono($caposquadraNome, $caposquadraCognome, $servizio, $equipaggio),
         ];
         $firma = trim($caposquadraNome.' '.$caposquadraCognome);
         $reportRedattoDa = trim(
@@ -248,11 +248,26 @@ class ServizioPdfController extends Controller
     /**
      * @param  array<string, mixed>  $servizio
      */
-    private function resolveCaposquadraTelefono(string $nome, string $cognome, array $servizio): string
+    private function resolveCaposquadraTelefono(string $nome, string $cognome, array $servizio, array $equipaggio): string
     {
         $telefono = trim((string) ($servizio['completato_da_telefono'] ?? ''));
         if ($telefono !== '' || $nome === '' || $cognome === '') {
             return $telefono;
+        }
+
+        $nomeMatch = $this->normalizePersonMatchValue($nome);
+        $cognomeMatch = $this->normalizePersonMatchValue($cognome);
+        foreach ($equipaggio as $volontario) {
+            if (! is_array($volontario)) {
+                continue;
+            }
+
+            if (
+                $this->normalizePersonMatchValue($volontario['nome'] ?? '') === $nomeMatch
+                && $this->normalizePersonMatchValue($volontario['cognome'] ?? '') === $cognomeMatch
+            ) {
+                return trim((string) ($volontario['telefono'] ?? ''));
+            }
         }
 
         $serviceKey = (string) config('services.supabase.service_role_key');
@@ -266,8 +281,7 @@ class ServizioPdfController extends Controller
                 'apikey' => $serviceKey,
                 'Authorization' => 'Bearer '.$serviceKey,
             ])->get($url.'/rest/v1/volontari', [
-                'select' => 'nome,cognome,ruolo,telefono',
-                'ruolo' => 'ilike.*capo*',
+                'select' => 'nome,cognome,telefono',
                 'limit' => '200',
             ]);
         } catch (Throwable $exception) {
@@ -280,8 +294,6 @@ class ServizioPdfController extends Controller
             return '';
         }
 
-        $nomeMatch = $this->normalizePersonMatchValue($nome);
-        $cognomeMatch = $this->normalizePersonMatchValue($cognome);
         foreach ($response->json() ?: [] as $volontario) {
             if (! is_array($volontario)) {
                 continue;
