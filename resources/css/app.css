@@ -195,7 +195,7 @@
 
 /* Bottom navigation mobile */
 .bottom-nav-scroll {
-    bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    bottom: calc(1rem + env(safe-area-inset-bottom));
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
