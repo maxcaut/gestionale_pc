@@ -958,6 +958,7 @@ let serviziMapSatelliteLayer = null;
 let serviziMapMunicipalityLayer = null;
 let serviziMapActiveBaseLayer = "road";
 const geocodeCache = new Map();
+const serviziMapMarkersById = new Map();
 let serviziMapUpdateToken = 0;
 let pdfExportProgressTimer = null;
 let pendingPdfDelivery = null;
@@ -6413,7 +6414,7 @@ async function geocodeIndirizzo(indirizzo) {
 }
 
 function addServizioMapMarker(servizio, lat, lng) {
-    L.circleMarker([lat, lng], {
+    const marker = L.circleMarker([lat, lng], {
         radius: 9,
         fillColor: getServizioMarkerColor(servizio.stato),
         color: "#f8fafc",
@@ -6424,6 +6425,8 @@ function addServizioMapMarker(servizio, lat, lng) {
     })
         .bindPopup(buildServizioMapPopup(servizio), { maxWidth: 280 })
         .addTo(serviziMapMarkersLayer);
+
+    serviziMapMarkersById.set(String(servizio.id), marker);
 }
 
 function showPdfExportProgress(title = "Generazione PDF in corso", description = "Attendere il completamento del download...") {
@@ -6494,12 +6497,33 @@ function buildServizioMapPopup(servizio) {
         : "";
     return `
         <div class="font-sans">
+            <p class="text-slate-300"><strong>Protocollo:</strong> ${escapeHtml(servizio.id)}</p>
             <p class="font-bold text-amber-400">${servizio.tipo}</p>
             <p class="text-slate-300 mt-1"><strong>Stato:</strong> ${servizio.stato}</p>
             <p class="text-slate-300"><strong>Data:</strong> ${formattedDate}</p>
             ${indirizzo}
         </div>
     `;
+}
+
+function focusServizioMapMarker(id) {
+    ensureServiziMap();
+    if (!serviziMap) return;
+
+    const marker = serviziMapMarkersById.get(String(id));
+    if (!marker) return;
+
+    const latLng = marker.getLatLng();
+    serviziMap.setView(latLng, Math.max(serviziMap.getZoom(), 15), { animate: true });
+    marker.openPopup();
+
+    const markerEl = marker.getElement();
+    if (!markerEl) return;
+
+    markerEl.classList.remove("servizio-marker-highlight");
+    void markerEl.offsetWidth;
+    markerEl.classList.add("servizio-marker-highlight");
+    setTimeout(() => markerEl.classList.remove("servizio-marker-highlight"), 2400);
 }
 
 function isServiziTabVisible() {
@@ -6602,6 +6626,7 @@ async function updateServiziMap(filteredServizi) {
 
     const updateToken = ++serviziMapUpdateToken;
     serviziMapMarkersLayer.clearLayers();
+    serviziMapMarkersById.clear();
 
     const withCoords = filteredServizi.filter(hasValidServizioCoordinates);
     const withIndirizzoOnly = filteredServizi.filter(s => !hasValidServizioCoordinates(s) && hasServizioIndirizzo(s));
@@ -6699,6 +6724,7 @@ function renderServizi() {
             hour: '2-digit',
             minute: '2-digit'
         });
+        const servizioIdArg = escapeAttr(JSON.stringify(s.id));
 
         const mezziPills = mezziAssegnati.length > 0
             ? mezziAssegnati.map(m => `<span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">${m.modello}<span class="text-[10px] text-slate-400 font-mono ml-1">${m.targa}</span></span>`).join('')
@@ -6744,7 +6770,9 @@ function renderServizi() {
 
         tbody.innerHTML += `
             <tr class="hover:bg-slate-800/10 transition-colors">
-                <td class="py-4 px-6 text-slate-400 font-mono text-xs break-all">${s.id}</td>
+                <td class="py-4 px-6 text-slate-400 font-mono text-xs break-all">
+                    <button type="button" onclick="focusServizioMapMarker(${servizioIdArg})" title="Trova sulla mappa" class="text-left hover:text-amber-400 focus:outline-none focus:text-amber-400 transition-colors">${escapeHtml(s.id)}</button>
+                </td>
                 <td class="py-4 px-6 max-w-[280px]">
                     <p class="font-bold text-white text-base">${s.tipo}</p>
                     <p class="text-xs text-slate-500 mt-1 font-medium italic break-words">${s.note || "Nessuna nota operativa aggiuntiva"}</p>
@@ -8329,6 +8357,7 @@ window.toggleProtocolloRegionaleField = toggleProtocolloRegionaleField;
 window.filterServizioMezziList = filterServizioMezziList;
 window.filterServizioVolontariList = filterServizioVolontariList;
 window.openViewServizioModal = openViewServizioModal;
+window.focusServizioMapMarker = focusServizioMapMarker;
 window.toggleServizioAibFields = toggleServizioAibFields;
 window.fillCoordinateFromGps = fillCoordinateFromGps;
 window.saveServizio = saveServizio;

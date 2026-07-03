@@ -59,9 +59,21 @@
     transform-origin: center;
 }
 
+.servizi-map .servizio-marker-highlight {
+    animation: servizioMarkerHighlight 0.8s ease-in-out 3;
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
 @keyframes servizioMarkerPulse {
     0% { opacity: 1; stroke-width: 2; transform: scale(1); }
     70% { opacity: 0.42; stroke-width: 7; transform: scale(1.55); }
+    100% { opacity: 1; stroke-width: 2; transform: scale(1); }
+}
+
+@keyframes servizioMarkerHighlight {
+    0% { opacity: 1; stroke-width: 2; transform: scale(1); }
+    50% { opacity: 0.35; stroke-width: 8; transform: scale(1.8); }
     100% { opacity: 1; stroke-width: 2; transform: scale(1); }
 }
 
