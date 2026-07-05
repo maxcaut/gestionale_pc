@@ -17,6 +17,7 @@
                     <img src="/img/logo-regione.png" alt="Logo Regione Campania" class="w-50 h-50 object-contain">
                 </div>
                 <h1 class="text-3xl font-extrabold text-white tracking-tight">{{ config('app.name') }}</h1>
+                <h6 class="text-sm text-slate-600 mt-1">Vesuvius Integrated Governance & Operational Response</h6>
                 <p class="text-sm text-slate-400 mt-2 font-medium">Protezione Civile — Accesso Operatori</p>
             </div>
 
