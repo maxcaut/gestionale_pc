@@ -18,9 +18,10 @@
                             <select id="filter-tipo-mezzo" onchange="renderMezzi()" class="bg-slate-900 border border-slate-800 text-slate-300 py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-colors">
                                 <option value="">Tutte le tipologie</option>
                                 <option value="Fuoristrada">Fuoristrada</option>
-                                <option value="Ambulanza">Ambulanza</option>
-                                <option value="Autobotte">Autobotte</option>
-                                <option value="Unità Mobile">Unità Mobile</option>
+                                <option value="Mezzo A.I.B">Mezzo A.I.B.</option>
+                                <option value="Pickup con gancio traino">Pickup con gancio traino</option>
+                                <option value="Autovettura">Autovettura</option>
+                                <option value="Motorino">Motorino</option>
                                 <option value="Furgone">Furgone</option>
                                 <option value="Camper UCM">Camper UCM</option>
                                 <option value="Carrello appendice">Carrello appendice</option>

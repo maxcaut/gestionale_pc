@@ -11,6 +11,7 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 
 const TIPO_FUORISTRADA = "Fuoristrada";
 const TIPO_CARRELLO_APPENDICE = "Carrello appendice";
+const TIPI_MEZZI_TRAINANTI_CARRELLO = ["Fuoristrada", "Mezzo A.I.B", "Pickup con gancio traino"];
 const MEZZO_STATO_MANUTENZIONE = "In manutenzione";
 const VOLONTARI_FOTO_BUCKET = "volontari-foto";
 const VOLONTARI_FOTO_MAX_SIZE = 5 * 1024 * 1024;
@@ -153,6 +154,10 @@ function isCarrelloAppendice(mezzo) {
 
 function isFuoristrada(mezzo) {
     return mezzo?.tipo === TIPO_FUORISTRADA;
+}
+
+function canTrainCarrelloAppendice(mezzo) {
+    return TIPI_MEZZI_TRAINANTI_CARRELLO.includes(mezzo?.tipo);
 }
 
 function roleRequiresAssociazione(ruolo) {
@@ -5543,7 +5548,7 @@ function renderServizioCarrelliTrainantiOptions(selectedCarrelliTrainanti = null
         .filter(isCarrelloAppendice);
     const trainanti = selectedIds
         .map(id => mezziList.find(m => m.id === id))
-        .filter(m => isFuoristrada(m) && !isCarrelloAppendice(m));
+        .filter(m => canTrainCarrelloAppendice(m) && !isCarrelloAppendice(m));
 
     if (carrelli.length === 0) {
         box.classList.add('hidden');
@@ -5561,7 +5566,7 @@ function renderServizioCarrelliTrainantiOptions(selectedCarrelliTrainanti = null
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">${carrello.modello} [${carrello.targa}]</label>
                 <select name="s-carrello-trainante" data-carrello-id="${carrello.id}" class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
-                    <option value="">Seleziona fuoristrada</option>
+                    <option value="">Seleziona mezzo trainante</option>
                     ${options}
                 </select>
             </div>
@@ -5583,8 +5588,8 @@ function collectServizioCarrelliTrainanti(mezziIds) {
         const select = document.querySelector(`select[name="s-carrello-trainante"][data-carrello-id="${carrelloId}"]`);
         const trainanteId = select?.value || '';
         const trainante = mezzi.find(m => m.id === trainanteId);
-        if (!trainanteId || !selectedIdSet.has(trainanteId) || !isFuoristrada(trainante)) {
-            return { valid: false, value: {}, message: 'Seleziona un fuoristrada trainante per ogni carrello appendice.' };
+        if (!trainanteId || !selectedIdSet.has(trainanteId) || !canTrainCarrelloAppendice(trainante)) {
+            return { valid: false, value: {}, message: 'Seleziona un mezzo trainante valido per ogni carrello appendice.' };
         }
         result[carrelloId] = trainanteId;
     }
