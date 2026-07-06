@@ -4469,7 +4469,7 @@ function renderTipiAttrezzaturaList() {
     list.innerHTML = tipiAttrezzaturaMagazzino.map(tipo => `
         <div class="flex items-center justify-between gap-3 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2">
             <span class="text-sm text-slate-200 font-semibold truncate">${escapeHtml(tipo.nome)}</span>
-            <button type="button" onclick="deleteTipoAttrezzatura('${escapeAttr(tipo.nome)}')" class="shrink-0 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-100 font-bold px-3 py-1.5 rounded-lg text-xs transition-colors">Delete</button>
+            <button type="button" onclick="deleteTipoAttrezzatura(${escapeAttr(JSON.stringify(tipo.id))})" class="shrink-0 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-100 font-bold px-3 py-1.5 rounded-lg text-xs transition-colors">Delete</button>
         </div>
     `).join('');
 }
@@ -5101,8 +5101,12 @@ async function saveTipoAttrezzatura(event) {
     }
 }
 
-async function deleteTipoAttrezzatura(nome) {
-    if (!nome) return;
+async function deleteTipoAttrezzatura(id) {
+    if (!id) return;
+
+    const tipo = tipiAttrezzaturaMagazzino.find(item => item.id === id);
+    if (!tipo?.nome) return;
+    const nome = tipo.nome;
 
     const usedLocally = attrezzatureMagazzino.some(item => item.tipo_attrezzatura === nome);
     if (usedLocally) {
@@ -5124,10 +5128,9 @@ async function deleteTipoAttrezzatura(nome) {
             return;
         }
 
-        const { error } = await supabase
-            .from('magazzino_tipi_attrezzatura')
-            .delete()
-            .eq('nome', nome);
+        const { error } = await supabase.rpc('delete_magazzino_tipo_attrezzatura', {
+            p_tipo_id: id,
+        });
         if (error) throw error;
 
         showToast('Tipo eliminato', `${nome} rimosso correttamente.`);
@@ -5137,7 +5140,7 @@ async function deleteTipoAttrezzatura(nome) {
         const isReferenced = err?.code === '23503';
         showToast(
             isReferenced ? 'Cancellazione non consentita' : 'Errore',
-            isReferenced ? 'Questa categoria ha almeno 1 item associato.' : 'Impossibile eliminare il tipo attrezzatura da Supabase.'
+            isReferenced ? 'Questa categoria ha almeno 1 item associato.' : (err?.message || 'Impossibile eliminare il tipo attrezzatura da Supabase.')
         );
     }
 }
