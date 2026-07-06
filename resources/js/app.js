@@ -474,7 +474,13 @@ function applySegreteriaAttivitaFormRestrictions() {
     });
 
     form.querySelectorAll('input, select, textarea').forEach(el => {
-        if (el.id === 's-data' || el.closest('#s-mezzi-list') || el.closest('#s-volontari-list')) return;
+        if (
+            el.id === 's-data'
+            || el.id === 's-mezzi-search'
+            || el.id === 's-volontari-search'
+            || el.closest('#s-mezzi-list')
+            || el.closest('#s-volontari-list')
+        ) return;
         el.disabled = true;
     });
 
