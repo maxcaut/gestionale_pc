@@ -5624,7 +5624,7 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
         const textClass = muted ? 'text-slate-400' : 'text-slate-200';
         const fontClass = muted ? 'font-medium' : 'font-semibold';
         const extra = muted ? ` - [${m.stato}]` : '';
-        const searchText = (m.targa || "").toLowerCase();
+        const searchText = `${m.modello || ""} ${m.targa || ""}`.toLowerCase();
         return `
             <label data-mezzo-search="${searchText}" class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
                 <input type="checkbox" name="s-mezzi-check" value="${m.id}" ${checked} onchange="renderServizioCarrelliTrainantiOptions(); renderServizioVolontariMezziOptions();" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
