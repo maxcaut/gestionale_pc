@@ -870,6 +870,9 @@
                         <select id="v-ruolo" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
                             <option value="Coordinatore">Coordinatore</option>
                             <option value="Vice Coordinatore">Vice Coordinatore</option>
+                            <option value="Presidente">Presidente</option>
+                            <option value="Vice Presidente">Vice Presidente</option>
+                            <option value="Responsabile settore Tecnico">Responsabile settore Tecnico</option>
                             <option value="Caposquadra">Caposquadra</option>
                             <option value="Consigliere direttivo">Consigliere direttivo</option>
                             <option value="Tesoriere">Tesoriere</option>

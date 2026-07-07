@@ -20,6 +20,9 @@
                                 <option value="">Tutti i ruoli</option>
                                 <option value="Coordinatore">Coordinatore</option>
                                 <option value="Vice Coordinatore">Vice Coordinatore</option>
+                                <option value="Presidente">Presidente</option>
+                                <option value="Vice Presidente">Vice Presidente</option>
+                                <option value="Responsabile settore Tecnico">Responsabile settore Tecnico</option>
                                 <option value="Caposquadra">Caposquadra</option>
                                 <option value="Consigliere direttivo">Consigliere direttivo</option>
                                 <option value="Tesoriere">Tesoriere</option>
