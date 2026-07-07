@@ -5189,6 +5189,11 @@ function populateSquadraAibModalOptions(selectedMezziIds = null, selectedVolonta
     const volontariBox = document.getElementById('aib-squadra-volontari-list');
     if (!mezziBox || !volontariBox) return;
 
+    const mezziSearchEl = document.getElementById('aib-squadra-mezzi-search');
+    const volontariSearchEl = document.getElementById('aib-squadra-volontari-search');
+    if (mezziSearchEl) mezziSearchEl.value = '';
+    if (volontariSearchEl) volontariSearchEl.value = '';
+
     const mezziDisponibili = getDB('pc_mezzi')
         .filter(m => m.associazione_appartenenza === associazione && !isCarrelloAppendice(m) && (m.stato === 'Disponibile' || selectedMezzi.has(m.id)));
     const volontariOperativi = getDB('pc_volontari')
@@ -5196,7 +5201,7 @@ function populateSquadraAibModalOptions(selectedMezziIds = null, selectedVolonta
 
     mezziBox.innerHTML = mezziDisponibili.length
         ? mezziDisponibili.map(m => `
-            <label class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors text-slate-200">
+            <label data-aib-mezzo-search="${`${m.modello || ''} ${m.targa || ''} ${m.tipo || ''}`.toLowerCase()}" class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors text-slate-200">
                 <input type="checkbox" name="aib-squadra-mezzi-check" value="${m.id}" ${selectedMezzi.has(m.id) ? 'checked' : ''} class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
                 <span class="text-xs font-semibold">${m.modello} [${m.targa}] (${m.tipo})</span>
             </label>
@@ -5205,12 +5210,34 @@ function populateSquadraAibModalOptions(selectedMezziIds = null, selectedVolonta
 
     volontariBox.innerHTML = volontariOperativi.length
         ? volontariOperativi.map(v => `
-            <label class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors text-slate-200">
+            <label data-aib-volontario-search="${`${v.nome || ''} ${v.cognome || ''} ${v.ruolo || ''}`.toLowerCase()}" class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors text-slate-200">
                 <input type="checkbox" name="aib-squadra-volontari-check" value="${v.id}" ${selectedVolontari.has(v.id) ? 'checked' : ''} class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
                 <span class="text-xs font-semibold">${v.nome} ${v.cognome} (${v.ruolo})</span>
             </label>
         `).join('')
         : `<p class="text-xs text-slate-500 p-2 text-center">Nessun volontario operativo per questa associazione.</p>`;
+}
+
+function filterSquadraAibMezziList() {
+    const search = (document.getElementById('aib-squadra-mezzi-search')?.value || '').toLowerCase().trim();
+    const box = document.getElementById('aib-squadra-mezzi-list');
+    if (!box) return;
+
+    box.querySelectorAll('label[data-aib-mezzo-search]').forEach(label => {
+        const text = label.dataset.aibMezzoSearch || '';
+        label.classList.toggle('hidden', search !== '' && !text.includes(search));
+    });
+}
+
+function filterSquadraAibVolontariList() {
+    const search = (document.getElementById('aib-squadra-volontari-search')?.value || '').toLowerCase().trim();
+    const box = document.getElementById('aib-squadra-volontari-list');
+    if (!box) return;
+
+    box.querySelectorAll('label[data-aib-volontario-search]').forEach(label => {
+        const text = label.dataset.aibVolontarioSearch || '';
+        label.classList.toggle('hidden', search !== '' && !text.includes(search));
+    });
 }
 
 function formatSquadraAibMezzi(mezziIds = []) {
@@ -8364,6 +8391,8 @@ window.openSquadraAibPdfDeliveryModal = openSquadraAibPdfDeliveryModal;
 window.exportSquadraAibPdf = exportSquadraAibPdf;
 window.renderSquadreAib = renderSquadreAib;
 window.populateSquadraAibModalOptions = populateSquadraAibModalOptions;
+window.filterSquadraAibMezziList = filterSquadraAibMezziList;
+window.filterSquadraAibVolontariList = filterSquadraAibVolontariList;
 window.openNuovoServizioModal = openNuovoServizioModal;
 window.openEditServizioModal = openEditServizioModal;
 window.toggleServizioSquadraAibDetails = toggleServizioSquadraAibDetails;
