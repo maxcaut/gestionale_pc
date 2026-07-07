@@ -1599,3 +1599,12 @@ COMMENT ON COLUMN public.servizi.completato_il IS 'Data e ora in cui il servizio
 
 ALTER TABLE public.squadre_aib
     ADD COLUMN IF NOT EXISTS disponibile_dal TIMESTAMPTZ;
+
+
+-- ============================================================================
+-- supabase/migrations/042_servizi_responsabile_servizio.sql
+-- ============================================================================
+ALTER TABLE public.servizi
+    ADD COLUMN IF NOT EXISTS responsabile_servizio_id TEXT;
+
+COMMENT ON COLUMN public.servizi.responsabile_servizio_id IS 'Volontario assegnato come responsabile del servizio programmato';

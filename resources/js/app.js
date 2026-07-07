@@ -451,6 +451,12 @@ function resetSalaOperativaServizioFormRestrictions() {
     });
 }
 
+function toggleResponsabileServizioField() {
+    const block = document.getElementById('s-responsabile-servizio-block');
+    if (!block) return;
+    block.classList.toggle('hidden', !hasMasterAccess() || !editingServizioId);
+}
+
 function getSegreteriaAttivitaHiddenBlocks() {
     const blocks = [
         document.getElementById('s-aib-section'),
@@ -2210,6 +2216,7 @@ function mapServizioRow(s) {
         volontariMezzi: s.volontari_mezzi || {},
         volontariContaOre: s.volontari_conta_ore || {},
         volontariInReport: s.volontari_in_report || {},
+        responsabileServizioId: s.responsabile_servizio_id || '',
         art39: s.art39 || 'Si',
         note: s.note,
         altriEnti: s.altri_enti_coinvolti,
@@ -5633,7 +5640,34 @@ function collectServizioCarrelliTrainanti(mezziIds) {
     return { valid: true, value: result };
 }
 
-function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariIds = [], selectedVolontariArt39 = {}, servizioArt39 = 'Si', selectedCarrelliTrainanti = {}, selectedVolontariMezzi = {}, selectedVolontariContaOre = {}, selectedVolontariInReport = {}) {
+function renderResponsabileServizioOptions(selectedResponsabileId = null) {
+    const select = document.getElementById('s-responsabile-servizio');
+    if (!select) return;
+
+    const selectedIds = new Set(collectCheckedValues('s-volontari-check'));
+    const currentValue = selectedResponsabileId ?? select.value;
+    const options = volontari
+        .filter(v => selectedIds.has(v.id) && v.stato === 'Operativo')
+        .map(v => `<option value="${v.id}">${v.cognome} ${v.nome}${v.associazione_appartenenza ? ` - ${v.associazione_appartenenza}` : ''}</option>`)
+        .join('');
+
+    select.innerHTML = `<option value="">Seleziona responsabile servizio</option>${options}`;
+    select.value = selectedIds.has(currentValue) ? currentValue : '';
+}
+
+function getSelectedResponsabileServizioId(volontariIds) {
+    if (!hasMasterAccess()) return '';
+
+    const value = document.getElementById('s-responsabile-servizio')?.value || '';
+    if (!value) return '';
+    if (!(volontariIds || []).includes(value)) {
+        return null;
+    }
+
+    return value;
+}
+
+function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariIds = [], selectedVolontariArt39 = {}, servizioArt39 = 'Si', selectedCarrelliTrainanti = {}, selectedVolontariMezzi = {}, selectedVolontariContaOre = {}, selectedVolontariInReport = {}, selectedResponsabileServizioId = '') {
     const mezziList = getDB("pc_mezzi");
     const volontariList = getDB("pc_volontari");
 
@@ -5729,7 +5763,7 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
         return `
             <label data-volontario-search="${searchText}" class="block p-2 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
                 <span class="flex items-start gap-3 min-w-0">
-                    <input type="checkbox" name="s-volontari-check" value="${v.id}" ${checked} onchange="updateServizioVolontarioMezzoControl(this.value)" class="mt-0.5 rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4 shrink-0">
+                    <input type="checkbox" name="s-volontari-check" value="${v.id}" ${checked} onchange="updateServizioVolontarioMezzoControl(this.value); renderResponsabileServizioOptions();" class="mt-0.5 rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4 shrink-0">
                     <span class="text-xs ${fontClass} leading-snug break-words">${v.nome} ${v.cognome} (${v.ruolo})${v.associazione_appartenenza ? ` · ${v.associazione_appartenenza}` : ''}${v.matricola_regionale ? ` · Matricola Regionale: ${v.matricola_regionale}` : ''}${extra}</span>
                 </span>
                 <span class="mt-3 ml-7 ${controlsGridClass}">
@@ -5761,6 +5795,8 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
     }
 
     renderServizioVolontariMezziOptions();
+    toggleResponsabileServizioField();
+    renderResponsabileServizioOptions(selectedResponsabileServizioId);
 }
 
 function populateServizioSquadreAibOptions(selectedSquadreIds = []) {
@@ -6096,7 +6132,7 @@ function openEditServizioModal(id) {
     editingServizioId = id;
     setModalFormMode('modal-servizio', { title: 'Modifica Servizio / Missione', submitText: 'Salva modifiche' });
 
-    populateServizioModalOptions(serv.mezziIds || [], serv.volontariIds || [], serv.volontariArt39 || {}, serv.art39 || 'Si', serv.carrelliTrainanti || {}, serv.volontariMezzi || {}, serv.volontariContaOre || {}, serv.volontariInReport || {});
+    populateServizioModalOptions(serv.mezziIds || [], serv.volontariIds || [], serv.volontariArt39 || {}, serv.art39 || 'Si', serv.carrelliTrainanti || {}, serv.volontariMezzi || {}, serv.volontariContaOre || {}, serv.volontariInReport || {}, serv.responsabileServizioId || '');
 
     document.getElementById("s-richiedente").value = serv.richiedente || "SORU";
     document.getElementById("s-protocollo-regionale").value = serv.protocolloRegionale || "";
@@ -6991,6 +7027,11 @@ async function saveServizio(event) {
     let volontariInReport = hasMasterAccess()
         ? collectServizioVolontariFlag(volontariIds, 's-volontari-in-report')
         : buildDefaultVolontariFlag(volontariIds, existingServizio?.volontariInReport || {});
+    const responsabileServizioId = getSelectedResponsabileServizioId(volontariIds);
+    if (responsabileServizioId === null) {
+        showToast('Responsabile servizio non valido', 'Seleziona un responsabile tra i volontari assegnati al servizio.');
+        return;
+    }
     let volontariMezzi = {};
     let squadreAibIds = isAntincendioBoschivo(tipo) ? (existingServizio?.squadreAibIds || []) : [];
 
@@ -7100,6 +7141,9 @@ async function saveServizio(event) {
         volontari_mezzi: volontariMezzi,
         volontari_conta_ore: volontariContaOre,
         volontari_in_report: volontariInReport,
+        responsabile_servizio_id: hasMasterAccess()
+            ? (responsabileServizioId || null)
+            : (existingServizio?.responsabileServizioId || null),
         squadre_aib_ids: squadreAibIds,
         art39,
         note,
@@ -7342,6 +7386,10 @@ async function exportServizioPdf(id, template = 'servizio-programmato', delivery
         showToast("Export non disponibile", "Il PDF servizio programmato può essere generato solo per servizi programmati o in corso.");
         return;
     }
+    if (isServizioProgrammato && serv.stato === "Programmato" && !serv.responsabileServizioId) {
+        alert("responsabile servizio non assegnato");
+        return;
+    }
     if (isConsuntivo && serv.stato !== "Completato") {
         showToast("Export non disponibile", "I modelli consuntivi possono essere generati solo per servizi completati.");
         return;
@@ -7396,6 +7444,7 @@ async function exportServizioPdf(id, template = 'servizio-programmato', delivery
                     volontari_mezzi: serv.volontariMezzi || {},
                     volontari_conta_ore: serv.volontariContaOre || {},
                     volontari_in_report: serv.volontariInReport || {},
+                    responsabile_servizio_id: serv.responsabileServizioId || '',
                     carrelli_trainanti: serv.carrelliTrainanti || {},
                     oraArrivoIncendio: serv.oraArrivoIncendio || '',
                     oraFineIntervento: serv.oraFineIntervento || '',

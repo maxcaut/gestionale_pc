@@ -47,6 +47,7 @@ class ServizioPdfController extends Controller
             'servizio.volontari_mezzi' => 'nullable|array',
             'servizio.volontari_conta_ore' => 'nullable|array',
             'servizio.volontari_in_report' => 'nullable|array',
+            'servizio.responsabile_servizio_id' => 'nullable|string',
             'servizio.carrelli_trainanti' => 'nullable|array',
             'servizio.carrelli_trainanti.*' => 'nullable|string',
             'mezzi' => 'nullable|array',
@@ -78,6 +79,16 @@ class ServizioPdfController extends Controller
                 return response()->json(['message' => 'Il PDF servizio programmato è disponibile solo per servizi programmati o in corso.'], 422);
             }
 
+            if (
+                $validated['servizio']['stato'] === 'Programmato'
+                && ! $this->hasResponsabileServizioAssegnato(
+                    $validated['equipaggio'],
+                    $validated['servizio']['responsabile_servizio_id'] ?? null
+                )
+            ) {
+                return response()->json(['message' => 'responsabile servizio non assegnato'], 422);
+            }
+
             return $this->exportServizioProgrammato($validated, $dataIntervento);
         }
 
@@ -95,6 +106,25 @@ class ServizioPdfController extends Controller
             'template_aib' => $this->exportTemplateAib($validated, $dataIntervento),
             'modello-3-2' => $this->exportModello32($validated, $dataIntervento),
         };
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $equipaggio
+     */
+    private function hasResponsabileServizioAssegnato(array $equipaggio, mixed $responsabileId): bool
+    {
+        $responsabileId = trim((string) $responsabileId);
+        if ($responsabileId === '') {
+            return false;
+        }
+
+        foreach ($equipaggio as $volontario) {
+            if ((string) ($volontario['id'] ?? '') === $responsabileId) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

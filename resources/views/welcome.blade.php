@@ -1257,6 +1257,13 @@
                     </select>
                 </div>
 
+                <div id="s-responsabile-servizio-block" class="hidden">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Responsabile servizio</label>
+                    <select id="s-responsabile-servizio" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">
+                        <option value="">Seleziona responsabile servizio</option>
+                    </select>
+                </div>
+
                 <div id="s-aib-tipologia-servizio-block" class="hidden">
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Tipologia AIB <span class="text-amber-500">*</span></label>
                     <select id="s-aib-tipologia-servizio" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors">

@@ -107,21 +107,17 @@
         $titolo = trim($titolo.' - '.$indirizzo);
     }
 
-    $isResponsabile = static function (array $volontario): bool {
-        $ruolo = strtolower((string) ($volontario['ruolo'] ?? ''));
-        return str_contains($ruolo, 'responsabile')
-            || str_contains($ruolo, 'coordinatore')
-            || str_contains($ruolo, 'capo');
-    };
-
-    $responsabili = array_values(array_filter($volontari, $isResponsabile));
-    if (count($responsabili) === 0 && count($volontari) > 0) {
-        $responsabili = [$volontari[0]];
+    $responsabileServizioId = (string) ($servizio['responsabile_servizio_id'] ?? '');
+    $responsabileServizio = null;
+    foreach ($volontari as $volontario) {
+        if ((string) ($volontario['id'] ?? '') === $responsabileServizioId) {
+            $responsabileServizio = $volontario;
+            break;
+        }
     }
-    $responsabileLabel = implode(' - ', array_map(
-        static fn ($v) => trim(($v['cognome'] ?? '').' '.($v['nome'] ?? '')),
-        $responsabili
-    ));
+    $responsabileLabel = $responsabileServizio
+        ? trim(($responsabileServizio['cognome'] ?? '').' '.($responsabileServizio['nome'] ?? ''))
+        : '';
 
     $veicoliById = [];
     foreach ($veicoli as $veicolo) {
@@ -201,7 +197,7 @@
                     $rowspan = max(1, count($operatori));
                 @endphp
                 @forelse ($operatori as $volontario)
-                    @php $responsabile = $isResponsabile($volontario); @endphp
+                    @php $responsabile = (string) ($volontario['id'] ?? '') === $responsabileServizioId; @endphp
                     <tr>
                         @if (!$datePrinted)
                             <td class="date-cell" rowspan="{{ $totalRows }}">
