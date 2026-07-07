@@ -2244,6 +2244,7 @@ function mapSquadraAibRow(s) {
         associazione_appartenenza: s.associazione_appartenenza,
         mezziIds: s.mezzi_ids || [],
         volontariIds: s.volontari_ids || [],
+        caposquadraId: s.caposquadra_id || '',
         stato: s.stato || 'Operativa',
         disponibileDal: s.disponibile_dal || null,
         disponibileFino: s.disponibile_fino || null,
@@ -5188,10 +5189,60 @@ function setupSquadraAibAssociazioneField() {
     }
 }
 
-function populateSquadraAibModalOptions(selectedMezziIds = null, selectedVolontariIds = null) {
+function getSquadraAibCaposquadraId() {
+    return document.querySelector('input[name="aib-squadra-caposquadra-check"]:checked')?.value || '';
+}
+
+function updateSquadraAibCaposquadraControls() {
+    const selectedVolontari = new Set(collectCheckedValues('aib-squadra-volontari-check'));
+    const caposquadraChecks = [...document.querySelectorAll('input[name="aib-squadra-caposquadra-check"]')];
+    let selectedCaposquadra = getSquadraAibCaposquadraId();
+
+    if (selectedCaposquadra && !selectedVolontari.has(selectedCaposquadra)) {
+        caposquadraChecks.forEach(input => {
+            if (input.value === selectedCaposquadra) input.checked = false;
+        });
+        selectedCaposquadra = '';
+    }
+
+    caposquadraChecks.forEach(input => {
+        const wrapper = input.closest('[data-aib-caposquadra-control]');
+
+        if (wrapper) {
+            wrapper.classList.toggle('hidden', Boolean(selectedCaposquadra) && input.value !== selectedCaposquadra);
+        }
+    });
+}
+
+function handleSquadraAibVolontarioSelectionChange(checkbox) {
+    if (!checkbox.checked) {
+        document.querySelectorAll('input[name="aib-squadra-caposquadra-check"]').forEach(input => {
+            if (input.value === checkbox.value) input.checked = false;
+        });
+    }
+
+    updateSquadraAibCaposquadraControls();
+}
+
+function handleSquadraAibCaposquadraSelectionChange(checkbox) {
+    if (checkbox.checked) {
+        document.querySelectorAll('input[name="aib-squadra-caposquadra-check"]').forEach(input => {
+            if (input !== checkbox) input.checked = false;
+        });
+
+        document.querySelectorAll('input[name="aib-squadra-volontari-check"]').forEach(input => {
+            if (input.value === checkbox.value) input.checked = true;
+        });
+    }
+
+    updateSquadraAibCaposquadraControls();
+}
+
+function populateSquadraAibModalOptions(selectedMezziIds = null, selectedVolontariIds = null, selectedCaposquadraId = null) {
     const associazione = getSquadraAibAssociazioneValue();
     const selectedMezzi = new Set(Array.isArray(selectedMezziIds) ? selectedMezziIds : collectCheckedValues('aib-squadra-mezzi-check'));
     const selectedVolontari = new Set(Array.isArray(selectedVolontariIds) ? selectedVolontariIds : collectCheckedValues('aib-squadra-volontari-check'));
+    const selectedCaposquadra = typeof selectedCaposquadraId === 'string' ? selectedCaposquadraId : getSquadraAibCaposquadraId();
     const mezziBox = document.getElementById('aib-squadra-mezzi-list');
     const volontariBox = document.getElementById('aib-squadra-volontari-list');
     if (!mezziBox || !volontariBox) return;
@@ -5217,12 +5268,20 @@ function populateSquadraAibModalOptions(selectedMezziIds = null, selectedVolonta
 
     volontariBox.innerHTML = volontariOperativi.length
         ? volontariOperativi.map(v => `
-            <label data-aib-volontario-search="${`${v.nome || ''} ${v.cognome || ''} ${v.ruolo || ''}`.toLowerCase()}" class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors text-slate-200">
-                <input type="checkbox" name="aib-squadra-volontari-check" value="${v.id}" ${selectedVolontari.has(v.id) ? 'checked' : ''} class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
-                <span class="text-xs font-semibold">${v.nome} ${v.cognome} (${v.ruolo})</span>
-            </label>
+            <div data-aib-volontario-search="${`${v.nome || ''} ${v.cognome || ''} ${v.ruolo || ''}`.toLowerCase()}" class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg transition-colors text-slate-200">
+                <label class="flex min-w-0 flex-1 items-center gap-3 cursor-pointer">
+                    <input type="checkbox" name="aib-squadra-volontari-check" value="${v.id}" ${selectedVolontari.has(v.id) ? 'checked' : ''} onchange="handleSquadraAibVolontarioSelectionChange(this)" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
+                    <span class="text-xs font-semibold truncate">${v.nome} ${v.cognome} (${v.ruolo})</span>
+                </label>
+                <label data-aib-caposquadra-control class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-400 cursor-pointer">
+                    <input type="checkbox" name="aib-squadra-caposquadra-check" value="${v.id}" ${selectedCaposquadra === v.id ? 'checked' : ''} onchange="handleSquadraAibCaposquadraSelectionChange(this)" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
+                    <span>CS</span>
+                </label>
+            </div>
         `).join('')
         : `<p class="text-xs text-slate-500 p-2 text-center">Nessun volontario operativo per questa associazione.</p>`;
+
+    updateSquadraAibCaposquadraControls();
 }
 
 function filterSquadraAibMezziList() {
@@ -5241,7 +5300,7 @@ function filterSquadraAibVolontariList() {
     const box = document.getElementById('aib-squadra-volontari-list');
     if (!box) return;
 
-    box.querySelectorAll('label[data-aib-volontario-search]').forEach(label => {
+    box.querySelectorAll('[data-aib-volontario-search]').forEach(label => {
         const text = label.dataset.aibVolontarioSearch || '';
         label.classList.toggle('hidden', search !== '' && !text.includes(search));
     });
@@ -5345,9 +5404,17 @@ async function exportSquadraAibPdf(id, delivery = 'download', email = null) {
     const mezziExport = (squadra.mezziIds || [])
         .map(mId => mezzi.find(m => m.id === mId))
         .filter(Boolean);
+    const caposquadraId = squadra.caposquadraId || '';
     const equipaggio = (squadra.volontariIds || [])
         .map(vId => volontari.find(v => v.id === vId))
         .filter(Boolean);
+    if (caposquadraId) {
+        const caposquadraIndex = equipaggio.findIndex(v => v.id === caposquadraId);
+        if (caposquadraIndex > 0) {
+            const [caposquadra] = equipaggio.splice(caposquadraIndex, 1);
+            equipaggio.unshift(caposquadra);
+        }
+    }
     const associazioneSquadra = associazioniDisponibili.find(a => a.nome === squadra.associazione_appartenenza);
 
     if (equipaggio.length === 0) {
@@ -5378,6 +5445,7 @@ async function exportSquadraAibPdf(id, delivery = 'download', email = null) {
                     nome: squadra.nome,
                     associazione_appartenenza: squadra.associazione_appartenenza || '',
                     legale_rappresentante: associazioneSquadra?.legale_rappresentante || '',
+                    caposquadra_id: caposquadraId,
                     stato: squadra.stato || '',
                     disponibile_fino: squadra.disponibileFino || '',
                 },
@@ -5444,7 +5512,7 @@ function openNuovaSquadraAibModal() {
     document.getElementById('aib-squadra-disponibile-dal-ora').value = toLocalTimeValue(now);
     document.getElementById('aib-squadra-disponibile-fino').value = '';
     if (!isSegreteria()) document.getElementById('aib-squadra-associazione').value = getDefaultAssociazione();
-    populateSquadraAibModalOptions([], []);
+    populateSquadraAibModalOptions([], [], '');
     toggleModal('modal-squadra-aib', true);
 }
 
@@ -5463,7 +5531,7 @@ function openEditSquadraAibModal(id) {
     document.getElementById('aib-squadra-disponibile-dal-ora').value = disponibileDal ? toLocalTimeValue(disponibileDal) : '';
     document.getElementById('aib-squadra-disponibile-fino').value = normalizeTimeValue(squadra.disponibileFino);
     if (!isSegreteria()) document.getElementById('aib-squadra-associazione').value = squadra.associazione_appartenenza || getDefaultAssociazione();
-    populateSquadraAibModalOptions(squadra.mezziIds || [], squadra.volontariIds || []);
+    populateSquadraAibModalOptions(squadra.mezziIds || [], squadra.volontariIds || [], squadra.caposquadraId || '');
     toggleModal('modal-squadra-aib', true);
 }
 
@@ -5475,6 +5543,7 @@ async function saveSquadraAib(event) {
     const associazione = getSquadraAibAssociazioneValue();
     const mezziIds = collectCheckedValues('aib-squadra-mezzi-check');
     const volontariIds = collectCheckedValues('aib-squadra-volontari-check');
+    const caposquadraId = getSquadraAibCaposquadraId();
     const stato = document.getElementById('aib-squadra-stato').value;
     const disponibileDalData = document.getElementById('aib-squadra-disponibile-dal-data').value;
     const disponibileDalOra = document.getElementById('aib-squadra-disponibile-dal-ora').value;
@@ -5509,6 +5578,10 @@ async function saveSquadraAib(event) {
         showToast('Dati incompleti', 'Seleziona almeno un mezzo e un volontario.');
         return;
     }
+    if (!caposquadraId || !volontariIds.includes(caposquadraId)) {
+        showToast('Dati incompleti', 'Seleziona un caposquadra tra i volontari della squadra.');
+        return;
+    }
 
     const validMezzi = mezziIds.every(id => {
         const mezzo = mezzi.find(m => m.id === id);
@@ -5525,6 +5598,7 @@ async function saveSquadraAib(event) {
         associazione_appartenenza: associazione,
         mezzi_ids: mezziIds,
         volontari_ids: volontariIds,
+        caposquadra_id: caposquadraId,
         stato,
         disponibile_dal: disponibileDalDate.toISOString(),
         disponibile_fino: disponibileFino,
@@ -8440,6 +8514,8 @@ window.openSquadraAibPdfDeliveryModal = openSquadraAibPdfDeliveryModal;
 window.exportSquadraAibPdf = exportSquadraAibPdf;
 window.renderSquadreAib = renderSquadreAib;
 window.populateSquadraAibModalOptions = populateSquadraAibModalOptions;
+window.handleSquadraAibVolontarioSelectionChange = handleSquadraAibVolontarioSelectionChange;
+window.handleSquadraAibCaposquadraSelectionChange = handleSquadraAibCaposquadraSelectionChange;
 window.filterSquadraAibMezziList = filterSquadraAibMezziList;
 window.filterSquadraAibVolontariList = filterSquadraAibVolontariList;
 window.openNuovoServizioModal = openNuovoServizioModal;

@@ -23,6 +23,7 @@ class SquadraAibPdfController extends Controller
             'squadra.nome' => 'required|string',
             'squadra.associazione_appartenenza' => 'nullable|string',
             'squadra.legale_rappresentante' => 'nullable|string',
+            'squadra.caposquadra_id' => 'nullable|string',
             'squadra.stato' => 'nullable|string',
             'squadra.disponibile_fino' => 'nullable|string',
             'mezzi' => 'nullable|array',
@@ -43,6 +44,17 @@ class SquadraAibPdfController extends Controller
         ]);
 
         $squadra = $validated['squadra'];
+        $equipaggio = $validated['equipaggio'];
+        $caposquadraId = trim((string) ($squadra['caposquadra_id'] ?? ''));
+        if ($caposquadraId !== '') {
+            foreach ($equipaggio as $index => $volontario) {
+                if (($volontario['id'] ?? '') === $caposquadraId) {
+                    array_splice($equipaggio, $index, 1);
+                    array_unshift($equipaggio, $volontario);
+                    break;
+                }
+            }
+        }
         $oggi = now()->timezone('Europe/Rome');
         $dataIntervento = [
             'completa' => $oggi->format('d/m/Y H:i'),
@@ -58,7 +70,7 @@ class SquadraAibPdfController extends Controller
         $pdf = Pdf::loadView('pdf.squadra-aib', [
             'squadra' => $squadra,
             'mezzi' => $validated['mezzi'] ?? [],
-            'equipaggio' => $validated['equipaggio'],
+            'equipaggio' => $equipaggio,
             'dataIntervento' => $dataIntervento,
             'protocollo' => '',
             'oraInizio' => '8:00',

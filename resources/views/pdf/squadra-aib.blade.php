@@ -251,6 +251,7 @@
     $protocollo = trim((string) ($protocollo ?? ''));
     $associazione = trim((string) ($squadra['associazione_appartenenza'] ?? ''));
     $legaleRappresentante = trim((string) ($squadra['legale_rappresentante'] ?? ''));
+    $caposquadraId = trim((string) ($squadra['caposquadra_id'] ?? ''));
     $data = $dataIntervento['data'] ?? '';
     $oraInizio = trim((string) ($oraInizio ?? ''));
     $oraFine = trim((string) ($oraFine ?? ''));
@@ -319,7 +320,7 @@
                 @endif
                 <td>{{ $formatName($volontario) }}</td>
                 <td>{{ $roleLabel($volontario) }}</td>
-                <td>{{ $volontario['telefono'] ?? '' }}</td>
+                <td>{{ $caposquadraId !== '' && (string) ($volontario['id'] ?? '') === $caposquadraId ? ($volontario['telefono'] ?? '') : '' }}</td>
             </tr>
         @endfor
     </table>
