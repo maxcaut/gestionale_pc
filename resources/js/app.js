@@ -1854,7 +1854,7 @@ function isQualificaAntincendioS(qualifica) {
 }
 
 function getQualificationValidityYears(type, qualifica) {
-    return type === 'antincendio' && isQualificaAntincendioS(qualifica) ? 1 : 2;
+    return type === 'antincendio' && isQualificaAntincendioS(qualifica) ? 1 : 3;
 }
 
 function getExpiredVolunteerQualifications(volontario = {}) {
