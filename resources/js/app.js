@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { degrees, PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 // --- INIZIALIZZAZIONE SUPABASE ---
 // Invece di import.meta.env, leggiamo una variabile passata da Laravel nel file HTML
@@ -8253,16 +8253,43 @@ async function addProtocolloAssociazionePdfWatermark(blob, watermarkText) {
         const text = String(watermarkText || '').trim();
         if (!text) return;
 
-        const fontSize = Math.min(Math.max(width / Math.max(text.length, 8), 34), 86);
-        const textWidth = font.widthOfTextAtSize(text, fontSize);
+        const fontSize = 12;
+        const paddingX = 8;
+        const paddingY = 5;
+        const boxX = 24;
+        const boxHeight = fontSize + (paddingY * 2);
+        const boxWidth = font.widthOfTextAtSize(text, fontSize) + (paddingX * 2);
+        const boxY = height - 24 - boxHeight;
+        const borderWidth = 4;
+        const borderRadius = 4;
+        const red = rgb(255, 0, 0);
+        const renderedBoxWidth = Math.min(boxWidth, width - (boxX * 2));
+        const roundedBoxPath = [
+            `M ${borderRadius} 0`,
+            `H ${renderedBoxWidth - borderRadius}`,
+            `Q ${renderedBoxWidth} 0 ${renderedBoxWidth} ${borderRadius}`,
+            `V ${boxHeight - borderRadius}`,
+            `Q ${renderedBoxWidth} ${boxHeight} ${renderedBoxWidth - borderRadius} ${boxHeight}`,
+            `H ${borderRadius}`,
+            `Q 0 ${boxHeight} 0 ${boxHeight - borderRadius}`,
+            `V ${borderRadius}`,
+            `Q 0 0 ${borderRadius} 0`,
+            'Z',
+        ].join(' ');
+
+        page.drawSvgPath(roundedBoxPath, {
+            x: boxX,
+            y: boxY,
+            borderColor: red,
+            borderWidth,
+        });
+
         page.drawText(text, {
-            x: (width - textWidth) / 2,
-            y: height / 2,
+            x: boxX + paddingX,
+            y: boxY + paddingY + 1,
             size: fontSize,
             font,
-            color: rgb(0.55, 0.55, 0.55),
-            opacity: 0.2,
-            rotate: degrees(-35),
+            color: red,
         });
     });
 
@@ -8295,14 +8322,30 @@ async function addProtocolloAssociazioneImageWatermark(blob, watermarkText, mime
     const ctx = canvas.getContext('2d');
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
     ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.rotate(-35 * Math.PI / 180);
-    ctx.globalAlpha = 0.22;
-    ctx.fillStyle = '#6b7280';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = `700 ${Math.max(28, Math.min(canvas.width, canvas.height) / 8)}px Arial, sans-serif`;
-    ctx.fillText(String(watermarkText || ''), 0, 0);
+    const text = String(watermarkText || '').trim();
+    const fontSize = Math.max(14, Math.min(canvas.width, canvas.height) / 40);
+    const paddingX = Math.max(8, fontSize * 0.65);
+    const paddingY = Math.max(5, fontSize * 0.4);
+    const boxX = Math.max(16, canvas.width * 0.035);
+    const boxY = Math.max(16, canvas.height * 0.035);
+
+    ctx.font = `700 ${fontSize}px Arial, sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.strokeStyle = '#b91c1c';
+    ctx.fillStyle = '#b91c1c';
+    ctx.lineWidth = 4;
+
+    const boxWidth = Math.min(ctx.measureText(text).width + (paddingX * 2), canvas.width - (boxX * 2));
+    const boxHeight = fontSize + (paddingY * 2);
+    if (typeof ctx.roundRect === 'function') {
+        ctx.beginPath();
+        ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 4);
+        ctx.stroke();
+    } else {
+        ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+    }
+    ctx.fillText(text, boxX + paddingX, boxY + paddingY);
     ctx.restore();
 
     const outputType = PROTOCOLLO_ASSOCIAZIONE_ALLOWED_TYPES.includes(mimeType) && mimeType !== 'application/pdf'
@@ -8319,7 +8362,8 @@ async function addProtocolloAssociazioneImageWatermark(blob, watermarkText, mime
 async function addProtocolloAssociazioneWatermark(blob, protocollo) {
     const filename = protocollo.file_name || `${protocollo.id}.file`;
     const mimeType = getProtocolloAssociazioneFileType(blob, filename);
-    const watermarkText = String(protocollo.id || '').trim();
+    const protocolloId = String(protocollo.id || '').trim();
+    const watermarkText = protocolloId ? `Protocollo ${protocolloId}` : '';
 
     if (!watermarkText) return blob;
     if (mimeType === 'application/pdf') {
