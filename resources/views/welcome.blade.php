@@ -712,7 +712,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">File <span id="pa-file-required" class="text-rose-400">*</span></label>
-                    <input type="file" id="pa-file" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-300 file:mr-3 file:border-0 file:rounded-lg file:bg-amber-500 file:px-3 file:py-2 file:text-xs file:font-bold file:text-slate-950 hover:file:bg-amber-600 focus:border-amber-500 focus:outline-none transition-colors">
+                    <input type="file" id="pa-file" required accept="application/pdf,image/jpeg,image/png,image/webp" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-300 file:mr-3 file:border-0 file:rounded-lg file:bg-amber-500 file:px-3 file:py-2 file:text-xs file:font-bold file:text-slate-950 hover:file:bg-amber-600 focus:border-amber-500 focus:outline-none transition-colors">
                     <p id="pa-file-current" class="hidden mt-2 text-xs text-slate-500"></p>
                 </div>
                 <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">

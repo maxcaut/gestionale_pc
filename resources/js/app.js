@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { degrees, PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 // --- INIZIALIZZAZIONE SUPABASE ---
 // Invece di import.meta.env, leggiamo una variabile passata da Laravel nel file HTML
@@ -34,6 +35,8 @@ const VOLONTARI_ALLEGATO_V_MAX_SIZE = 10 * 1024 * 1024;
 const VOLONTARI_ALLEGATO_V_ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
 const PROTOCOLLO_INGRESSO_BUCKET = "protocollo-ingresso";
 const PROTOCOLLO_ASSOCIAZIONE_BUCKET = "protocollo-associazione";
+const PROTOCOLLO_ASSOCIAZIONE_ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+const PROTOCOLLO_ASSOCIAZIONE_ALLOWED_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "webp"];
 const DEFAULT_ASSOCIAZIONI = [
     "G.C. Massa di Somma",
     "G.C. Cercola",
@@ -8093,6 +8096,11 @@ async function saveProtocolloAssociazione(event) {
             return;
         }
 
+        if (file && !isAllowedProtocolloAssociazioneFile(file)) {
+            showToast('Errore', 'Carica solo file PDF o immagini JPG, PNG, WEBP.');
+            return;
+        }
+
         showPdfExportProgress('Caricamento protocollo in corso', 'Attendere il completamento del caricamento...');
         progressVisible = true;
 
@@ -8197,6 +8205,133 @@ function getProtocolloAssociazioneVisibili() {
     });
 }
 
+function getProtocolloAssociazioneFileExtension(filename = '') {
+    const cleanName = String(filename || '').split('?')[0].split('#')[0];
+    const dotIndex = cleanName.lastIndexOf('.');
+    return dotIndex >= 0 ? cleanName.slice(dotIndex + 1).toLowerCase() : '';
+}
+
+function getProtocolloAssociazioneFileType(file, filename = '') {
+    const mimeType = String(file?.type || '').toLowerCase();
+    if (mimeType) return mimeType;
+
+    const extension = getProtocolloAssociazioneFileExtension(filename || file?.name);
+    if (extension === 'pdf') return 'application/pdf';
+    if (extension === 'jpg' || extension === 'jpeg') return 'image/jpeg';
+    if (extension === 'png') return 'image/png';
+    if (extension === 'webp') return 'image/webp';
+    return '';
+}
+
+function isAllowedProtocolloAssociazioneFile(file) {
+    if (!file) return false;
+
+    const mimeType = getProtocolloAssociazioneFileType(file, file.name);
+    if (PROTOCOLLO_ASSOCIAZIONE_ALLOWED_TYPES.includes(mimeType)) return true;
+
+    const extension = getProtocolloAssociazioneFileExtension(file.name);
+    return PROTOCOLLO_ASSOCIAZIONE_ALLOWED_EXTENSIONS.includes(extension);
+}
+
+function getProtocolloAssociazioneWatermarkedFilename(filename, protocolloId) {
+    const safeProtocollo = getSafeFilenamePart(protocolloId) || 'protocollo';
+    const fallbackName = `${safeProtocollo}.pdf`;
+    const baseFilename = String(filename || fallbackName);
+    const dotIndex = baseFilename.lastIndexOf('.');
+    if (dotIndex <= 0) return `${baseFilename}-protocollo-${safeProtocollo}`;
+
+    return `${baseFilename.slice(0, dotIndex)}-protocollo-${safeProtocollo}${baseFilename.slice(dotIndex)}`;
+}
+
+async function addProtocolloAssociazionePdfWatermark(blob, watermarkText) {
+    const bytes = await blob.arrayBuffer();
+    const pdfDoc = await PDFDocument.load(bytes);
+    const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    pdfDoc.getPages().forEach(page => {
+        const { width, height } = page.getSize();
+        const text = String(watermarkText || '').trim();
+        if (!text) return;
+
+        const fontSize = Math.min(Math.max(width / Math.max(text.length, 8), 34), 86);
+        const textWidth = font.widthOfTextAtSize(text, fontSize);
+        page.drawText(text, {
+            x: (width - textWidth) / 2,
+            y: height / 2,
+            size: fontSize,
+            font,
+            color: rgb(0.55, 0.55, 0.55),
+            opacity: 0.2,
+            rotate: degrees(-35),
+        });
+    });
+
+    const watermarkedBytes = await pdfDoc.save();
+    return new Blob([watermarkedBytes], { type: 'application/pdf' });
+}
+
+function loadProtocolloAssociazioneImage(blob) {
+    return new Promise((resolve, reject) => {
+        const image = new Image();
+        const url = URL.createObjectURL(blob);
+        image.onload = () => {
+            URL.revokeObjectURL(url);
+            resolve(image);
+        };
+        image.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error('Impossibile leggere immagine protocollo associazione.'));
+        };
+        image.src = url;
+    });
+}
+
+async function addProtocolloAssociazioneImageWatermark(blob, watermarkText, mimeType) {
+    const image = await loadProtocolloAssociazioneImage(blob);
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth || image.width;
+    canvas.height = image.naturalHeight || image.height;
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(-35 * Math.PI / 180);
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = '#6b7280';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `700 ${Math.max(28, Math.min(canvas.width, canvas.height) / 8)}px Arial, sans-serif`;
+    ctx.fillText(String(watermarkText || ''), 0, 0);
+    ctx.restore();
+
+    const outputType = PROTOCOLLO_ASSOCIAZIONE_ALLOWED_TYPES.includes(mimeType) && mimeType !== 'application/pdf'
+        ? mimeType
+        : 'image/png';
+
+    return new Promise(resolve => {
+        canvas.toBlob(watermarkedBlob => {
+            resolve(watermarkedBlob || blob);
+        }, outputType, 0.92);
+    });
+}
+
+async function addProtocolloAssociazioneWatermark(blob, protocollo) {
+    const filename = protocollo.file_name || `${protocollo.id}.file`;
+    const mimeType = getProtocolloAssociazioneFileType(blob, filename);
+    const watermarkText = String(protocollo.id || '').trim();
+
+    if (!watermarkText) return blob;
+    if (mimeType === 'application/pdf') {
+        return addProtocolloAssociazionePdfWatermark(blob, watermarkText);
+    }
+    if (mimeType.startsWith('image/')) {
+        return addProtocolloAssociazioneImageWatermark(blob, watermarkText, mimeType);
+    }
+
+    return blob;
+}
+
 function renderProtocolloAssociazione() {
     const tbody = document.getElementById('protocollo-associazione-table-body');
     if (!tbody) return;
@@ -8278,7 +8413,9 @@ async function downloadProtocolloAssociazioneFile(id) {
             .download(protocollo.file_path);
         if (error) throw error;
 
-        downloadBlob(data, protocollo.file_name || `${id}.file`);
+        const watermarkedBlob = await addProtocolloAssociazioneWatermark(data, protocollo);
+        const filename = getProtocolloAssociazioneWatermarkedFilename(protocollo.file_name || `${id}.file`, protocollo.id);
+        downloadBlob(watermarkedBlob, filename);
     } catch (err) {
         console.error('Errore download protocollo associazione:', err);
         showToast('Errore', 'Impossibile scaricare il file.');
