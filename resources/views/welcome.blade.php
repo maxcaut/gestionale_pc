@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="icon" type="image/png" href="{{ asset('img/favicon.png') }}?v={{ filemtime(public_path('img/favicon.png')) }}">
-    <link rel="shortcut icon" type="image/png" href="{{ asset('img/favicon.png') }}?v={{ filemtime(public_path('img/favicon.png')) }}">
+    <link rel="icon" type="image/png" sizes="64x64" href="{{ asset('img/favicon-20260709.png') }}?v={{ filemtime(public_path('img/favicon-20260709.png')) }}">
+    <link rel="shortcut icon" type="image/png" sizes="64x64" href="{{ asset('img/favicon-20260709.png') }}?v={{ filemtime(public_path('img/favicon-20260709.png')) }}">
     <title>{{ config('app.name') }} - Protezione Civile - Coordinamento Vesuvius</title>
     
     <!-- Google Fonts: Inter per un look moderno e pulito -->
