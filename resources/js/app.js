@@ -33,6 +33,7 @@ const VOLONTARI_ALLEGATO_V_BUCKET = "volontari-allegato-v";
 const VOLONTARI_ALLEGATO_V_MAX_SIZE = 10 * 1024 * 1024;
 const VOLONTARI_ALLEGATO_V_ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
 const PROTOCOLLO_INGRESSO_BUCKET = "protocollo-ingresso";
+const PROTOCOLLO_ASSOCIAZIONE_BUCKET = "protocollo-associazione";
 const DEFAULT_ASSOCIAZIONI = [
     "G.C. Massa di Somma",
     "G.C. Cercola",
@@ -91,6 +92,10 @@ function canAccessSquadreAib() {
 
 function canAccessProtocolloIngresso() {
     return hasMasterAccess();
+}
+
+function canAccessProtocolloAssociazione() {
+    return hasMasterAccess() || isSegreteria();
 }
 
 function canAccessMagazzino() {
@@ -621,6 +626,9 @@ function applyRoleBasedUI() {
     document.querySelectorAll('[data-protocollo-ingresso-access]').forEach(el => {
         el.classList.toggle('hidden', !canAccessProtocolloIngresso());
     });
+    document.querySelectorAll('[data-protocollo-associazione-access]').forEach(el => {
+        el.classList.toggle('hidden', !canAccessProtocolloAssociazione());
+    });
 
     configureProfiloRuoloOptions();
 
@@ -642,6 +650,7 @@ function applyRoleBasedUI() {
     setupVolontarioAssociazioneField();
     setupMezzoAssociazioneField();
     setupSquadraAibAssociazioneField();
+    setupProtocolloAssociazioneField();
 
     if (isSegreteria()) {
         switchTab('volontari');
@@ -912,6 +921,8 @@ async function handleLogout() {
     mezzi = [];
     servizi = [];
     squadreAib = [];
+    protocolliIngresso = [];
+    protocolliAssociazione = [];
     stopSquadreAibScadenzaTimer();
     await showLogin();
 }
@@ -945,6 +956,7 @@ let mezzi = [];
 let servizi = [];
 let squadreAib = [];
 let protocolliIngresso = [];
+let protocolliAssociazione = [];
 let attrezzatureMagazzino = [];
 let tipiAttrezzaturaMagazzino = [];
 let prelieviMagazzino = [];
@@ -957,8 +969,10 @@ let editingProfileId = null;
 let editingAssociazioneId = null;
 let editingSquadraAibId = null;
 let editingProtocolloIngressoId = null;
+let editingProtocolloAssociazioneId = null;
 let isSavingVolontario = false;
 let isSavingProtocolloIngresso = false;
+let isSavingProtocolloAssociazione = false;
 let isSavingPrelievoMagazzino = false;
 let savingRientriPrelievoMagazzino = new Set();
 let editingAttrezzaturaId = null;
@@ -2394,6 +2408,26 @@ async function fetchDataFromSupabase() {
             protocolliIngresso = [];
         }
 
+        if (canAccessProtocolloAssociazione()) {
+            let protocolloAssociazioneQuery = supabase
+                .from('protocollo_associazione')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (isSegreteria()) {
+                const assoc = getUserAssociazione();
+                protocolloAssociazioneQuery = assoc
+                    ? protocolloAssociazioneQuery.eq('associazione_appartenenza', assoc)
+                    : Promise.resolve({ data: [], error: null });
+            }
+
+            const protocolloAssociazioneResponse = await protocolloAssociazioneQuery;
+            if (protocolloAssociazioneResponse.error) throw protocolloAssociazioneResponse.error;
+            protocolliAssociazione = protocolloAssociazioneResponse.data || [];
+        } else {
+            protocolliAssociazione = [];
+        }
+
         if (canAccessMagazzino()) {
             let attrezzatureQuery = supabase
                 .from('magazzino_attrezzature')
@@ -2489,6 +2523,7 @@ function toggleModal(modalId, show) {
         resetSalaOperativaServizioFormRestrictions();
         resetSegreteriaAttivitaFormRestrictions();
         resetProtocolloIngressoForm();
+        resetProtocolloAssociazioneForm();
         resetPrelievoMagazzinoForm();
         setModalFormMode('modal-volontario', { title: 'Aggiungi Nuovo Volontario', submitText: 'Registra' });
         setModalFormMode('modal-mezzo', { title: 'Aggiungi Nuovo Mezzo di Soccorso', submitText: 'Registra' });
@@ -2521,6 +2556,9 @@ function switchTab(tabId) {
         tabId = canAccessVolontari() ? 'volontari' : (canAccessServizi() ? 'servizi' : 'dashboard');
     }
     if (!canAccessProtocolloIngresso() && tabId === 'protocollo-ingresso') {
+        tabId = canAccessServizi() ? 'servizi' : (canAccessVolontari() ? 'volontari' : 'dashboard');
+    }
+    if (!canAccessProtocolloAssociazione() && tabId === 'protocollo-associazione') {
         tabId = canAccessServizi() ? 'servizi' : (canAccessVolontari() ? 'volontari' : 'dashboard');
     }
     if (!hasMasterAccess() && (tabId === 'admin' || tabId === 'dashboard' || tabId === 'statistiche')) {
@@ -2583,6 +2621,7 @@ function switchTab(tabId) {
         statistiche: "Statistiche",
         attivita: "Attività",
         "protocollo-ingresso": "Protocollo in Ingresso",
+        "protocollo-associazione": "Protocollo Associazione",
         admin: "Gestione Utenti"
     };
     document.getElementById("page-title").innerText = titleMap[tabId] || tabId;
@@ -2601,6 +2640,10 @@ function switchTab(tabId) {
 
     if (tabId === "protocollo-ingresso") {
         renderProtocolloIngresso();
+    }
+
+    if (tabId === "protocollo-associazione") {
+        renderProtocolloAssociazione();
     }
 
     if (tabId === "magazzino") {
@@ -5175,6 +5218,25 @@ function setupSquadraAibAssociazioneField() {
     const fissaWrap = document.getElementById('aib-squadra-associazione-fissa-wrap');
     const fissaInput = document.getElementById('aib-squadra-associazione-fissa');
     const fissaLabel = document.getElementById('aib-squadra-associazione-fissa-label');
+    if (!selectWrap || !fissaWrap) return;
+
+    if (isSegreteria()) {
+        const assoc = getUserAssociazione() || '';
+        selectWrap.classList.add('hidden');
+        fissaWrap.classList.remove('hidden');
+        if (fissaInput) fissaInput.value = assoc;
+        if (fissaLabel) fissaLabel.innerText = assoc || 'Associazione non configurata';
+    } else {
+        selectWrap.classList.remove('hidden');
+        fissaWrap.classList.add('hidden');
+    }
+}
+
+function setupProtocolloAssociazioneField() {
+    const selectWrap = document.getElementById('pa-associazione-select-wrap');
+    const fissaWrap = document.getElementById('pa-associazione-fissa-wrap');
+    const fissaInput = document.getElementById('pa-associazione-fissa');
+    const fissaLabel = document.getElementById('pa-associazione-fissa-label');
     if (!selectWrap || !fissaWrap) return;
 
     if (isSegreteria()) {
@@ -7890,6 +7952,335 @@ async function deleteProtocolloIngresso(id) {
     }
 }
 
+// --- PROTOCOLLO ASSOCIAZIONE ---
+function getProtocolloAssociazioneFilePath(id, file) {
+    const safeName = String(file?.name || 'documento')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9._-]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'documento';
+    return `${id}/${Date.now()}-${safeName}`;
+}
+
+function getProtocolloAssociazioneValue() {
+    if (isSegreteria()) {
+        return getUserAssociazione();
+    }
+    return document.getElementById('pa-associazione')?.value || null;
+}
+
+function setProtocolloAssociazioneModalMode({ title, submitText, fileRequired, currentFileName = '' }) {
+    const titleEl = document.getElementById('modal-protocollo-associazione-title');
+    const submitEl = document.getElementById('modal-protocollo-associazione-submit');
+    const fileInput = document.getElementById('pa-file');
+    const requiredMark = document.getElementById('pa-file-required');
+    const currentFile = document.getElementById('pa-file-current');
+    if (titleEl) titleEl.innerText = title;
+    if (submitEl) submitEl.innerText = submitText;
+    if (fileInput) fileInput.required = fileRequired;
+    if (requiredMark) requiredMark.classList.toggle('hidden', !fileRequired);
+    if (currentFile) {
+        currentFile.classList.toggle('hidden', !currentFileName);
+        currentFile.innerText = currentFileName ? `File attuale: ${currentFileName}` : '';
+    }
+}
+
+function resetProtocolloAssociazioneForm() {
+    setProtocolloAssociazioneModalMode({
+        title: 'Nuovo Protocollo Associazione',
+        submitText: 'Salva',
+        fileRequired: true,
+    });
+}
+
+function openNuovoProtocolloAssociazioneModal() {
+    if (!canAccessProtocolloAssociazione()) return;
+    editingProtocolloAssociazioneId = null;
+    document.getElementById('pa-tipo').value = 'ingresso';
+    document.getElementById('pa-data-memorizzazione').value = '';
+    document.getElementById('pa-protocollo-esterno').value = '';
+    document.getElementById('pa-oggetto').value = '';
+    document.getElementById('pa-file').value = '';
+    renderAssociazioniOptions(getUserAssociazione() || getDefaultAssociazione());
+    setupProtocolloAssociazioneField();
+    resetProtocolloAssociazioneForm();
+    toggleModal('modal-protocollo-associazione', true);
+}
+
+function openEditProtocolloAssociazioneModal(id) {
+    if (!canAccessProtocolloAssociazione()) return;
+    const protocollo = protocolliAssociazione.find(item => item.id === id);
+    if (!protocollo) {
+        showToast('Errore', 'Protocollo non trovato.');
+        return;
+    }
+
+    editingProtocolloAssociazioneId = id;
+    renderAssociazioniOptions(protocollo.associazione_appartenenza || getDefaultAssociazione());
+    setupProtocolloAssociazioneField();
+    document.getElementById('pa-tipo').value = protocollo.tipo || 'ingresso';
+    document.getElementById('pa-data-memorizzazione').value = protocollo.data_memorizzazione || '';
+    document.getElementById('pa-protocollo-esterno').value = protocollo.protocollo_esterno || '';
+    document.getElementById('pa-oggetto').value = protocollo.oggetto || '';
+    document.getElementById('pa-file').value = '';
+    if (!isSegreteria()) {
+        document.getElementById('pa-associazione').value = protocollo.associazione_appartenenza || getDefaultAssociazione();
+    }
+    setProtocolloAssociazioneModalMode({
+        title: 'Modifica Protocollo Associazione',
+        submitText: 'Salva modifiche',
+        fileRequired: false,
+        currentFileName: protocollo.file_name || '',
+    });
+    toggleModal('modal-protocollo-associazione', true);
+}
+
+async function saveProtocolloAssociazione(event) {
+    event.preventDefault();
+    if (!canAccessProtocolloAssociazione()) return;
+    if (isSavingProtocolloAssociazione) return;
+
+    isSavingProtocolloAssociazione = true;
+    const submitEl = document.getElementById('modal-protocollo-associazione-submit');
+    const submitText = submitEl?.innerText || '';
+    let progressVisible = false;
+    let saveSucceeded = false;
+    if (submitEl) submitEl.disabled = true;
+
+    try {
+        const tipo = document.getElementById('pa-tipo')?.value || 'ingresso';
+        const dataMemorizzazione = document.getElementById('pa-data-memorizzazione')?.value || '';
+        const protocolloEsterno = document.getElementById('pa-protocollo-esterno')?.value.trim() || null;
+        const oggetto = document.getElementById('pa-oggetto')?.value.trim() || null;
+        const associazione = getProtocolloAssociazioneValue();
+        const file = document.getElementById('pa-file')?.files?.[0] || null;
+
+        if (!['ingresso', 'uscita'].includes(tipo)) {
+            showToast('Errore', 'Seleziona ingresso o uscita.');
+            return;
+        }
+
+        if (!dataMemorizzazione) {
+            showToast('Errore', 'La data di memorizzazione è obbligatoria.');
+            return;
+        }
+
+        if (!associazione) {
+            showToast('Errore', 'Associazione non configurata.');
+            return;
+        }
+
+        if (!editingProtocolloAssociazioneId && !file) {
+            showToast('Errore', 'Il file è obbligatorio.');
+            return;
+        }
+
+        showPdfExportProgress('Caricamento protocollo in corso', 'Attendere il completamento del caricamento...');
+        progressVisible = true;
+
+        if (editingProtocolloAssociazioneId) {
+            const current = protocolliAssociazione.find(item => item.id === editingProtocolloAssociazioneId);
+            const payload = {
+                tipo,
+                protocollo_esterno: protocolloEsterno,
+                data_memorizzazione: dataMemorizzazione,
+                oggetto,
+                associazione_appartenenza: associazione,
+            };
+            let previousFilePathToRemove = null;
+
+            if (file) {
+                const path = getProtocolloAssociazioneFilePath(editingProtocolloAssociazioneId, file);
+                const { error: uploadError } = await supabase.storage
+                    .from(PROTOCOLLO_ASSOCIAZIONE_BUCKET)
+                    .upload(path, file, { upsert: true, contentType: file.type || undefined });
+                if (uploadError) throw uploadError;
+
+                previousFilePathToRemove = current?.file_path || null;
+                payload.file_path = path;
+                payload.file_name = file.name;
+                payload.file_mime_type = file.type || null;
+                payload.file_size = file.size;
+            }
+
+            const { error } = await supabase
+                .from('protocollo_associazione')
+                .update(payload)
+                .eq('id', editingProtocolloAssociazioneId);
+            if (error) throw error;
+
+            if (previousFilePathToRemove) {
+                await supabase.storage.from(PROTOCOLLO_ASSOCIAZIONE_BUCKET).remove([previousFilePathToRemove]);
+            }
+
+            toggleModal('modal-protocollo-associazione', false);
+            showToast('Protocollo aggiornato', 'Record modificato con successo.');
+        } else {
+            const { data, error } = await supabase
+                .from('protocollo_associazione')
+                .insert([{
+                    tipo,
+                    protocollo_esterno: protocolloEsterno,
+                    data_memorizzazione: dataMemorizzazione,
+                    oggetto,
+                    associazione_appartenenza: associazione,
+                    file_path: '',
+                    file_name: file.name,
+                    file_mime_type: file.type || null,
+                    file_size: file.size,
+                }])
+                .select('id')
+                .single();
+            if (error) throw error;
+
+            const path = getProtocolloAssociazioneFilePath(data.id, file);
+            const { error: uploadError } = await supabase.storage
+                .from(PROTOCOLLO_ASSOCIAZIONE_BUCKET)
+                .upload(path, file, { upsert: true, contentType: file.type || undefined });
+            if (uploadError) throw uploadError;
+
+            const { error: updateError } = await supabase
+                .from('protocollo_associazione')
+                .update({ file_path: path })
+                .eq('id', data.id);
+            if (updateError) throw updateError;
+
+            toggleModal('modal-protocollo-associazione', false);
+            showToast('Protocollo inserito', 'Record salvato con successo.');
+        }
+
+        editingProtocolloAssociazioneId = null;
+        await fetchDataFromSupabase();
+        saveSucceeded = true;
+    } catch (err) {
+        console.error('Errore salvataggio protocollo associazione:', err);
+        showToast('Errore', 'Impossibile salvare il protocollo associazione.');
+    } finally {
+        if (progressVisible) hidePdfExportProgress(saveSucceeded);
+        isSavingProtocolloAssociazione = false;
+        if (submitEl) {
+            submitEl.disabled = false;
+            submitEl.innerText = submitText;
+        }
+    }
+}
+
+function renderProtocolloAssociazione() {
+    const tbody = document.getElementById('protocollo-associazione-table-body');
+    if (!tbody) return;
+
+    const search = (document.getElementById('search-protocollo-associazione')?.value || '').toLowerCase();
+    const tipoFilter = document.getElementById('filter-protocollo-associazione-tipo')?.value || '';
+    const filtered = protocolliAssociazione.filter(item => {
+        const matchTipo = !tipoFilter || item.tipo === tipoFilter;
+        const searchText = `${item.id || ''} ${item.tipo || ''} ${item.associazione_appartenenza || ''} ${item.protocollo_esterno || ''} ${item.oggetto || ''} ${item.file_name || ''}`.toLowerCase();
+        return matchTipo && searchText.includes(search);
+    });
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="py-8 text-center text-slate-500 font-medium">Nessun protocollo associazione trovato.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = '';
+    filtered.forEach(item => {
+        const formattedDate = item.data_memorizzazione
+            ? new Date(`${item.data_memorizzazione}T00:00:00`).toLocaleDateString('it-IT')
+            : '—';
+        const tipoLabel = item.tipo === 'uscita' ? 'Uscita' : 'Ingresso';
+        const tipoClass = item.tipo === 'uscita'
+            ? 'bg-sky-500/10 text-sky-300 border-sky-500/20'
+            : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20';
+
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-800/10 transition-colors">
+                <td class="py-4 px-6 text-slate-200 font-mono text-xs font-bold">${escapeHtml(item.id)}</td>
+                <td class="py-4 px-6"><span class="inline-flex px-2.5 py-1 rounded-lg border text-xs font-bold ${tipoClass}">${tipoLabel}</span></td>
+                <td class="py-4 px-6 text-slate-300 font-medium">${escapeHtml(item.associazione_appartenenza || '—')}</td>
+                <td class="py-4 px-6 text-slate-300 font-medium">${escapeHtml(item.protocollo_esterno || '—')}</td>
+                <td class="py-4 px-6 text-slate-300 font-medium">${formattedDate}</td>
+                <td class="py-4 px-6 text-slate-400 max-w-xs truncate" title="${escapeAttr(item.oggetto || '')}">${escapeHtml(item.oggetto || '—')}</td>
+                <td class="py-4 px-6 text-slate-400">${escapeHtml(item.file_name || '—')}</td>
+                <td class="py-4 px-6 text-right">
+                    <div class="inline-flex gap-2">
+                        <button type="button" onclick="openEditProtocolloAssociazioneModal('${escapeAttr(item.id)}')" title="Modifica" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-all">
+                            ${ICON_EDIT}
+                        </button>
+                        <button type="button" onclick="downloadProtocolloAssociazioneFile('${escapeAttr(item.id)}')" title="Scarica file" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M7.5 12l4.5 4.5m0 0l4.5-4.5m-4.5 4.5V3" />
+                            </svg>
+                        </button>
+                        <button type="button" onclick="deleteProtocolloAssociazione('${escapeAttr(item.id)}')" title="Elimina" class="p-2 hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-500 transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                            </svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+async function downloadProtocolloAssociazioneFile(id) {
+    if (!canAccessProtocolloAssociazione()) return;
+
+    const protocollo = protocolliAssociazione.find(item => item.id === id);
+    if (!protocollo?.file_path) {
+        showToast('Errore', 'File non disponibile.');
+        return;
+    }
+
+    try {
+        const { data, error } = await supabase.storage
+            .from(PROTOCOLLO_ASSOCIAZIONE_BUCKET)
+            .download(protocollo.file_path);
+        if (error) throw error;
+
+        downloadBlob(data, protocollo.file_name || `${id}.file`);
+    } catch (err) {
+        console.error('Errore download protocollo associazione:', err);
+        showToast('Errore', 'Impossibile scaricare il file.');
+    }
+}
+
+async function deleteProtocolloAssociazione(id) {
+    if (!canAccessProtocolloAssociazione()) return;
+
+    const protocollo = protocolliAssociazione.find(item => item.id === id);
+    if (!protocollo) {
+        showToast('Errore', 'Protocollo non trovato.');
+        return;
+    }
+
+    if (!confirm('Eliminare questo protocollo associazione?')) {
+        return;
+    }
+
+    try {
+        if (protocollo.file_path) {
+            await supabase.storage.from(PROTOCOLLO_ASSOCIAZIONE_BUCKET).remove([protocollo.file_path]);
+        }
+
+        const { error } = await supabase
+            .from('protocollo_associazione')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+
+        showToast('Protocollo eliminato', 'Record eliminato con successo.');
+        await fetchDataFromSupabase();
+    } catch (err) {
+        console.error('Errore eliminazione protocollo associazione:', err);
+        showToast('Errore', 'Impossibile eliminare il protocollo associazione.');
+    }
+}
+
 // --- UPDATE TOTALE UI E STATI ---
 function updateUI() {
     updateDashboardStats();
@@ -7900,6 +8291,7 @@ function updateUI() {
     renderAttivita();
     renderStatistiche();
     renderProtocolloIngresso();
+    renderProtocolloAssociazione();
     renderMagazzino();
 }
 
@@ -8567,6 +8959,12 @@ window.saveProtocolloIngresso = saveProtocolloIngresso;
 window.downloadProtocolloIngressoFile = downloadProtocolloIngressoFile;
 window.deleteProtocolloIngresso = deleteProtocolloIngresso;
 window.renderProtocolloIngresso = renderProtocolloIngresso;
+window.openNuovoProtocolloAssociazioneModal = openNuovoProtocolloAssociazioneModal;
+window.openEditProtocolloAssociazioneModal = openEditProtocolloAssociazioneModal;
+window.saveProtocolloAssociazione = saveProtocolloAssociazione;
+window.downloadProtocolloAssociazioneFile = downloadProtocolloAssociazioneFile;
+window.deleteProtocolloAssociazione = deleteProtocolloAssociazione;
+window.renderProtocolloAssociazione = renderProtocolloAssociazione;
 window.openNuovaAttrezzaturaModal = openNuovaAttrezzaturaModal;
 window.openEditAttrezzaturaModal = openEditAttrezzaturaModal;
 window.saveAttrezzatura = saveAttrezzatura;
@@ -8604,6 +9002,7 @@ window.addEventListener("DOMContentLoaded", async () => {
             servizi = [];
             squadreAib = [];
             protocolliIngresso = [];
+            protocolliAssociazione = [];
             attrezzatureMagazzino = [];
             tipiAttrezzaturaMagazzino = [];
             prelieviMagazzino = [];
