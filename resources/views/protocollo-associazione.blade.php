@@ -18,12 +18,17 @@
                             </select>
                         </div>
 
-                        <button type="button" onclick="openNuovoProtocolloAssociazioneModal()" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-slate-950 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20 transition-all">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span>Nuovo Protocollo Associazione</span>
-                        </button>
+                        <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                            <button type="button" onclick="exportProtocolloAssociazioneVisibili()" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-100 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all">
+                                <span>Exporta</span>
+                            </button>
+                            <button type="button" onclick="openNuovoProtocolloAssociazioneModal()" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-slate-950 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20 transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>Nuovo Protocollo Associazione</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">

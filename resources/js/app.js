@@ -8017,7 +8017,7 @@ function openNuovoProtocolloAssociazioneModal() {
 }
 
 function openEditProtocolloAssociazioneModal(id) {
-    if (!canAccessProtocolloAssociazione()) return;
+    if (!hasMasterAccess()) return;
     const protocollo = protocolliAssociazione.find(item => item.id === id);
     if (!protocollo) {
         showToast('Errore', 'Protocollo non trovato.');
@@ -8187,17 +8187,21 @@ async function saveProtocolloAssociazione(event) {
     }
 }
 
-function renderProtocolloAssociazione() {
-    const tbody = document.getElementById('protocollo-associazione-table-body');
-    if (!tbody) return;
-
+function getProtocolloAssociazioneVisibili() {
     const search = (document.getElementById('search-protocollo-associazione')?.value || '').toLowerCase();
     const tipoFilter = document.getElementById('filter-protocollo-associazione-tipo')?.value || '';
-    const filtered = protocolliAssociazione.filter(item => {
+    return protocolliAssociazione.filter(item => {
         const matchTipo = !tipoFilter || item.tipo === tipoFilter;
         const searchText = `${item.id || ''} ${item.tipo || ''} ${item.associazione_appartenenza || ''} ${item.protocollo_esterno || ''} ${item.mittente || ''} ${item.destinatario || ''} ${item.oggetto || ''} ${item.file_name || ''}`.toLowerCase();
         return matchTipo && searchText.includes(search);
     });
+}
+
+function renderProtocolloAssociazione() {
+    const tbody = document.getElementById('protocollo-associazione-table-body');
+    if (!tbody) return;
+
+    const filtered = getProtocolloAssociazioneVisibili();
 
     if (filtered.length === 0) {
         tbody.innerHTML = `
@@ -8227,6 +8231,11 @@ function renderProtocolloAssociazione() {
                             </svg>
                         </button>`
             : '';
+        const editButton = hasMasterAccess()
+            ? `<button type="button" onclick="openEditProtocolloAssociazioneModal('${escapeAttr(item.id)}')" title="Modifica" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-all">
+                            ${ICON_EDIT}
+                        </button>`
+            : '';
 
         tbody.innerHTML += `
             <tr class="hover:bg-slate-800/10 transition-colors">
@@ -8240,9 +8249,7 @@ function renderProtocolloAssociazione() {
                 <td class="py-4 px-6 text-slate-400">${escapeHtml(item.file_name || '—')}</td>
                 <td class="py-4 px-6 text-right">
                     <div class="inline-flex gap-2">
-                        <button type="button" onclick="openEditProtocolloAssociazioneModal('${escapeAttr(item.id)}')" title="Modifica" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-all">
-                            ${ICON_EDIT}
-                        </button>
+                        ${editButton}
                         <button type="button" onclick="downloadProtocolloAssociazioneFile('${escapeAttr(item.id)}')" title="Scarica file" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-amber-500 transition-all">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M7.5 12l4.5 4.5m0 0l4.5-4.5m-4.5 4.5V3" />
@@ -8276,6 +8283,51 @@ async function downloadProtocolloAssociazioneFile(id) {
         console.error('Errore download protocollo associazione:', err);
         showToast('Errore', 'Impossibile scaricare il file.');
     }
+}
+
+function escapeProtocolloAssociazioneCsvValue(value) {
+    const text = String(value ?? '');
+    return `"${text.replace(/"/g, '""')}"`;
+}
+
+function exportProtocolloAssociazioneVisibili() {
+    if (!canAccessProtocolloAssociazione()) return;
+
+    const rows = getProtocolloAssociazioneVisibili();
+    if (!rows.length) {
+        showToast('Nessun dato', 'Non ci sono protocolli visibili da esportare.');
+        return;
+    }
+
+    const headers = [
+        'Protocollo',
+        'Tipo',
+        'Associazione',
+        'Protocollo esterno',
+        'Mittente',
+        'Destinatario',
+        'Data',
+        'Oggetto',
+        'File',
+    ];
+    const lines = [headers.map(escapeProtocolloAssociazioneCsvValue).join(';')];
+
+    rows.forEach(item => {
+        lines.push([
+            item.id,
+            item.tipo === 'uscita' ? 'Uscita' : 'Ingresso',
+            item.associazione_appartenenza,
+            item.protocollo_esterno,
+            item.mittente,
+            item.destinatario,
+            item.data_memorizzazione,
+            item.oggetto,
+            item.file_name,
+        ].map(escapeProtocolloAssociazioneCsvValue).join(';'));
+    });
+
+    const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8;' });
+    downloadBlob(blob, `protocollo-associazione-${new Date().toISOString().slice(0, 10)}.csv`);
 }
 
 async function deleteProtocolloAssociazione(id) {
@@ -8993,6 +9045,7 @@ window.openEditProtocolloAssociazioneModal = openEditProtocolloAssociazioneModal
 window.toggleProtocolloAssociazioneTipoFields = toggleProtocolloAssociazioneTipoFields;
 window.saveProtocolloAssociazione = saveProtocolloAssociazione;
 window.downloadProtocolloAssociazioneFile = downloadProtocolloAssociazioneFile;
+window.exportProtocolloAssociazioneVisibili = exportProtocolloAssociazioneVisibili;
 window.deleteProtocolloAssociazione = deleteProtocolloAssociazione;
 window.renderProtocolloAssociazione = renderProtocolloAssociazione;
 window.openNuovaAttrezzaturaModal = openNuovaAttrezzaturaModal;
