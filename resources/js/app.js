@@ -8262,7 +8262,7 @@ async function addProtocolloAssociazionePdfWatermark(blob, watermarkText) {
         const boxY = height - 24 - boxHeight;
         const borderWidth = 4;
         const borderRadius = 4;
-        const red = rgb(255, 0, 0);
+        const red = rgb(1, 0.35, 0.35);
         const renderedBoxWidth = Math.min(boxWidth, width - (boxX * 2));
         const roundedBoxPath = [
             `M ${borderRadius} 0`,
@@ -8332,8 +8332,8 @@ async function addProtocolloAssociazioneImageWatermark(blob, watermarkText, mime
     ctx.font = `700 ${fontSize}px Arial, sans-serif`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    ctx.strokeStyle = '#b91c1c';
-    ctx.fillStyle = '#b91c1c';
+    ctx.strokeStyle = '#ff5a5a';
+    ctx.fillStyle = '#ff5a5a';
     ctx.lineWidth = 4;
 
     const boxWidth = Math.min(ctx.measureText(text).width + (paddingX * 2), canvas.width - (boxX * 2));
