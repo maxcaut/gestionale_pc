@@ -7985,6 +7985,12 @@ function setProtocolloAssociazioneModalMode({ title, submitText, fileRequired, c
     }
 }
 
+function toggleProtocolloAssociazioneTipoFields() {
+    const tipo = document.getElementById('pa-tipo')?.value || 'ingresso';
+    document.getElementById('pa-mittente-wrap')?.classList.toggle('hidden', tipo !== 'ingresso');
+    document.getElementById('pa-destinatario-wrap')?.classList.toggle('hidden', tipo !== 'uscita');
+}
+
 function resetProtocolloAssociazioneForm() {
     setProtocolloAssociazioneModalMode({
         title: 'Nuovo Protocollo Associazione',
@@ -7999,11 +8005,14 @@ function openNuovoProtocolloAssociazioneModal() {
     document.getElementById('pa-tipo').value = 'ingresso';
     document.getElementById('pa-data-memorizzazione').value = '';
     document.getElementById('pa-protocollo-esterno').value = '';
+    document.getElementById('pa-mittente').value = '';
+    document.getElementById('pa-destinatario').value = '';
     document.getElementById('pa-oggetto').value = '';
     document.getElementById('pa-file').value = '';
     renderAssociazioniOptions(getUserAssociazione() || getDefaultAssociazione());
     setupProtocolloAssociazioneField();
     resetProtocolloAssociazioneForm();
+    toggleProtocolloAssociazioneTipoFields();
     toggleModal('modal-protocollo-associazione', true);
 }
 
@@ -8021,6 +8030,8 @@ function openEditProtocolloAssociazioneModal(id) {
     document.getElementById('pa-tipo').value = protocollo.tipo || 'ingresso';
     document.getElementById('pa-data-memorizzazione').value = protocollo.data_memorizzazione || '';
     document.getElementById('pa-protocollo-esterno').value = protocollo.protocollo_esterno || '';
+    document.getElementById('pa-mittente').value = protocollo.mittente || '';
+    document.getElementById('pa-destinatario').value = protocollo.destinatario || '';
     document.getElementById('pa-oggetto').value = protocollo.oggetto || '';
     document.getElementById('pa-file').value = '';
     if (!isSegreteria()) {
@@ -8032,6 +8043,7 @@ function openEditProtocolloAssociazioneModal(id) {
         fileRequired: false,
         currentFileName: protocollo.file_name || '',
     });
+    toggleProtocolloAssociazioneTipoFields();
     toggleModal('modal-protocollo-associazione', true);
 }
 
@@ -8051,6 +8063,12 @@ async function saveProtocolloAssociazione(event) {
         const tipo = document.getElementById('pa-tipo')?.value || 'ingresso';
         const dataMemorizzazione = document.getElementById('pa-data-memorizzazione')?.value || '';
         const protocolloEsterno = document.getElementById('pa-protocollo-esterno')?.value.trim() || null;
+        const mittente = tipo === 'ingresso'
+            ? (document.getElementById('pa-mittente')?.value.trim() || null)
+            : null;
+        const destinatario = tipo === 'uscita'
+            ? (document.getElementById('pa-destinatario')?.value.trim() || null)
+            : null;
         const oggetto = document.getElementById('pa-oggetto')?.value.trim() || null;
         const associazione = getProtocolloAssociazioneValue();
         const file = document.getElementById('pa-file')?.files?.[0] || null;
@@ -8083,6 +8101,8 @@ async function saveProtocolloAssociazione(event) {
             const payload = {
                 tipo,
                 protocollo_esterno: protocolloEsterno,
+                mittente,
+                destinatario,
                 data_memorizzazione: dataMemorizzazione,
                 oggetto,
                 associazione_appartenenza: associazione,
@@ -8121,6 +8141,8 @@ async function saveProtocolloAssociazione(event) {
                 .insert([{
                     tipo,
                     protocollo_esterno: protocolloEsterno,
+                    mittente,
+                    destinatario,
                     data_memorizzazione: dataMemorizzazione,
                     oggetto,
                     associazione_appartenenza: associazione,
@@ -8173,14 +8195,14 @@ function renderProtocolloAssociazione() {
     const tipoFilter = document.getElementById('filter-protocollo-associazione-tipo')?.value || '';
     const filtered = protocolliAssociazione.filter(item => {
         const matchTipo = !tipoFilter || item.tipo === tipoFilter;
-        const searchText = `${item.id || ''} ${item.tipo || ''} ${item.associazione_appartenenza || ''} ${item.protocollo_esterno || ''} ${item.oggetto || ''} ${item.file_name || ''}`.toLowerCase();
+        const searchText = `${item.id || ''} ${item.tipo || ''} ${item.associazione_appartenenza || ''} ${item.protocollo_esterno || ''} ${item.mittente || ''} ${item.destinatario || ''} ${item.oggetto || ''} ${item.file_name || ''}`.toLowerCase();
         return matchTipo && searchText.includes(search);
     });
 
     if (filtered.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="8" class="py-8 text-center text-slate-500 font-medium">Nessun protocollo associazione trovato.</td>
+                <td colspan="9" class="py-8 text-center text-slate-500 font-medium">Nessun protocollo associazione trovato.</td>
             </tr>
         `;
         return;
@@ -8195,6 +8217,16 @@ function renderProtocolloAssociazione() {
         const tipoClass = item.tipo === 'uscita'
             ? 'bg-sky-500/10 text-sky-300 border-sky-500/20'
             : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20';
+        const mittenteDestinatario = item.tipo === 'uscita'
+            ? item.destinatario
+            : item.mittente;
+        const deleteButton = hasMasterAccess()
+            ? `<button type="button" onclick="deleteProtocolloAssociazione('${escapeAttr(item.id)}')" title="Elimina" class="p-2 hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-500 transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                            </svg>
+                        </button>`
+            : '';
 
         tbody.innerHTML += `
             <tr class="hover:bg-slate-800/10 transition-colors">
@@ -8202,6 +8234,7 @@ function renderProtocolloAssociazione() {
                 <td class="py-4 px-6"><span class="inline-flex px-2.5 py-1 rounded-lg border text-xs font-bold ${tipoClass}">${tipoLabel}</span></td>
                 <td class="py-4 px-6 text-slate-300 font-medium">${escapeHtml(item.associazione_appartenenza || '—')}</td>
                 <td class="py-4 px-6 text-slate-300 font-medium">${escapeHtml(item.protocollo_esterno || '—')}</td>
+                <td class="py-4 px-6 text-slate-300 font-medium">${escapeHtml(mittenteDestinatario || '—')}</td>
                 <td class="py-4 px-6 text-slate-300 font-medium">${formattedDate}</td>
                 <td class="py-4 px-6 text-slate-400 max-w-xs truncate" title="${escapeAttr(item.oggetto || '')}">${escapeHtml(item.oggetto || '—')}</td>
                 <td class="py-4 px-6 text-slate-400">${escapeHtml(item.file_name || '—')}</td>
@@ -8215,11 +8248,7 @@ function renderProtocolloAssociazione() {
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M7.5 12l4.5 4.5m0 0l4.5-4.5m-4.5 4.5V3" />
                             </svg>
                         </button>
-                        <button type="button" onclick="deleteProtocolloAssociazione('${escapeAttr(item.id)}')" title="Elimina" class="p-2 hover:bg-rose-950/30 rounded-lg text-slate-400 hover:text-rose-500 transition-all">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                            </svg>
-                        </button>
+                        ${deleteButton}
                     </div>
                 </td>
             </tr>
@@ -8250,7 +8279,7 @@ async function downloadProtocolloAssociazioneFile(id) {
 }
 
 async function deleteProtocolloAssociazione(id) {
-    if (!canAccessProtocolloAssociazione()) return;
+    if (!hasMasterAccess()) return;
 
     const protocollo = protocolliAssociazione.find(item => item.id === id);
     if (!protocollo) {
@@ -8961,6 +8990,7 @@ window.deleteProtocolloIngresso = deleteProtocolloIngresso;
 window.renderProtocolloIngresso = renderProtocolloIngresso;
 window.openNuovoProtocolloAssociazioneModal = openNuovoProtocolloAssociazioneModal;
 window.openEditProtocolloAssociazioneModal = openEditProtocolloAssociazioneModal;
+window.toggleProtocolloAssociazioneTipoFields = toggleProtocolloAssociazioneTipoFields;
 window.saveProtocolloAssociazione = saveProtocolloAssociazione;
 window.downloadProtocolloAssociazioneFile = downloadProtocolloAssociazioneFile;
 window.deleteProtocolloAssociazione = deleteProtocolloAssociazione;

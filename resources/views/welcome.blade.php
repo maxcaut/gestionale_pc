@@ -675,7 +675,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Tipo <span class="text-rose-400">*</span></label>
-                        <select id="pa-tipo" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:border-amber-500 focus:outline-none transition-colors">
+                        <select id="pa-tipo" required onchange="toggleProtocolloAssociazioneTipoFields()" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:border-amber-500 focus:outline-none transition-colors">
                             <option value="ingresso">Ingresso</option>
                             <option value="uscita">Uscita</option>
                         </select>
@@ -697,6 +697,14 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Numero protocollo esterno</label>
                     <input type="text" id="pa-protocollo-esterno" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:border-amber-500 focus:outline-none transition-colors">
+                </div>
+                <div id="pa-mittente-wrap">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Mittente</label>
+                    <input type="text" id="pa-mittente" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:border-amber-500 focus:outline-none transition-colors">
+                </div>
+                <div id="pa-destinatario-wrap" class="hidden">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Destinatario</label>
+                    <input type="text" id="pa-destinatario" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:border-amber-500 focus:outline-none transition-colors">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Oggetto</label>

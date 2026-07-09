@@ -35,6 +35,7 @@
                                         <th class="py-4 px-6">Tipo</th>
                                         <th class="py-4 px-6">Associazione</th>
                                         <th class="py-4 px-6">Protocollo esterno</th>
+                                        <th class="py-4 px-6">Mittente/Destinatario</th>
                                         <th class="py-4 px-6">Data</th>
                                         <th class="py-4 px-6">Oggetto</th>
                                         <th class="py-4 px-6">File</th>
