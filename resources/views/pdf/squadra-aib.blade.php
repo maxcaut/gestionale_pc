@@ -284,7 +284,7 @@
             <td colspan="2">ODV: {{ $associazione }}</td>
         </tr>
         <tr>
-            <td style="width: 36%;">TELEFONO: 081-8423510</td>
+            <td style="width: 36%;">TELEFONO: 081-0103315</td>
             <td>EMAIL: sop@coordinamentovesuvius.it</td>
         </tr>
     </table>

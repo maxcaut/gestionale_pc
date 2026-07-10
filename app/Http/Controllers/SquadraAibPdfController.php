@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Support\PdfEmailDelivery;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Throwable;
@@ -25,6 +26,7 @@ class SquadraAibPdfController extends Controller
             'squadra.legale_rappresentante' => 'nullable|string',
             'squadra.caposquadra_id' => 'nullable|string',
             'squadra.stato' => 'nullable|string',
+            'squadra.disponibile_dal' => 'nullable|string',
             'squadra.disponibile_fino' => 'nullable|string',
             'mezzi' => 'nullable|array',
             'mezzi.*.id' => 'nullable|string',
@@ -55,15 +57,18 @@ class SquadraAibPdfController extends Controller
                 }
             }
         }
-        $oggi = now()->timezone('Europe/Rome');
+        $disponibileDal = trim((string) ($squadra['disponibile_dal'] ?? ''));
+        $dataProgrammata = $disponibileDal !== ''
+            ? Carbon::parse($disponibileDal)->timezone('Europe/Rome')
+            : now()->timezone('Europe/Rome');
         $dataIntervento = [
-            'completa' => $oggi->format('d/m/Y H:i'),
-            'data' => $oggi->format('d/m/Y'),
-            'ora' => $oggi->format('H:i'),
-            'file' => $oggi->format('Y-m-d'),
-            'giorno' => $oggi->format('d'),
-            'mese' => $oggi->format('m'),
-            'anno' => $oggi->format('Y'),
+            'completa' => $dataProgrammata->format('d/m/Y H:i'),
+            'data' => $dataProgrammata->format('d/m/Y'),
+            'ora' => $dataProgrammata->format('H:i'),
+            'file' => $dataProgrammata->format('Y-m-d'),
+            'giorno' => $dataProgrammata->format('d'),
+            'mese' => $dataProgrammata->format('m'),
+            'anno' => $dataProgrammata->format('Y'),
         ];
 
         $disponibileFino = trim((string) ($squadra['disponibile_fino'] ?? ''));
@@ -73,7 +78,7 @@ class SquadraAibPdfController extends Controller
             'equipaggio' => $equipaggio,
             'dataIntervento' => $dataIntervento,
             'protocollo' => '',
-            'oraInizio' => '8:00',
+            'oraInizio' => $dataIntervento['ora'],
             'oraFine' => $disponibileFino,
         ])->setPaper('a4', 'portrait');
 

@@ -5512,6 +5512,7 @@ async function exportSquadraAibPdf(id, delivery = 'download', email = null) {
                     legale_rappresentante: associazioneSquadra?.legale_rappresentante || '',
                     caposquadra_id: caposquadraId,
                     stato: squadra.stato || '',
+                    disponibile_dal: squadra.disponibileDal || '',
                     disponibile_fino: squadra.disponibileFino || '',
                 },
                 mezzi: mezziExport.map(m => ({
