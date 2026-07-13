@@ -8280,7 +8280,7 @@ async function addProtocolloAssociazionePdfWatermark(blob, watermarkText) {
 
         page.drawSvgPath(roundedBoxPath, {
             x: boxX,
-            y: boxY,
+            y: boxY + boxHeight,
             borderColor: red,
             borderWidth,
         });
