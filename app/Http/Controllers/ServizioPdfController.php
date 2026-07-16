@@ -241,6 +241,7 @@ class ServizioPdfController extends Controller
             'cognome' => $caposquadraCognome,
             'telefono' => $this->resolveCaposquadraTelefono($caposquadraNome, $caposquadraCognome, $servizio, $equipaggio),
         ];
+        $caposquadraAssociazione = $this->resolveCaposquadraAssociazione($caposquadraNome, $caposquadraCognome, $equipaggio);
         $firma = trim($caposquadraNome.' '.$caposquadraCognome);
         $reportRedattoDa = trim(
             $caposquadraNome.' '.$caposquadraCognome
@@ -252,7 +253,7 @@ class ServizioPdfController extends Controller
             'equipaggio' => $equipaggio,
             'dataIntervento' => $dataIntervento,
             'protocollo' => $protocollo,
-            'gruppo' => 'Gruppo Comunale Massa di Somma',
+            'gruppo' => $caposquadraAssociazione,
             'comune' => $comune,
             'via' => $via,
             'richiedenteLabel' => strtoupper($richiedente),
@@ -334,6 +335,70 @@ class ServizioPdfController extends Controller
                 && $this->normalizePersonMatchValue($volontario['cognome'] ?? '') === $cognomeMatch
             ) {
                 return trim((string) ($volontario['telefono'] ?? ''));
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $equipaggio
+     */
+    private function resolveCaposquadraAssociazione(string $nome, string $cognome, array $equipaggio): string
+    {
+        if ($nome === '' || $cognome === '') {
+            return '';
+        }
+
+        $nomeMatch = $this->normalizePersonMatchValue($nome);
+        $cognomeMatch = $this->normalizePersonMatchValue($cognome);
+        foreach ($equipaggio as $volontario) {
+            if (! is_array($volontario)) {
+                continue;
+            }
+
+            if (
+                $this->normalizePersonMatchValue($volontario['nome'] ?? '') === $nomeMatch
+                && $this->normalizePersonMatchValue($volontario['cognome'] ?? '') === $cognomeMatch
+            ) {
+                return trim((string) ($volontario['associazione_appartenenza'] ?? ''));
+            }
+        }
+
+        $serviceKey = (string) config('services.supabase.service_role_key');
+        $url = rtrim((string) config('services.supabase.url'), '/');
+        if ($serviceKey === '' || $url === '') {
+            return '';
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'apikey' => $serviceKey,
+                'Authorization' => 'Bearer '.$serviceKey,
+            ])->get($url.'/rest/v1/volontari', [
+                'select' => 'nome,cognome,associazione_appartenenza',
+                'limit' => '200',
+            ]);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return '';
+        }
+
+        if (! $response->successful()) {
+            return '';
+        }
+
+        foreach ($response->json() ?: [] as $volontario) {
+            if (! is_array($volontario)) {
+                continue;
+            }
+
+            if (
+                $this->normalizePersonMatchValue($volontario['nome'] ?? '') === $nomeMatch
+                && $this->normalizePersonMatchValue($volontario['cognome'] ?? '') === $cognomeMatch
+            ) {
+                return trim((string) ($volontario['associazione_appartenenza'] ?? ''));
             }
         }
 
