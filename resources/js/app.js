@@ -93,6 +93,10 @@ function canAccessSquadreAib() {
     return hasMasterAccess() || isSegreteria();
 }
 
+function canAccessDashboardCaposquadra() {
+    return hasMasterAccess() || isCapoSquadra();
+}
+
 function canAccessProtocolloIngresso() {
     return hasMasterAccess();
 }
@@ -626,6 +630,9 @@ function applyRoleBasedUI() {
     document.querySelectorAll('[data-squadre-aib-access]').forEach(el => {
         el.classList.toggle('hidden', !canAccessSquadreAib());
     });
+    document.querySelectorAll('[data-dashboard-caposquadra-access]').forEach(el => {
+        el.classList.toggle('hidden', !canAccessDashboardCaposquadra());
+    });
     document.querySelectorAll('[data-protocollo-ingresso-access]').forEach(el => {
         el.classList.toggle('hidden', !canAccessProtocolloIngresso());
     });
@@ -657,7 +664,9 @@ function applyRoleBasedUI() {
 
     if (isSegreteria()) {
         switchTab('volontari');
-    } else if (isCapoSquadra() || isSalaOperativa()) {
+    } else if (isCapoSquadra()) {
+        switchTab('dashboard-caposquadra');
+    } else if (isSalaOperativa()) {
         switchTab('servizi');
     }
 }
@@ -2383,7 +2392,7 @@ async function fetchDataFromSupabase() {
             servizi = [];
         }
 
-        if (canAccessSquadreAib() || isSalaOperativa()) {
+        if (canAccessSquadreAib() || canAccessDashboardCaposquadra() || isSalaOperativa()) {
             let squadreQuery = supabase.from('squadre_aib').select('*').order('created_at', { ascending: true });
             if (isSegreteria()) {
                 const assoc = getUserAssociazione();
@@ -2538,6 +2547,9 @@ function toggleModal(modalId, show) {
 
 // --- CAMBIO TAB (NAVIGAZIONE) ---
 function switchTab(tabId) {
+    if (!canAccessDashboardCaposquadra() && tabId === 'dashboard-caposquadra') {
+        tabId = canAccessServizi() ? 'servizi' : 'dashboard';
+    }
     if (!canAccessVolontari() && tabId === 'volontari') {
         if (canAccessServizi()) tabId = 'servizi';
         else if (canAccessAttivita()) tabId = 'attivita';
@@ -2620,6 +2632,7 @@ function switchTab(tabId) {
         mezzi: "Gestione Flotta Mezzi",
         magazzino: "Gestione Magazzino",
         "squadre-aib": "Squadre A.I.B.",
+        "dashboard-caposquadra": "Dashboard Caposquadra",
         servizi: "Sala Operativa",
         statistiche: "Statistiche",
         attivita: "Attività",
@@ -2663,6 +2676,10 @@ function switchTab(tabId) {
 
     if (tabId === "squadre-aib") {
         renderSquadreAib();
+    }
+
+    if (tabId === "dashboard-caposquadra") {
+        renderDashboardCaposquadra();
     }
 }
 
@@ -5391,6 +5408,107 @@ function formatSquadraAibDisponibileFino(value) {
     if (!value) return `<span class="text-xs text-rose-400 font-semibold">Non impostata</span>`;
 
     return normalizeTimeValue(value) || `<span class="text-xs text-rose-400 font-semibold">Non valida</span>`;
+}
+
+function getDashboardCaposquadraVolontario() {
+    if (!isCapoSquadra()) return null;
+
+    const nome = normalizeCaposquadraMatchValue(currentUserProfile?.nome);
+    const cognome = normalizeCaposquadraMatchValue(currentUserProfile?.cognome);
+    const associazione = normalizeCaposquadraMatchValue(getUserAssociazione());
+    if (!nome || !cognome || !associazione) return null;
+
+    return volontari.find(v => (
+        normalizeCaposquadraMatchValue(v.nome) === nome
+        && normalizeCaposquadraMatchValue(v.cognome) === cognome
+        && normalizeCaposquadraMatchValue(v.associazione_appartenenza) === associazione
+    )) || null;
+}
+
+function isSquadraAibDelGiorno(squadra, today = new Date()) {
+    const start = getSquadraAibAvailabilityStart(squadra);
+    return Boolean(
+        start
+        && toLocalDateValue(start) === toLocalDateValue(today)
+        && squadra.stato !== 'Turno Terminato'
+    );
+}
+
+function renderDashboardCaposquadra() {
+    if (!canAccessDashboardCaposquadra()) return;
+
+    const container = document.getElementById('dashboard-caposquadra-content');
+    if (!container) return;
+
+    const volontarioCaposquadra = getDashboardCaposquadraVolontario();
+    const squadreDelGiorno = squadreAib.filter(squadra => {
+        if (!isSquadraAibDelGiorno(squadra)) return false;
+        return hasMasterAccess() || squadra.caposquadraId === volontarioCaposquadra?.id;
+    });
+
+    if (squadreDelGiorno.length === 0) {
+        container.innerHTML = `
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl px-6 py-16 text-center shadow-xl">
+                <p class="text-xl sm:text-2xl font-bold text-amber-400">Goditi il Riposo finche puoi 😂</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = squadreDelGiorno.map(squadra => {
+        const start = getSquadraAibAvailabilityStart(squadra);
+        const volontariSquadra = (squadra.volontariIds || [])
+            .map(id => volontari.find(v => v.id === id))
+            .filter(Boolean);
+        const mezziSquadra = (squadra.mezziIds || [])
+            .map(id => mezzi.find(m => m.id === id))
+            .filter(Boolean);
+        const volontariHtml = volontariSquadra.map(v => `
+            <li class="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-800/70 last:border-b-0">
+                <span class="font-semibold text-slate-100">${escapeHtml(`${v.nome || ''} ${v.cognome || ''}`.trim())}</span>
+                ${v.telefono
+                    ? `<a href="tel:${escapeAttr(v.telefono)}" class="text-sm font-semibold text-amber-400 hover:text-amber-300">${escapeHtml(v.telefono)}</a>`
+                    : `<span class="text-sm text-slate-500">Telefono non disponibile</span>`}
+            </li>
+        `).join('');
+        const mezziHtml = mezziSquadra.map(m => `
+            <div class="rounded-xl border border-slate-800 bg-slate-950 px-4 py-3">
+                <p class="font-semibold text-slate-100">${escapeHtml(m.modello || '—')}</p>
+                <p class="mt-1 text-xs text-slate-400">${escapeHtml(m.targa || '—')}${m.tipo ? ` · ${escapeHtml(m.tipo)}` : ''}</p>
+            </div>
+        `).join('');
+
+        return `
+            <article class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                <header class="p-6 border-b border-slate-800">
+                    <p class="text-xs font-bold uppercase tracking-widest text-amber-500">Squadra A.I.B.</p>
+                    <h2 class="mt-2 text-2xl font-bold text-white">${escapeHtml(squadra.nome || '—')}</h2>
+                    <p class="mt-1 text-sm text-slate-400">${escapeHtml(squadra.associazione_appartenenza || '—')}</p>
+                </header>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+                    <section class="lg:col-span-2">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Volontari assegnati</h3>
+                        <ul class="rounded-xl border border-slate-800 bg-slate-950 px-4">
+                            ${volontariHtml}
+                        </ul>
+                    </section>
+                    <div class="space-y-6">
+                        <section>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Automezzo utilizzato</h3>
+                            <div class="space-y-2">${mezziHtml}</div>
+                        </section>
+                        <section>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Orario di disponibilità</h3>
+                            <div class="rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-slate-200">
+                                <p><span class="text-slate-500">Inizio:</span> ${start ? escapeHtml(toLocalTimeValue(start)) : '—'}</p>
+                                <p class="mt-2"><span class="text-slate-500">Fine:</span> ${escapeHtml(normalizeTimeValue(squadra.disponibileFino) || '—')}</p>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </article>
+        `;
+    }).join('');
 }
 
 function renderSquadreAib() {
@@ -8547,6 +8665,7 @@ async function deleteProtocolloAssociazione(id) {
 // --- UPDATE TOTALE UI E STATI ---
 function updateUI() {
     updateDashboardStats();
+    renderDashboardCaposquadra();
     renderVolontari();
     renderMezzi();
     renderSquadreAib();
