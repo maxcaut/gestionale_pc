@@ -618,6 +618,9 @@ function applyRoleBasedUI() {
     document.querySelectorAll('[data-servizi-access]').forEach(el => {
         el.classList.toggle('hidden', !canAccessServizi());
     });
+    document.querySelectorAll('[data-operatore-sala-control]').forEach(el => {
+        el.classList.toggle('hidden', !(hasMasterAccess() || isSalaOperativa()));
+    });
     document.querySelectorAll('[data-mezzi-access]').forEach(el => {
         el.classList.toggle('hidden', !canAccessMezzi());
     });
@@ -973,6 +976,7 @@ let attrezzatureMagazzino = [];
 let tipiAttrezzaturaMagazzino = [];
 let prelieviMagazzino = [];
 let prelievoRigheMagazzino = [];
+let operatoreSalaTurno = null;
 
 let editingVolontarioId = null;
 let editingMezzoId = null;
@@ -2407,6 +2411,18 @@ async function fetchDataFromSupabase() {
             await cleanupSquadreAibScadute();
         } else {
             squadreAib = [];
+        }
+
+        if (canAccessDashboardCaposquadra() || isSalaOperativa()) {
+            const operatoreSalaResponse = await supabase
+                .from('operatore_sala_turno')
+                .select('*')
+                .eq('id', 1)
+                .maybeSingle();
+            if (operatoreSalaResponse.error) throw operatoreSalaResponse.error;
+            operatoreSalaTurno = operatoreSalaResponse.data || null;
+        } else {
+            operatoreSalaTurno = null;
         }
 
         if (canAccessProtocolloIngresso()) {
@@ -5455,7 +5471,24 @@ function renderDashboardCaposquadra() {
         return;
     }
 
-    container.innerHTML = squadreDelGiorno.map(squadra => {
+    const operatoreSalaNome = operatoreSalaTurno
+        ? `${operatoreSalaTurno.nome || ''} ${operatoreSalaTurno.cognome || ''}`.trim()
+        : '';
+    const operatoreSalaHtml = `
+        <section class="bg-slate-900 border border-cyan-500/30 rounded-2xl px-6 py-5 shadow-xl">
+            <p class="text-xs font-bold uppercase tracking-widest text-cyan-400">Operatore di turno in Sala Operativa</p>
+            ${operatoreSalaNome
+                ? `<div class="mt-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <p class="text-lg font-bold text-white">${escapeHtml(operatoreSalaNome)}</p>
+                    ${operatoreSalaTurno.telefono
+                        ? `<a href="tel:${escapeAttr(operatoreSalaTurno.telefono)}" class="font-semibold text-amber-400 hover:text-amber-300">${escapeHtml(operatoreSalaTurno.telefono)}</a>`
+                        : `<span class="text-sm text-slate-500">Telefono non disponibile</span>`}
+                </div>`
+                : `<p class="mt-3 text-sm text-slate-500">Nessun operatore selezionato</p>`}
+        </section>
+    `;
+
+    container.innerHTML = operatoreSalaHtml + squadreDelGiorno.map(squadra => {
         const start = getSquadraAibAvailabilityStart(squadra);
         const volontariSquadra = (squadra.volontariIds || [])
             .map(id => volontari.find(v => v.id === id))
@@ -5524,6 +5557,82 @@ function renderDashboardCaposquadra() {
             </article>
         `;
     }).join('');
+}
+
+function renderOperatoreSalaOptions(search = '') {
+    const optionsBox = document.getElementById('operatore-sala-options');
+    if (!optionsBox) return;
+
+    const normalizedSearch = search.toLowerCase().trim();
+    const options = volontari
+        .filter(v => !normalizedSearch || `${v.nome || ''} ${v.cognome || ''} ${v.telefono || ''} ${v.associazione_appartenenza || ''}`.toLowerCase().includes(normalizedSearch))
+        .sort((a, b) => `${a.cognome || ''} ${a.nome || ''}`.localeCompare(`${b.cognome || ''} ${b.nome || ''}`, 'it'))
+        .map(v => `<button type="button" onclick="selectOperatoreSalaTurno('${escapeAttr(v.id)}')" class="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-200 hover:bg-slate-800 hover:text-white transition-colors">${escapeHtml(`${v.nome || ''} ${v.cognome || ''}`.trim())}</button>`)
+        .join('');
+
+    const nessunOperatore = !normalizedSearch || 'nessun operatore disponibile'.includes(normalizedSearch)
+        ? `<button type="button" onclick="selectOperatoreSalaTurno('')" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">Nessun operatore Disponibile</button>`
+        : '';
+    optionsBox.innerHTML = nessunOperatore + options;
+    optionsBox.classList.remove('hidden');
+}
+
+function filterOperatoreSalaOptions() {
+    renderOperatoreSalaOptions(document.getElementById('operatore-sala-search')?.value || '');
+}
+
+function syncOperatoreSalaControl() {
+    const input = document.getElementById('operatore-sala-search');
+    if (!input) return;
+    input.dataset.volontarioId = operatoreSalaTurno?.volontario_id || '';
+    input.value = operatoreSalaTurno?.volontario_id
+        ? `${operatoreSalaTurno.nome || ''} ${operatoreSalaTurno.cognome || ''}`.trim()
+        : 'Nessun operatore Disponibile';
+}
+
+async function saveOperatoreSalaTurno() {
+    if (!(hasMasterAccess() || isSalaOperativa())) return;
+
+    const volontarioId = document.getElementById('operatore-sala-search')?.dataset.volontarioId || '';
+    const volontario = volontari.find(v => v.id === volontarioId) || null;
+
+    const payload = {
+        id: 1,
+        volontario_id: volontario?.id || '',
+        nome: volontario?.nome || '',
+        cognome: volontario?.cognome || '',
+        telefono: volontario?.telefono || null,
+        updated_at: new Date().toISOString(),
+    };
+    const { data, error } = await supabase
+        .from('operatore_sala_turno')
+        .upsert(payload, { onConflict: 'id' })
+        .select()
+        .single();
+
+    if (error) {
+        showToast('Errore', 'Impossibile salvare l\'operatore di turno.');
+        renderOperatoreSalaOptions();
+        return;
+    }
+
+    operatoreSalaTurno = data;
+    showToast('Operatore aggiornato', 'Operatore di turno salvato correttamente.');
+    renderDashboardCaposquadra();
+}
+
+function selectOperatoreSalaTurno(volontarioId) {
+    const input = document.getElementById('operatore-sala-search');
+    const optionsBox = document.getElementById('operatore-sala-options');
+    const volontario = volontari.find(v => v.id === volontarioId) || null;
+    if (input) {
+        input.dataset.volontarioId = volontario?.id || '';
+        input.value = volontario
+            ? `${volontario.nome || ''} ${volontario.cognome || ''}`.trim()
+            : 'Nessun operatore Disponibile';
+    }
+    optionsBox?.classList.add('hidden');
+    saveOperatoreSalaTurno();
 }
 
 function renderSquadreAib() {
@@ -8680,6 +8789,7 @@ async function deleteProtocolloAssociazione(id) {
 // --- UPDATE TOTALE UI E STATI ---
 function updateUI() {
     updateDashboardStats();
+    syncOperatoreSalaControl();
     renderDashboardCaposquadra();
     renderVolontari();
     renderMezzi();
@@ -9313,6 +9423,10 @@ window.toggleServizioSquadraAibDetails = toggleServizioSquadraAibDetails;
 window.toggleProtocolloRegionaleField = toggleProtocolloRegionaleField;
 window.filterServizioMezziList = filterServizioMezziList;
 window.filterServizioVolontariList = filterServizioVolontariList;
+window.filterOperatoreSalaOptions = filterOperatoreSalaOptions;
+window.renderOperatoreSalaOptions = renderOperatoreSalaOptions;
+window.saveOperatoreSalaTurno = saveOperatoreSalaTurno;
+window.selectOperatoreSalaTurno = selectOperatoreSalaTurno;
 window.openViewServizioModal = openViewServizioModal;
 window.focusServizioMapMarker = focusServizioMapMarker;
 window.toggleServizioAibFields = toggleServizioAibFields;
@@ -9406,6 +9520,7 @@ window.addEventListener("DOMContentLoaded", async () => {
             tipiAttrezzaturaMagazzino = [];
             prelieviMagazzino = [];
             prelievoRigheMagazzino = [];
+            operatoreSalaTurno = null;
             stopSquadreAibScadenzaTimer();
             await showLogin();
         }

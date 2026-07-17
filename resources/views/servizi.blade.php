@@ -46,6 +46,24 @@
                         </button>
                     </div>
 
+                    <div data-operatore-sala-control class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                        <h3 class="text-sm font-bold text-white uppercase tracking-wider">Operatore di turno in Sala Operativa</h3>
+                        <div class="mt-4 relative max-w-xl">
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </span>
+                                <input type="text" id="operatore-sala-search" onfocus="this.select(); renderOperatoreSalaOptions()" oninput="filterOperatoreSalaOptions()" placeholder="Cerca e seleziona un volontario..." autocomplete="off" class="w-full bg-slate-950 border border-slate-800 text-slate-100 pl-10 pr-10 py-3 rounded-xl text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="absolute inset-y-0 right-3 my-auto h-4 w-4 text-slate-500 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                            <div id="operatore-sala-options" class="hidden absolute z-30 mt-2 w-full max-h-64 overflow-y-auto bg-slate-950 border border-slate-700 rounded-xl p-1.5 shadow-2xl"></div>
+                        </div>
+                    </div>
+
                     <!-- Mappa servizi sul territorio -->
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
                         <div class="px-6 py-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
