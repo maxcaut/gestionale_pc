@@ -5460,17 +5460,21 @@ function renderDashboardCaposquadra() {
         const volontariSquadra = (squadra.volontariIds || [])
             .map(id => volontari.find(v => v.id === id))
             .filter(Boolean);
+        const caposquadra = volontariSquadra.find(v => v.id === squadra.caposquadraId) || null;
+        const altriVolontari = volontariSquadra.filter(v => v.id !== squadra.caposquadraId);
         const mezziSquadra = (squadra.mezziIds || [])
             .map(id => mezzi.find(m => m.id === id))
             .filter(Boolean);
-        const volontariHtml = volontariSquadra.map(v => `
+        const formatVolontarioDashboard = v => `
             <li class="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-800/70 last:border-b-0">
                 <span class="font-semibold text-slate-100">${escapeHtml(`${v.nome || ''} ${v.cognome || ''}`.trim())}</span>
                 ${v.telefono
                     ? `<a href="tel:${escapeAttr(v.telefono)}" class="text-sm font-semibold text-amber-400 hover:text-amber-300">${escapeHtml(v.telefono)}</a>`
                     : `<span class="text-sm text-slate-500">Telefono non disponibile</span>`}
             </li>
-        `).join('');
+        `;
+        const caposquadraHtml = caposquadra ? formatVolontarioDashboard(caposquadra) : '';
+        const volontariHtml = altriVolontari.map(formatVolontarioDashboard).join('');
         const mezziHtml = mezziSquadra.map(m => `
             <div class="rounded-xl border border-slate-800 bg-slate-950 px-4 py-3">
                 <p class="font-semibold text-slate-100">${escapeHtml(m.modello || '—')}</p>
@@ -5488,9 +5492,20 @@ function renderDashboardCaposquadra() {
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
                     <section class="lg:col-span-2">
                         <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Volontari assegnati</h3>
-                        <ul class="rounded-xl border border-slate-800 bg-slate-950 px-4">
-                            ${volontariHtml}
-                        </ul>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 px-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                            <span>Nominativo</span>
+                            <span class="hidden sm:block sm:text-right">Num. di telefono</span>
+                        </div>
+                        ${caposquadra ? `
+                            <div class="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4">
+                                <p class="pt-3 text-[10px] font-bold uppercase tracking-wider text-amber-400">Caposquadra</p>
+                                <ul>${caposquadraHtml}</ul>
+                            </div>
+                        ` : ''}
+                        <div class="mt-3 rounded-xl border border-slate-800 bg-slate-950 px-4">
+                            <p class="pt-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Volontari</p>
+                            <ul>${volontariHtml}</ul>
+                        </div>
                     </section>
                     <div class="space-y-6">
                         <section>
