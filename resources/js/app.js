@@ -5465,6 +5465,7 @@ function renderDashboardCaposquadra() {
     if (squadreDelGiorno.length === 0) {
         container.innerHTML = `
             <div class="bg-slate-900 border border-slate-800 rounded-2xl px-6 py-16 text-center shadow-xl">
+                <p class="text-xl sm:text-2xl font-bold text-amber-400">Non sei di Turno</p>
                 <p class="text-xl sm:text-2xl font-bold text-amber-400">Goditi il Riposo finche puoi 😂</p>
             </div>
         `;
@@ -6888,6 +6889,37 @@ function addServizioMapMarker(servizio, lat, lng) {
     serviziMapMarkersById.set(String(servizio.id), marker);
 }
 
+function addSpreadServizioMapMarkers(markerEntries) {
+    const entriesByCoordinates = new Map();
+
+    markerEntries.forEach(entry => {
+        const key = `${entry.lat},${entry.lng}`;
+        if (!entriesByCoordinates.has(key)) entriesByCoordinates.set(key, []);
+        entriesByCoordinates.get(key).push(entry);
+    });
+
+    entriesByCoordinates.forEach(entries => {
+        entries.forEach((entry, index) => {
+            let markerLat = entry.lat;
+            let markerLng = entry.lng;
+
+            if (entries.length > 1) {
+                const angle = (-Math.PI / 2) + ((2 * Math.PI * index) / entries.length);
+                const originalPoint = serviziMap.latLngToLayerPoint([entry.lat, entry.lng]);
+                const spreadPoint = originalPoint.add([
+                    Math.cos(angle) * 14,
+                    Math.sin(angle) * 14,
+                ]);
+                const spreadLatLng = serviziMap.layerPointToLatLng(spreadPoint);
+                markerLat = spreadLatLng.lat;
+                markerLng = spreadLatLng.lng;
+            }
+
+            addServizioMapMarker(entry.servizio, markerLat, markerLng);
+        });
+    });
+}
+
 function showPdfExportProgress(title = "Generazione PDF in corso", description = "Attendere il completamento del download...") {
     const overlay = document.getElementById("pdf-export-overlay");
     const bar = document.getElementById("pdf-export-progress-bar");
@@ -7102,11 +7134,12 @@ async function updateServiziMap(filteredServizi) {
     }
 
     const boundsPoints = [];
+    const markerEntries = [];
 
     withCoords.forEach(s => {
         const lat = parseFloat(s.latitudine);
         const lng = parseFloat(s.longitudine);
-        addServizioMapMarker(s, lat, lng);
+        markerEntries.push({ servizio: s, lat, lng });
         boundsPoints.push([lat, lng]);
     });
 
@@ -7117,7 +7150,7 @@ async function updateServiziMap(filteredServizi) {
         if (updateToken !== serviziMapUpdateToken) return;
         if (!coords) continue;
 
-        addServizioMapMarker(s, coords.lat, coords.lng);
+        markerEntries.push({ servizio: s, lat: coords.lat, lng: coords.lng });
         boundsPoints.push([coords.lat, coords.lng]);
 
         if (withIndirizzoOnly.indexOf(s) < withIndirizzoOnly.length - 1) {
@@ -7133,6 +7166,8 @@ async function updateServiziMap(filteredServizi) {
     } else {
         serviziMap.setView(MASSA_DI_SOMMA_CENTER, MASSA_DI_SOMMA_ZOOM);
     }
+
+    addSpreadServizioMapMarkers(markerEntries);
 
     setTimeout(() => serviziMap?.invalidateSize(), 50);
 }
