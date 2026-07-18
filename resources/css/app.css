@@ -193,6 +193,153 @@
     color: #94a3b8;
 }
 
+.servizi-map .leaflet-draw-toolbar a,
+.servizi-map .leaflet-control-layers {
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+
+.servizi-map .leaflet-draw-toolbar a:hover {
+    background-color: #334155;
+}
+
+.servizi-map.is-drawing-area {
+    cursor: crosshair;
+}
+
+.area-drawing-control {
+    border-radius: 0.55rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    font-family: inherit;
+}
+
+.area-drawing-control button,
+.area-drawing-control span {
+    display: block;
+    min-width: 7.5rem;
+    padding: 0.48rem 0.65rem;
+    border: 0;
+    border-bottom: 1px solid #334155;
+    background: #1e293b;
+    color: #e2e8f0;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: left;
+}
+
+.area-drawing-control button {
+    cursor: pointer;
+}
+
+.area-drawing-control button:hover {
+    background: #334155;
+    color: #fbbf24;
+}
+
+.area-drawing-control .area-drawing-start {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.4rem;
+    width: 2.4rem;
+    height: 2.4rem;
+    padding: 0;
+    border: 1px solid rgba(245, 158, 11, 0.42);
+    border-radius: 0.7rem;
+    background: rgba(15, 23, 42, 0.96);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+    color: #fbbf24;
+    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.area-drawing-control .area-drawing-start svg {
+    width: 1.1rem;
+    height: 1.1rem;
+    flex: none;
+    overflow: visible;
+    fill: rgba(245, 158, 11, 0.18);
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.area-drawing-control .area-drawing-start svg circle {
+    fill: #fbbf24;
+    stroke: #0f172a;
+    stroke-width: 1;
+}
+
+.area-drawing-control .area-drawing-start:hover {
+    border-color: rgba(251, 191, 36, 0.78);
+    background: rgba(51, 65, 85, 0.96);
+    box-shadow: 0 10px 22px rgba(245, 158, 11, 0.16);
+    color: #fde68a;
+    transform: translateY(-1px);
+}
+
+.area-drawing-control [data-area-draw-actions] > :first-child {
+    border-radius: 0.55rem 0.55rem 0 0;
+}
+
+.area-drawing-control [data-area-draw-actions] > :last-child {
+    border-bottom: 0;
+    border-radius: 0 0 0.55rem 0.55rem;
+}
+
+.area-drawing-control [data-area-draw-counter] {
+    color: #fbbf24;
+    cursor: default;
+}
+
+.servizi-map .leaflet-control-layers {
+    border-radius: 0.65rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.035em;
+}
+
+.servizi-map .leaflet-control-layers label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.area-intervento-popup-foto {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
+    margin-top: 0.6rem;
+}
+
+.area-intervento-popup-foto img {
+    width: 4.5rem;
+    height: 3.5rem;
+    border: 1px solid #475569;
+    border-radius: 0.4rem;
+    object-fit: cover;
+}
+
+.area-intervento-popup-edit {
+    width: 100%;
+    margin-top: 0.65rem;
+    padding: 0.4rem 0.65rem;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    border-radius: 0.5rem;
+    background: rgba(245, 158, 11, 0.14);
+    color: #fbbf24;
+    cursor: pointer;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.area-intervento-popup-edit:hover {
+    background: rgba(245, 158, 11, 0.24);
+}
+
 /* Bottom navigation mobile */
 .bottom-nav-scroll {
     bottom: calc(1rem + env(safe-area-inset-bottom));

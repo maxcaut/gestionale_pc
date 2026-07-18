@@ -103,3 +103,38 @@
                         </div>
                     </div>
                 </section>
+
+                <div id="modal-area-intervento" class="fixed inset-0 z-[70] bg-slate-950/80 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4 hidden">
+                    <div class="mt-4 bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl slide-in">
+                        <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                            <div>
+                                <h3 id="area-intervento-modal-title" class="text-lg font-bold text-white">Nuova area intervento</h3>
+                                <p class="mt-1 text-xs text-slate-500">Descrivi l'attività svolta all'interno del poligono.</p>
+                            </div>
+                            <button type="button" onclick="closeAreaInterventoModal()" class="text-slate-400 hover:text-white transition-colors" aria-label="Chiudi">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div>
+                                <label for="area-intervento-servizio" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Protocollo / servizio (facoltativo)</label>
+                                <select id="area-intervento-servizio" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500"></select>
+                            </div>
+                            <div>
+                                <label for="area-intervento-descrizione" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Descrizione <span class="text-amber-500">*</span></label>
+                                <textarea id="area-intervento-descrizione" rows="5" maxlength="2000" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 resize-y" placeholder="Descrivi l'intervento effettuato..."></textarea>
+                            </div>
+                            <div>
+                                <label for="area-intervento-foto" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Foto</label>
+                                <input id="area-intervento-foto" type="file" accept="image/jpeg,image/png,image/webp" multiple class="block w-full text-sm text-slate-400 file:mr-4 file:rounded-lg file:border-0 file:bg-amber-500 file:px-4 file:py-2 file:text-sm file:font-bold file:text-slate-950 hover:file:bg-amber-600">
+                                <p class="mt-2 text-[11px] text-slate-500">JPG, PNG o WebP; massimo 10 MB per foto.</p>
+                                <div id="area-intervento-foto-esistenti" class="mt-3 grid grid-cols-3 gap-2"></div>
+                            </div>
+                        </div>
+                        <div class="px-6 pb-6 flex gap-3">
+                            <button type="button" onclick="closeAreaInterventoModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm">Annulla</button>
+                            <button type="button" id="area-intervento-delete" onclick="deleteAreaIntervento()" class="hidden bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/30 font-semibold px-5 py-2.5 rounded-xl text-sm">Elimina</button>
+                            <button type="button" id="area-intervento-save" onclick="saveAreaIntervento()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-sm">Salva area</button>
+                        </div>
+                    </div>
+                </div>

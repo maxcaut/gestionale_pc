@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet-draw';
+import 'leaflet-draw/dist/leaflet.draw.css';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 // --- INIZIALIZZAZIONE SUPABASE ---
@@ -37,6 +39,9 @@ const PROTOCOLLO_INGRESSO_BUCKET = "protocollo-ingresso";
 const PROTOCOLLO_ASSOCIAZIONE_BUCKET = "protocollo-associazione";
 const PROTOCOLLO_ASSOCIAZIONE_ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
 const PROTOCOLLO_ASSOCIAZIONE_ALLOWED_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "webp"];
+const SALA_OPERATIVA_AREE_FOTO_BUCKET = "sala-operativa-aree-foto";
+const SALA_OPERATIVA_AREE_FOTO_MAX_SIZE = 10 * 1024 * 1024;
+const SALA_OPERATIVA_AREE_FOTO_ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const DEFAULT_ASSOCIAZIONI = [
     "G.C. Massa di Somma",
     "G.C. Cercola",
@@ -1004,6 +1009,15 @@ let serviziMapRoadLayer = null;
 let serviziMapSatelliteLayer = null;
 let serviziMapMunicipalityLayer = null;
 let serviziMapActiveBaseLayer = "road";
+let serviziMapAreeLayer = null;
+let serviziMapDrawControl = null;
+let areeIntervento = [];
+let pendingAreaInterventoLayer = null;
+let editingAreaInterventoId = null;
+let isSavingAreaIntervento = false;
+let areaDrawingLatLngs = [];
+let areaDrawingPreviewLayer = null;
+let areaDrawingControlContainer = null;
 const geocodeCache = new Map();
 const serviziMapMarkersById = new Map();
 let serviziMapUpdateToken = 0;
@@ -7022,6 +7036,424 @@ function isServiziTabVisible() {
     return tab && !tab.classList.contains("hidden");
 }
 
+function canManageAreeIntervento() {
+    return hasMasterAccess() || isSalaOperativa();
+}
+
+function getAreaInterventoById(id) {
+    return areeIntervento.find(area => String(area.id) === String(id)) || null;
+}
+
+function getAreaInterventoStyle() {
+    return {
+        color: "#f97316",
+        weight: 3,
+        opacity: 0.95,
+        fillColor: "#f59e0b",
+        fillOpacity: 0.22,
+    };
+}
+
+function buildAreaInterventoPopup(area) {
+    const servizio = area.servizio_id ? servizi.find(item => String(item.id) === String(area.servizio_id)) : null;
+    const protocollo = servizio
+        ? `<p class="text-slate-300"><strong>Protocollo:</strong> ${escapeHtml(servizio.id)}</p>`
+        : "";
+    const foto = Array.isArray(area.foto_urls) && area.foto_urls.length
+        ? `<div class="area-intervento-popup-foto">${area.foto_urls.map(item => `
+            <a href="${escapeAttr(item.url)}" target="_blank" rel="noopener noreferrer" title="Apri ${escapeAttr(item.name || 'foto')}">
+                <img src="${escapeAttr(item.url)}" alt="${escapeAttr(item.name || 'Foto intervento')}">
+            </a>
+        `).join("")}</div>`
+        : "";
+    const editButton = canManageAreeIntervento()
+        ? `<button type="button" onclick="openEditAreaInterventoModal('${escapeAttr(area.id)}')" class="area-intervento-popup-edit">Modifica dettagli</button>`
+        : "";
+
+    return `
+        <div class="font-sans area-intervento-popup">
+            <p class="font-bold text-amber-400">Area intervento</p>
+            ${protocollo}
+            <p class="mt-1 whitespace-pre-wrap">${escapeHtml(area.descrizione)}</p>
+            ${foto}
+            ${editButton}
+        </div>
+    `;
+}
+
+function addAreaInterventoToMap(area) {
+    if (!serviziMapAreeLayer || !area?.geometria) return;
+
+    const geoJsonLayer = L.geoJSON({ type: "Feature", geometry: area.geometria }, {
+        style: getAreaInterventoStyle,
+    });
+    geoJsonLayer.eachLayer(layer => {
+        layer.areaInterventoId = area.id;
+        layer.bindPopup(buildAreaInterventoPopup(area), { maxWidth: 320 });
+        serviziMapAreeLayer.addLayer(layer);
+    });
+}
+
+function renderAreeInterventoMap() {
+    if (!serviziMapAreeLayer) return;
+    serviziMapAreeLayer.clearLayers();
+    areeIntervento.forEach(addAreaInterventoToMap);
+}
+
+async function attachAreaInterventoFotoUrls(area) {
+    const foto = Array.isArray(area.foto) ? area.foto : [];
+    if (!foto.length) return { ...area, foto_urls: [] };
+
+    const resolved = await Promise.all(foto.map(async item => {
+        if (!item?.path) return null;
+        const { data, error } = await supabase.storage
+            .from(SALA_OPERATIVA_AREE_FOTO_BUCKET)
+            .createSignedUrl(item.path, 3600);
+        if (error) {
+            console.warn("URL foto area intervento non disponibile:", error);
+            return null;
+        }
+        return { ...item, url: data.signedUrl };
+    }));
+
+    return { ...area, foto_urls: resolved.filter(Boolean) };
+}
+
+async function loadAreeIntervento() {
+    if (!canAccessServizi()) return;
+
+    const { data, error } = await supabase
+        .from("sala_operativa_aree_intervento")
+        .select("*")
+        .order("created_at", { ascending: true });
+    if (error) throw error;
+
+    areeIntervento = await Promise.all((data || []).map(attachAreaInterventoFotoUrls));
+    renderAreeInterventoMap();
+}
+
+function populateAreaInterventoServizi(selectedId = "") {
+    const select = document.getElementById("area-intervento-servizio");
+    if (!select) return;
+
+    const options = [...servizi]
+        .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")))
+        .map(servizio => `<option value="${escapeAttr(servizio.id)}">${escapeHtml(servizio.id)} · ${escapeHtml(servizio.tipo || "Servizio")}</option>`)
+        .join("");
+    select.innerHTML = `<option value="">Nessun servizio collegato</option>${options}`;
+    select.value = selectedId || "";
+}
+
+function renderAreaInterventoFotoEsistenti(area = null) {
+    const container = document.getElementById("area-intervento-foto-esistenti");
+    if (!container) return;
+    const foto = Array.isArray(area?.foto_urls) ? area.foto_urls : [];
+    container.innerHTML = foto.map(item => `
+        <a href="${escapeAttr(item.url)}" target="_blank" rel="noopener noreferrer" class="block overflow-hidden rounded-lg border border-slate-700 bg-slate-950">
+            <img src="${escapeAttr(item.url)}" alt="${escapeAttr(item.name || 'Foto intervento')}" class="h-20 w-full object-cover">
+        </a>
+    `).join("");
+}
+
+function openAreaInterventoModal(layer) {
+    if (!canManageAreeIntervento()) return;
+    pendingAreaInterventoLayer = layer;
+    editingAreaInterventoId = null;
+    populateAreaInterventoServizi();
+    document.getElementById("area-intervento-descrizione").value = "";
+    document.getElementById("area-intervento-foto").value = "";
+    document.getElementById("area-intervento-modal-title").textContent = "Nuova area intervento";
+    document.getElementById("area-intervento-delete").classList.add("hidden");
+    renderAreaInterventoFotoEsistenti();
+    document.getElementById("modal-area-intervento").classList.remove("hidden");
+    setTimeout(() => document.getElementById("area-intervento-descrizione")?.focus(), 100);
+}
+
+function openEditAreaInterventoModal(id) {
+    if (!canManageAreeIntervento()) return;
+    const area = getAreaInterventoById(id);
+    if (!area) return;
+
+    serviziMap?.closePopup();
+    pendingAreaInterventoLayer = null;
+    editingAreaInterventoId = area.id;
+    populateAreaInterventoServizi(area.servizio_id || "");
+    document.getElementById("area-intervento-descrizione").value = area.descrizione || "";
+    document.getElementById("area-intervento-foto").value = "";
+    document.getElementById("area-intervento-modal-title").textContent = "Modifica area intervento";
+    document.getElementById("area-intervento-delete").classList.remove("hidden");
+    renderAreaInterventoFotoEsistenti(area);
+    document.getElementById("modal-area-intervento").classList.remove("hidden");
+}
+
+function closeAreaInterventoModal() {
+    document.getElementById("modal-area-intervento")?.classList.add("hidden");
+    if (pendingAreaInterventoLayer && serviziMapAreeLayer?.hasLayer(pendingAreaInterventoLayer)) {
+        serviziMapAreeLayer.removeLayer(pendingAreaInterventoLayer);
+    }
+    pendingAreaInterventoLayer = null;
+    editingAreaInterventoId = null;
+}
+
+function validateAreaInterventoFiles(files) {
+    for (const file of files) {
+        if (!SALA_OPERATIVA_AREE_FOTO_ALLOWED_TYPES.includes(file.type)) {
+            throw new Error(`Formato non consentito per ${file.name}. Usa JPG, PNG o WebP.`);
+        }
+        if (file.size > SALA_OPERATIVA_AREE_FOTO_MAX_SIZE) {
+            throw new Error(`${file.name} supera il limite di 10 MB.`);
+        }
+    }
+}
+
+function sanitizeStorageFileName(fileName) {
+    return String(fileName || "foto")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9._-]/g, "-")
+        .replace(/-+/g, "-");
+}
+
+async function uploadAreaInterventoFoto(areaId, files) {
+    const uploaded = [];
+    try {
+        for (const file of files) {
+            const path = `${areaId}/${crypto.randomUUID()}-${sanitizeStorageFileName(file.name)}`;
+            const { error } = await supabase.storage
+                .from(SALA_OPERATIVA_AREE_FOTO_BUCKET)
+                .upload(path, file, { contentType: file.type, upsert: false });
+            if (error) throw error;
+            uploaded.push({ path, name: file.name, mime_type: file.type, size: file.size });
+        }
+        return uploaded;
+    } catch (err) {
+        if (uploaded.length) {
+            await supabase.storage
+                .from(SALA_OPERATIVA_AREE_FOTO_BUCKET)
+                .remove(uploaded.map(item => item.path));
+        }
+        throw err;
+    }
+}
+
+async function saveAreaIntervento() {
+    if (!canManageAreeIntervento() || isSavingAreaIntervento) return;
+
+    const descrizione = document.getElementById("area-intervento-descrizione")?.value.trim() || "";
+    const servizioId = document.getElementById("area-intervento-servizio")?.value || null;
+    const files = Array.from(document.getElementById("area-intervento-foto")?.files || []);
+    if (!descrizione) {
+        alert("Inserisci la descrizione dell'intervento.");
+        return;
+    }
+
+    const existing = editingAreaInterventoId ? getAreaInterventoById(editingAreaInterventoId) : null;
+    const geometry = existing?.geometria || pendingAreaInterventoLayer?.toGeoJSON()?.geometry;
+    if (!geometry || geometry.type !== "Polygon") {
+        alert("Il poligono dell'area non è valido.");
+        return;
+    }
+
+    isSavingAreaIntervento = true;
+    const saveButton = document.getElementById("area-intervento-save");
+    if (saveButton) saveButton.disabled = true;
+    let createdAreaId = null;
+    let uploadedFoto = [];
+
+    try {
+        validateAreaInterventoFiles(files);
+        if (existing) {
+            if (files.length) uploadedFoto = await uploadAreaInterventoFoto(existing.id, files);
+            const foto = [...(Array.isArray(existing.foto) ? existing.foto : []), ...uploadedFoto];
+            const { error } = await supabase
+                .from("sala_operativa_aree_intervento")
+                .update({ servizio_id: servizioId, descrizione, foto })
+                .eq("id", existing.id);
+            if (error) throw error;
+        } else {
+            const { data, error } = await supabase
+                .from("sala_operativa_aree_intervento")
+                .insert({ servizio_id: servizioId, descrizione, geometria: geometry, foto: [] })
+                .select("id")
+                .single();
+            if (error) throw error;
+            createdAreaId = data.id;
+            if (files.length) {
+                uploadedFoto = await uploadAreaInterventoFoto(createdAreaId, files);
+                const { error: updateError } = await supabase
+                    .from("sala_operativa_aree_intervento")
+                    .update({ foto: uploadedFoto })
+                    .eq("id", createdAreaId);
+                if (updateError) throw updateError;
+            }
+        }
+
+        pendingAreaInterventoLayer = null;
+        editingAreaInterventoId = null;
+        document.getElementById("modal-area-intervento")?.classList.add("hidden");
+        await loadAreeIntervento();
+        showToast("Area salvata", "Il poligono è stato registrato sulla mappa.");
+    } catch (err) {
+        if (uploadedFoto.length) {
+            await supabase.storage.from(SALA_OPERATIVA_AREE_FOTO_BUCKET).remove(uploadedFoto.map(item => item.path));
+        }
+        if (createdAreaId) {
+            await supabase.from("sala_operativa_aree_intervento").delete().eq("id", createdAreaId);
+        }
+        console.error("Errore salvataggio area intervento:", err);
+        alert(err.message || "Impossibile salvare l'area intervento.");
+    } finally {
+        isSavingAreaIntervento = false;
+        if (saveButton) saveButton.disabled = false;
+    }
+}
+
+async function deleteAreaIntervento() {
+    if (!canManageAreeIntervento() || !editingAreaInterventoId) return;
+    const area = getAreaInterventoById(editingAreaInterventoId);
+    if (!area || !confirm("Eliminare questa area intervento e tutte le foto allegate?")) return;
+
+    try {
+        const { error } = await supabase
+            .from("sala_operativa_aree_intervento")
+            .delete()
+            .eq("id", area.id);
+        if (error) throw error;
+        const paths = (Array.isArray(area.foto) ? area.foto : []).map(item => item.path).filter(Boolean);
+        if (paths.length) {
+            const { error: storageError } = await supabase.storage.from(SALA_OPERATIVA_AREE_FOTO_BUCKET).remove(paths);
+            if (storageError) console.warn("Area eliminata, ma alcune foto non sono state rimosse:", storageError);
+        }
+        document.getElementById("modal-area-intervento")?.classList.add("hidden");
+        editingAreaInterventoId = null;
+        await loadAreeIntervento();
+        showToast("Area eliminata", "Il poligono non è più presente sulla mappa.");
+    } catch (err) {
+        console.error("Errore eliminazione area intervento:", err);
+        alert(err.message || "Impossibile eliminare l'area intervento.");
+    }
+}
+
+async function saveEditedAreaInterventoLayers(event) {
+    const updates = [];
+    event.layers.eachLayer(layer => {
+        if (!layer.areaInterventoId) return;
+        const geometry = layer.toGeoJSON()?.geometry;
+        if (geometry?.type === "Polygon") {
+            updates.push(supabase
+                .from("sala_operativa_aree_intervento")
+                .update({ geometria: geometry })
+                .eq("id", layer.areaInterventoId));
+        }
+    });
+
+    try {
+        const results = await Promise.all(updates);
+        const failed = results.find(result => result.error);
+        if (failed?.error) throw failed.error;
+        await loadAreeIntervento();
+        showToast("Geometria aggiornata", "Le modifiche ai poligoni sono state salvate.");
+    } catch (err) {
+        console.error("Errore modifica geometria area:", err);
+        alert(err.message || "Impossibile salvare la modifica del poligono.");
+        await loadAreeIntervento();
+    }
+}
+
+function updateAreaDrawingControl() {
+    if (!areaDrawingControlContainer) return;
+    const isDrawing = areaDrawingLatLngs.length > 0 || !!areaDrawingPreviewLayer;
+    const startButton = areaDrawingControlContainer.querySelector('[data-area-draw-start]');
+    const actions = areaDrawingControlContainer.querySelector('[data-area-draw-actions]');
+    const counter = areaDrawingControlContainer.querySelector('[data-area-draw-counter]');
+    if (startButton) startButton.classList.toggle('hidden', isDrawing);
+    if (actions) actions.classList.toggle('hidden', !isDrawing);
+    if (counter) counter.textContent = `${areaDrawingLatLngs.length} punti`;
+}
+
+function startAreaDrawing() {
+    if (!canManageAreeIntervento() || !serviziMap || areaDrawingPreviewLayer) return;
+    areaDrawingLatLngs = [];
+    areaDrawingPreviewLayer = L.polygon([], {
+        ...getAreaInterventoStyle(),
+        dashArray: '7 6',
+    }).addTo(serviziMap);
+    serviziMap.getContainer().classList.add('is-drawing-area');
+    serviziMap.on('click', addAreaDrawingPoint);
+    updateAreaDrawingControl();
+}
+
+function addAreaDrawingPoint(event) {
+    if (!areaDrawingPreviewLayer) return;
+    areaDrawingLatLngs.push(event.latlng);
+    areaDrawingPreviewLayer.setLatLngs(areaDrawingLatLngs);
+    updateAreaDrawingControl();
+}
+
+function undoAreaDrawingPoint() {
+    if (!areaDrawingPreviewLayer || !areaDrawingLatLngs.length) return;
+    areaDrawingLatLngs.pop();
+    areaDrawingPreviewLayer.setLatLngs(areaDrawingLatLngs);
+    updateAreaDrawingControl();
+}
+
+function resetAreaDrawing() {
+    if (serviziMap) {
+        serviziMap.off('click', addAreaDrawingPoint);
+        serviziMap.getContainer().classList.remove('is-drawing-area');
+        if (areaDrawingPreviewLayer && serviziMap.hasLayer(areaDrawingPreviewLayer)) {
+            serviziMap.removeLayer(areaDrawingPreviewLayer);
+        }
+    }
+    areaDrawingLatLngs = [];
+    areaDrawingPreviewLayer = null;
+    updateAreaDrawingControl();
+}
+
+function cancelAreaDrawing() {
+    resetAreaDrawing();
+}
+
+function finishAreaDrawing() {
+    if (!areaDrawingPreviewLayer) return;
+    if (areaDrawingLatLngs.length < 3) {
+        alert('Seleziona almeno 3 punti prima di terminare il poligono.');
+        return;
+    }
+
+    const completedLayer = L.polygon([...areaDrawingLatLngs], getAreaInterventoStyle());
+    resetAreaDrawing();
+    serviziMapAreeLayer.addLayer(completedLayer);
+    openAreaInterventoModal(completedLayer);
+}
+
+function addAreaDrawingControl() {
+    const drawingControl = L.control({ position: 'topleft' });
+    drawingControl.onAdd = () => {
+        const container = L.DomUtil.create('div', 'area-drawing-control');
+        container.innerHTML = `
+            <button type="button" data-area-draw-start class="area-drawing-start" title="Disegna una nuova area" aria-label="Disegna area">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5 18.5 7 16 19 4 16Z"/><circle cx="5" cy="4.5" r="1.5"/><circle cx="18.5" cy="7" r="1.5"/><circle cx="16" cy="19" r="1.5"/><circle cx="4" cy="16" r="1.5"/></svg>
+            </button>
+            <div data-area-draw-actions class="hidden">
+                <span data-area-draw-counter>0 punti</span>
+                <button type="button" data-area-draw-undo>Ultimo punto</button>
+                <button type="button" data-area-draw-finish>Termina</button>
+                <button type="button" data-area-draw-cancel>Annulla</button>
+            </div>
+        `;
+        container.querySelector('[data-area-draw-start]').addEventListener('click', startAreaDrawing);
+        container.querySelector('[data-area-draw-undo]').addEventListener('click', undoAreaDrawingPoint);
+        container.querySelector('[data-area-draw-finish]').addEventListener('click', finishAreaDrawing);
+        container.querySelector('[data-area-draw-cancel]').addEventListener('click', cancelAreaDrawing);
+        L.DomEvent.disableClickPropagation(container);
+        L.DomEvent.disableScrollPropagation(container);
+        areaDrawingControlContainer = container;
+        return container;
+    };
+    drawingControl.addTo(serviziMap);
+}
+
 function ensureServiziMap() {
     const mapEl = document.getElementById("servizi-map");
     if (!mapEl || serviziMap || !isServiziTabVisible()) return;
@@ -7106,6 +7538,27 @@ function ensureServiziMap() {
     mapTypeControl.addTo(serviziMap);
 
     serviziMapMarkersLayer = L.layerGroup().addTo(serviziMap);
+    serviziMapAreeLayer = new L.FeatureGroup().addTo(serviziMap);
+    L.control.layers(null, { "Aree intervento": serviziMapAreeLayer }, { position: "bottomright", collapsed: false }).addTo(serviziMap);
+
+    if (canManageAreeIntervento()) {
+        serviziMapDrawControl = new L.Control.Draw({
+            position: "topleft",
+            draw: false,
+            edit: {
+                featureGroup: serviziMapAreeLayer,
+                remove: false,
+            },
+        });
+        serviziMap.addControl(serviziMapDrawControl);
+        serviziMap.on(L.Draw.Event.EDITED, saveEditedAreaInterventoLayers);
+        addAreaDrawingControl();
+    }
+
+    loadAreeIntervento().catch(err => {
+        console.error("Errore caricamento aree intervento:", err);
+        showToast("Errore mappa", "Impossibile caricare le aree intervento.");
+    });
 }
 
 async function updateServiziMap(filteredServizi) {
@@ -9464,6 +9917,10 @@ window.saveOperatoreSalaTurno = saveOperatoreSalaTurno;
 window.selectOperatoreSalaTurno = selectOperatoreSalaTurno;
 window.openViewServizioModal = openViewServizioModal;
 window.focusServizioMapMarker = focusServizioMapMarker;
+window.openEditAreaInterventoModal = openEditAreaInterventoModal;
+window.closeAreaInterventoModal = closeAreaInterventoModal;
+window.saveAreaIntervento = saveAreaIntervento;
+window.deleteAreaIntervento = deleteAreaIntervento;
 window.toggleServizioAibFields = toggleServizioAibFields;
 window.fillCoordinateFromGps = fillCoordinateFromGps;
 window.saveServizio = saveServizio;
