@@ -2299,26 +2299,52 @@ function mapSquadraAibRow(s) {
 async function cleanupSquadreAibScadute() {
     if (!canAccessSquadreAib() || squadreAib.length === 0) return;
 
-    const expiredSquadre = squadreAib
+    const now = new Date();
+    const operativeIds = squadreAib
+        .filter(s => {
+            const availabilityStart = getSquadraAibAvailabilityStart(s);
+            const availabilityEnd = getSquadraAibAvailabilityEnd(s);
+            return availabilityStart
+                && availabilityEnd
+                && availabilityStart <= now
+                && availabilityEnd > now
+                && canManageSquadraAib(s)
+                && s.stato === 'Non operativa';
+        })
+        .map(s => s.id);
+    const expiredIds = squadreAib
         .filter(s => {
             const availabilityEnd = getSquadraAibAvailabilityEnd(s);
             if (!availabilityEnd) return false;
-            return availabilityEnd <= new Date()
+            return availabilityEnd <= now
                 && canManageSquadraAib(s)
                 && s.stato !== 'Turno Terminato'
                 && !isSquadraAibAssegnataAInterventoAttivo(s.id);
-        });
+        })
+        .map(s => s.id);
 
-    if (expiredSquadre.length === 0) return;
-    const expiredIds = expiredSquadre.map(s => s.id);
+    if (operativeIds.length > 0) {
+        const { error } = await supabase
+            .from('squadre_aib')
+            .update({ stato: 'Operativa' })
+            .in('id', operativeIds);
+        if (error) throw error;
+    }
 
-    const { error } = await supabase
-        .from('squadre_aib')
-        .update({ stato: 'Turno Terminato' })
-        .in('id', expiredIds);
-    if (error) throw error;
+    if (expiredIds.length > 0) {
+        const { error } = await supabase
+            .from('squadre_aib')
+            .update({ stato: 'Turno Terminato' })
+            .in('id', expiredIds);
+        if (error) throw error;
+    }
 
-    squadreAib = squadreAib.map(s => expiredIds.includes(s.id) ? { ...s, stato: 'Turno Terminato' } : s);
+    if (operativeIds.length === 0 && expiredIds.length === 0) return;
+    squadreAib = squadreAib.map(s => {
+        if (operativeIds.includes(s.id)) return { ...s, stato: 'Operativa' };
+        if (expiredIds.includes(s.id)) return { ...s, stato: 'Turno Terminato' };
+        return s;
+    });
 }
 
 function startSquadreAibScadenzaTimer() {
@@ -5829,7 +5855,7 @@ function openNuovaSquadraAibModal() {
     setModalFormMode('modal-squadra-aib', { title: 'Nuova Squadra A.I.B.', submitText: 'Salva' });
     setupSquadraAibAssociazioneField();
     document.getElementById('aib-squadra-nome').value = '';
-    document.getElementById('aib-squadra-stato').value = 'Operativa';
+    document.getElementById('aib-squadra-stato').value = isSegreteria() ? 'Non operativa' : 'Operativa';
     document.getElementById('aib-squadra-disponibile-dal-data').value = toLocalDateValue(now);
     document.getElementById('aib-squadra-disponibile-dal-data').min = toLocalDateValue(now);
     document.getElementById('aib-squadra-disponibile-dal-ora').value = toLocalTimeValue(now);
@@ -5867,7 +5893,7 @@ async function saveSquadraAib(event) {
     const mezziIds = collectCheckedValues('aib-squadra-mezzi-check');
     const volontariIds = collectCheckedValues('aib-squadra-volontari-check');
     const caposquadraId = getSquadraAibCaposquadraId();
-    const stato = document.getElementById('aib-squadra-stato').value;
+    let stato = document.getElementById('aib-squadra-stato').value;
     const disponibileDalData = document.getElementById('aib-squadra-disponibile-dal-data').value;
     const disponibileDalOra = document.getElementById('aib-squadra-disponibile-dal-ora').value;
     const disponibileFino = document.getElementById('aib-squadra-disponibile-fino').value;
@@ -5896,6 +5922,9 @@ async function saveSquadraAib(event) {
     if (!availabilityEnd || availabilityEnd <= new Date()) {
         showToast('Fine disponibilità non valida', 'La fine disponibilità deve essere successiva all\'orario attuale.');
         return;
+    }
+    if (!editingSquadraAibId && isSegreteria()) {
+        stato = disponibileDalDate <= new Date() ? 'Operativa' : 'Non operativa';
     }
     if (mezziIds.length === 0 || volontariIds.length === 0) {
         showToast('Dati incompleti', 'Seleziona almeno un mezzo e un volontario.');
