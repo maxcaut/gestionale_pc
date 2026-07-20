@@ -17,6 +17,8 @@
                                 <option value="Non operativa">Non operativa</option>
                                 <option value="Turno Terminato">Turno Terminato</option>
                             </select>
+
+                            <input type="date" id="filter-data-squadre-aib" onchange="renderSquadreAib()" aria-label="Filtra squadre per data di inizio disponibilità" class="bg-slate-900 border border-slate-800 text-slate-300 py-2.5 px-4 rounded-xl text-sm focus:outline-none focus:border-amber-500 transition-colors">
                         </div>
 
                         <button type="button" onclick="openNuovaSquadraAibModal()" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-slate-950 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20 transition-all">
@@ -37,6 +39,7 @@
                                         <th class="py-4 px-6">Mezzi</th>
                                         <th class="py-4 px-6">Volontari</th>
                                         <th class="py-4 px-6">Stato</th>
+                                        <th class="py-4 px-6">Inizio disponibilità</th>
                                         <th class="py-4 px-6">Fine disponibilità</th>
                                         <th class="py-4 px-6 text-right">Azioni</th>
                                     </tr>

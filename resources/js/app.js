@@ -5466,6 +5466,20 @@ function formatSquadraAibDisponibileFino(value) {
     return normalizeTimeValue(value) || `<span class="text-xs text-rose-400 font-semibold">Non valida</span>`;
 }
 
+function formatSquadraAibDisponibileDal(value) {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+
+    return date.toLocaleString('it-IT', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
 function getDashboardCaposquadraVolontario() {
     if (!isCapoSquadra()) return null;
 
@@ -5683,17 +5697,19 @@ function renderSquadreAib() {
 
     const search = (document.getElementById('search-squadre-aib')?.value || '').toLowerCase().trim();
     const stato = document.getElementById('filter-stato-squadre-aib')?.value || '';
+    const data = document.getElementById('filter-data-squadre-aib')?.value || '';
     const filtered = squadreAib.filter(s => {
         const matchSearch = !search || `${s.nome} ${s.associazione_appartenenza}`.toLowerCase().includes(search);
         const matchStato = !stato || s.stato === stato;
-        return matchSearch && matchStato;
+        const matchData = !data || toLocalDateValue(s.disponibileDal) === data;
+        return matchSearch && matchStato && matchData;
     }).sort((a, b) => {
         const statoOrder = { 'Operativa': 0, 'Non operativa': 1, 'Turno Terminato': 2 };
         return (statoOrder[a.stato] ?? 1) - (statoOrder[b.stato] ?? 1);
     });
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500 font-medium">Nessuna squadra A.I.B. configurata.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-500 font-medium">Nessuna squadra A.I.B. configurata.</td></tr>`;
         return;
     }
 
@@ -5716,6 +5732,7 @@ function renderSquadreAib() {
                 <td class="py-4 px-6 max-w-[280px]"><div class="flex flex-wrap">${formatSquadraAibMezzi(s.mezziIds)}</div></td>
                 <td class="py-4 px-6 max-w-[280px]"><div class="flex flex-wrap">${formatSquadraAibVolontari(s.volontariIds)}</div></td>
                 <td class="py-4 px-6"><span class="px-2.5 py-1 text-[10px] font-bold border rounded-full ${badgeClass}">${s.stato}</span>${assegnazioneHtml}</td>
+                <td class="py-4 px-6 text-slate-300 font-semibold">${formatSquadraAibDisponibileDal(s.disponibileDal)}</td>
                 <td class="py-4 px-6 text-slate-300 font-semibold">${formatSquadraAibDisponibileFino(s.disponibileFino)}</td>
                 <td class="py-4 px-6 text-right">
                     <div class="inline-flex gap-2">
