@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Support\PdfEmailDelivery;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -26,8 +26,8 @@ class SquadraAibPdfController extends Controller
             'squadra.legale_rappresentante' => 'nullable|string',
             'squadra.caposquadra_id' => 'nullable|string',
             'squadra.stato' => 'nullable|string',
-            'squadra.disponibile_dal' => 'nullable|string',
-            'squadra.disponibile_fino' => 'nullable|string',
+            'squadra.disponibile_dal' => 'nullable|date',
+            'squadra.disponibile_fino' => ['nullable', 'date_format:H:i'],
             'mezzi' => 'nullable|array',
             'mezzi.*.id' => 'nullable|string',
             'mezzi.*.modello' => 'nullable|string',
@@ -72,6 +72,9 @@ class SquadraAibPdfController extends Controller
         ];
 
         $disponibileFino = trim((string) ($squadra['disponibile_fino'] ?? ''));
+        $oraFine = $disponibileFino !== ''
+            ? Carbon::createFromFormat('H:i', $disponibileFino, 'Europe/Rome')->format('H:i')
+            : '';
         $pdf = Pdf::loadView('pdf.squadra-aib', [
             'squadra' => $squadra,
             'mezzi' => $validated['mezzi'] ?? [],
@@ -79,7 +82,7 @@ class SquadraAibPdfController extends Controller
             'dataIntervento' => $dataIntervento,
             'protocollo' => '',
             'oraInizio' => $dataIntervento['ora'],
-            'oraFine' => $disponibileFino,
+            'oraFine' => $oraFine,
         ])->setPaper('a4', 'portrait');
 
         $filename = 'Squadra AIB-'.Str::slug($squadra['nome']).'-'.$dataIntervento['file'].'.pdf';

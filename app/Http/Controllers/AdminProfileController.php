@@ -121,6 +121,33 @@ class AdminProfileController extends Controller
             'Prefer' => 'return=representation',
         ];
 
+        $currentProfileResponse = Http::withHeaders($adminHeaders)->get($url.'/rest/v1/profiles', [
+            'id' => 'eq.'.$id,
+            'select' => 'id,nome,cognome,ruolo,associazione',
+        ]);
+        if (! $currentProfileResponse->successful()) {
+            return response()->json(['message' => 'Impossibile verificare il profilo da aggiornare.'], 502);
+        }
+
+        $currentProfiles = $currentProfileResponse->json();
+        $currentProfile = is_array($currentProfiles) && isset($currentProfiles[0])
+            ? $currentProfiles[0]
+            : null;
+        if (! is_array($currentProfile)) {
+            return response()->json(['message' => 'Profilo non trovato.'], 404);
+        }
+
+        $currentRuolo = (string) ($currentProfile['ruolo'] ?? '');
+        $newRuolo = (string) ($validated['ruolo'] ?? $currentRuolo);
+        if (
+            $denied = $this->denyMasterManagingSuperUser(
+                $request,
+                $currentRuolo === 'super_user' || $newRuolo === 'super_user' ? 'super_user' : $newRuolo,
+            )
+        ) {
+            return $denied;
+        }
+
         $profilePayload = [];
         if (array_key_exists('ruolo', $validated)) {
             $profilePayload['ruolo'] = $validated['ruolo'];
@@ -128,22 +155,20 @@ class AdminProfileController extends Controller
                 ...$profilePayload,
                 ...$this->profileAnagraficaForRuolo(
                     $validated['ruolo'],
-                    $validated['nome'] ?? null,
-                    $validated['cognome'] ?? null,
+                    array_key_exists('nome', $validated) ? $validated['nome'] : ($currentProfile['nome'] ?? null),
+                    array_key_exists('cognome', $validated) ? $validated['cognome'] : ($currentProfile['cognome'] ?? null),
                 ),
             ];
             $profilePayload['associazione'] = in_array($validated['ruolo'], ['master', 'sala_operativa', 'super_user'], true)
                 ? null
-                : trim((string) ($validated['associazione'] ?? ''));
+                : trim((string) ($validated['associazione'] ?? ($currentProfile['associazione'] ?? '')));
         } elseif (array_key_exists('nome', $validated) || array_key_exists('cognome', $validated)) {
             $profilePayload = [
                 ...$profilePayload,
-                ...$this->profileAnagraficaForExistingProfile(
-                    $url,
-                    $adminHeaders,
-                    $id,
-                    $validated['nome'] ?? null,
-                    $validated['cognome'] ?? null,
+                ...$this->profileAnagraficaForRuolo(
+                    $currentRuolo,
+                    array_key_exists('nome', $validated) ? $validated['nome'] : ($currentProfile['nome'] ?? null),
+                    array_key_exists('cognome', $validated) ? $validated['cognome'] : ($currentProfile['cognome'] ?? null),
                 ),
             ];
         }
@@ -184,6 +209,9 @@ class AdminProfileController extends Controller
             'id' => 'eq.'.$id,
             'select' => 'id,email,nome,cognome,ruolo,associazione,created_at',
         ]);
+        if (! $fetchResponse->successful()) {
+            return response()->json(['message' => 'Profilo aggiornato, ma non è stato possibile ricaricarlo.'], 502);
+        }
 
         $profiles = $fetchResponse->json();
         $profile = is_array($profiles) && isset($profiles[0]) ? $profiles[0] : null;
@@ -259,19 +287,6 @@ class AdminProfileController extends Controller
             'nome' => $nome === '' ? null : $nome,
             'cognome' => $cognome === '' ? null : $cognome,
         ];
-    }
-
-    private function profileAnagraficaForExistingProfile(string $url, array $headers, string $id, ?string $nome, ?string $cognome): array
-    {
-        $profileResponse = Http::withHeaders($headers)->get($url.'/rest/v1/profiles', [
-            'id' => 'eq.'.$id,
-            'select' => 'ruolo',
-        ]);
-
-        $profiles = $profileResponse->json();
-        $ruolo = is_array($profiles) && isset($profiles[0]['ruolo']) ? (string) $profiles[0]['ruolo'] : '';
-
-        return $this->profileAnagraficaForRuolo($ruolo, $nome, $cognome);
     }
 
     private function denyMasterManagingSuperUser(Request $request, string $targetRuolo): ?JsonResponse

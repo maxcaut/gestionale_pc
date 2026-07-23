@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,7 +29,19 @@ class EnsureSupabaseMaster
             'Authorization' => 'Bearer '.$token,
         ];
 
-        $userResponse = Http::withHeaders($headers)->get($url.'/auth/v1/user');
+        try {
+            $userResponse = Http::connectTimeout(3)
+                ->timeout(10)
+                ->withHeaders($headers)
+                ->get($url.'/auth/v1/user');
+        } catch (ConnectionException) {
+            return response()->json(['message' => 'Servizio di autenticazione temporaneamente non disponibile.'], 503);
+        }
+
+        if ($userResponse->serverError()) {
+            return response()->json(['message' => 'Servizio di autenticazione temporaneamente non disponibile.'], 503);
+        }
+
         if (! $userResponse->successful()) {
             return response()->json(['message' => 'Sessione non valida.'], 401);
         }
@@ -38,10 +51,21 @@ class EnsureSupabaseMaster
             return response()->json(['message' => 'Utente non valido.'], 401);
         }
 
-        $profileResponse = Http::withHeaders($headers)->get($url.'/rest/v1/profiles', [
-            'id' => 'eq.'.$userId,
-            'select' => 'ruolo',
-        ]);
+        try {
+            $profileResponse = Http::connectTimeout(3)
+                ->timeout(10)
+                ->withHeaders($headers)
+                ->get($url.'/rest/v1/profiles', [
+                    'id' => 'eq.'.$userId,
+                    'select' => 'ruolo',
+                ]);
+        } catch (ConnectionException) {
+            return response()->json(['message' => 'Servizio profili temporaneamente non disponibile.'], 503);
+        }
+
+        if (! $profileResponse->successful()) {
+            return response()->json(['message' => 'Impossibile verificare il profilo utente.'], 502);
+        }
 
         $profiles = $profileResponse->json();
         $ruolo = is_array($profiles) && isset($profiles[0]['ruolo']) ? $profiles[0]['ruolo'] : null;

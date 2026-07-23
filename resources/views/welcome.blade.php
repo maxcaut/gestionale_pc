@@ -14,8 +14,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
     window.laravelConfig = {
-        supabaseUrl: "{{ env('VITE_SUPABASE_URL') }}",
-        supabaseKey: "{{ env('VITE_SUPABASE_PUBLISHABLE_KEY') }}",
+        supabaseUrl: @json(config('services.supabase.url')),
+        supabaseKey: @json(config('services.supabase.anon_key')),
         pdfMailTo: "{{ config('mail.pdf_recipient') }}"
     };
 </script>

@@ -2851,17 +2851,17 @@ function updateDashboardStats() {
         recentServicesBody.innerHTML += `
             <tr class="hover:bg-slate-800/20 transition-all">
                 <td class="py-4 px-4">
-                    <p class="font-semibold text-slate-200">${serv.tipo}</p>
-                    <p class="text-xs text-slate-500 truncate max-w-[240px]">${serv.note || "Nessun dettaglio aggiuntivo"}</p>
+                    <p class="font-semibold text-slate-200">${escapeHtml(serv.tipo)}</p>
+                    <p class="text-xs text-slate-500 truncate max-w-[240px]">${escapeHtml(serv.note || "Nessun dettaglio aggiuntivo")}</p>
                 </td>
                 <td class="py-4 px-4 text-slate-300 font-medium">${formattedDate}</td>
                 <td class="py-4 px-4">
                     ${mezziAssegnati.length > 0
-                        ? mezziAssegnati.map(m => `<span class="text-xs font-semibold text-slate-300 block">${m.modello}</span><span class="text-[10px] text-slate-500 block font-mono mb-1">${m.targa}</span>`).join('')
+                        ? mezziAssegnati.map(m => `<span class="text-xs font-semibold text-slate-300 block">${escapeHtml(m.modello)}</span><span class="text-[10px] text-slate-500 block font-mono mb-1">${escapeHtml(m.targa)}</span>`).join('')
                         : `<span class="text-xs text-slate-500">Nessun mezzo</span>`}
                 </td>
                 <td class="py-4 px-0">
-                    <span class="px-2.5 py-1 text-[10px] font-bold border rounded-full ${badgeClass}">${serv.stato}</span>
+                    <span class="px-2.5 py-1 text-[10px] font-bold border rounded-full ${badgeClass}">${escapeHtml(serv.stato)}</span>
                 </td>
             </tr>
         `;
@@ -2892,14 +2892,14 @@ function renderDashboardVolontari(volontariList) {
         tbody.innerHTML += `
             <tr class="hover:bg-slate-800/20 transition-all">
                 <td class="py-4 px-4">
-                    <p class="font-semibold text-slate-200">${v.nome} ${v.cognome}</p>
+                    <p class="font-semibold text-slate-200">${escapeHtml(v.nome)} ${escapeHtml(v.cognome)}</p>
                 </td>
-                <td class="py-4 px-4 text-slate-300 font-medium">${v.associazione_appartenenza || "—"}</td>
+                <td class="py-4 px-4 text-slate-300 font-medium">${escapeHtml(v.associazione_appartenenza || "—")}</td>
                 <td class="py-4 px-4">
-                    <span class="px-2.5 py-1 bg-slate-800 border border-slate-700/50 rounded-lg text-slate-300 text-xs font-medium">${v.ruolo}</span>
+                    <span class="px-2.5 py-1 bg-slate-800 border border-slate-700/50 rounded-lg text-slate-300 text-xs font-medium">${escapeHtml(v.ruolo)}</span>
                 </td>
                 <td class="py-4 px-4">
-                    <span class="px-2.5 py-1 text-[10px] font-bold border rounded-full ${badgeClass}">${v.stato}</span>
+                    <span class="px-2.5 py-1 text-[10px] font-bold border rounded-full ${badgeClass}">${escapeHtml(v.stato)}</span>
                 </td>
             </tr>
         `;
@@ -3570,25 +3570,25 @@ function renderVolontari() {
                         ${fotoHtml}
                     </div>
                     <div>
-                        <p class="font-bold text-white text-base">${v.nome} ${v.cognome}</p>
+                        <p class="font-bold text-white text-base">${escapeHtml(v.nome)} ${escapeHtml(v.cognome)}</p>
                         ${qualificationExpiryHtml}
                     </div>
                 </td>
-                <td class="py-4 px-6 text-slate-300 font-mono text-xs uppercase">${v.cf}</td>
+                <td class="py-4 px-6 text-slate-300 font-mono text-xs uppercase">${escapeHtml(v.cf)}</td>
                 <td class="py-4 px-6">
-                    <span class="px-3 py-1 bg-slate-800 border border-slate-700/50 rounded-xl text-slate-300 font-medium text-xs whitespace-nowrap">${v.ruolo}</span>
+                    <span class="px-3 py-1 bg-slate-800 border border-slate-700/50 rounded-xl text-slate-300 font-medium text-xs whitespace-nowrap">${escapeHtml(v.ruolo)}</span>
                 </td>
-                <td class="py-4 px-6 text-slate-300 font-medium">${v.associazione_appartenenza || "—"}</td>
+                <td class="py-4 px-6 text-slate-300 font-medium">${escapeHtml(v.associazione_appartenenza || "—")}</td>
                 <td class="py-4 px-6 text-slate-300 font-medium">
-                    <a href="tel:${v.telefono}" class="flex items-center gap-1.5 hover:text-amber-500 transition-colors">
+                    <a href="tel:${escapeAttr(v.telefono)}" class="flex items-center gap-1.5 hover:text-amber-500 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.3 11.3 0 005.455 5.456l.773-1.548a1 1 0 011.06-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                         </svg>
-                        ${v.telefono}
+                        ${escapeHtml(v.telefono)}
                     </a>
                 </td>
                 <td class="py-4 px-6">
-                    <span class="px-2.5 py-1 text-xs font-bold border rounded-full ${badgeClass}">${v.stato}</span>
+                    <span class="px-2.5 py-1 text-xs font-bold border rounded-full ${badgeClass}">${escapeHtml(v.stato)}</span>
                 </td>
                 <td class="py-4 px-6 text-right">
                     <div class="inline-flex gap-2">
@@ -3658,7 +3658,7 @@ async function exportVolontarioPdf(id) {
 
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
-            throw new Error(err.message || (delivery === 'email' ? 'Errore durante l\'invio dell\'email' : 'Errore durante la generazione del PDF'));
+            throw new Error(err.message || 'Errore durante la generazione del PDF volontario');
         }
 
         const blob = await response.blob();
@@ -4382,7 +4382,7 @@ function renderMezzi() {
             ? `<div class="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-300">${avvisiScadenza.join('<br>')}</div>`
             : '';
         const doveUbicatoHtml = m.dove_ubicato
-            ? `<p class="mb-4 text-xs text-slate-400"><span class="font-bold uppercase tracking-wider text-slate-500">Dove ubicato?</span><br>${m.dove_ubicato}</p>`
+            ? `<p class="mb-4 text-xs text-slate-400"><span class="font-bold uppercase tracking-wider text-slate-500">Dove ubicato?</span><br>${escapeHtml(m.dove_ubicato)}</p>`
             : '';
 
         let iconSvg = "";
@@ -4413,14 +4413,14 @@ function renderMezzi() {
                         <div class="p-3 bg-slate-800 rounded-xl group-hover:bg-slate-850 transition-colors">
                             ${iconSvg}
                         </div>
-                        <span class="px-2.5 py-1 text-xs font-bold border rounded-full ${badgeClass}">${m.stato}</span>
+                        <span class="px-2.5 py-1 text-xs font-bold border rounded-full ${badgeClass}">${escapeHtml(m.stato)}</span>
                     </div>
                     
-                    <h4 class="font-extrabold text-white text-lg tracking-tight mb-1">${m.modello}</h4>
-                    <p class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-4">${m.tipo}</p>
+                    <h4 class="font-extrabold text-white text-lg tracking-tight mb-1">${escapeHtml(m.modello)}</h4>
+                    <p class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-4">${escapeHtml(m.tipo)}</p>
                     
                     <div class="mb-4">
-                        <div class="targa-italiana text-sm py-1 font-mono">${m.targa}</div>
+                        <div class="targa-italiana text-sm py-1 font-mono">${escapeHtml(m.targa)}</div>
                     </div>
 
                     ${doveUbicatoHtml}
@@ -5397,22 +5397,22 @@ function populateSquadraAibModalOptions(selectedMezziIds = null, selectedVolonta
 
     mezziBox.innerHTML = mezziDisponibili.length
         ? mezziDisponibili.map(m => `
-            <label data-aib-mezzo-search="${`${m.modello || ''} ${m.targa || ''} ${m.tipo || ''}`.toLowerCase()}" class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors text-slate-200">
-                <input type="checkbox" name="aib-squadra-mezzi-check" value="${m.id}" ${selectedMezzi.has(m.id) ? 'checked' : ''} class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
-                <span class="text-xs font-semibold">${m.modello} [${m.targa}] (${m.tipo})</span>
+            <label data-aib-mezzo-search="${escapeAttr(`${m.modello || ''} ${m.targa || ''} ${m.tipo || ''}`.toLowerCase())}" class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors text-slate-200">
+                <input type="checkbox" name="aib-squadra-mezzi-check" value="${escapeAttr(m.id)}" ${selectedMezzi.has(m.id) ? 'checked' : ''} class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
+                <span class="text-xs font-semibold">${escapeHtml(m.modello)} [${escapeHtml(m.targa)}] (${escapeHtml(m.tipo)})</span>
             </label>
         `).join('')
         : `<p class="text-xs text-slate-500 p-2 text-center">Nessun mezzo disponibile per questa associazione.</p>`;
 
     volontariBox.innerHTML = volontariOperativi.length
         ? volontariOperativi.map(v => `
-            <div data-aib-volontario-search="${`${v.nome || ''} ${v.cognome || ''} ${v.ruolo || ''}`.toLowerCase()}" class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg transition-colors text-slate-200">
+            <div data-aib-volontario-search="${escapeAttr(`${v.nome || ''} ${v.cognome || ''} ${v.ruolo || ''}`.toLowerCase())}" class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg transition-colors text-slate-200">
                 <label class="flex min-w-0 flex-1 items-center gap-3 cursor-pointer">
-                    <input type="checkbox" name="aib-squadra-volontari-check" value="${v.id}" ${selectedVolontari.has(v.id) ? 'checked' : ''} onchange="handleSquadraAibVolontarioSelectionChange(this)" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
-                    <span class="text-xs font-semibold truncate">${v.nome} ${v.cognome} (${v.ruolo})</span>
+                    <input type="checkbox" name="aib-squadra-volontari-check" value="${escapeAttr(v.id)}" ${selectedVolontari.has(v.id) ? 'checked' : ''} onchange="handleSquadraAibVolontarioSelectionChange(this)" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
+                    <span class="text-xs font-semibold truncate">${escapeHtml(v.nome)} ${escapeHtml(v.cognome)} (${escapeHtml(v.ruolo)})</span>
                 </label>
                 <label data-aib-caposquadra-control class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-400 cursor-pointer">
-                    <input type="checkbox" name="aib-squadra-caposquadra-check" value="${v.id}" ${selectedCaposquadra === v.id ? 'checked' : ''} onchange="handleSquadraAibCaposquadraSelectionChange(this)" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
+                    <input type="checkbox" name="aib-squadra-caposquadra-check" value="${escapeAttr(v.id)}" ${selectedCaposquadra === v.id ? 'checked' : ''} onchange="handleSquadraAibCaposquadraSelectionChange(this)" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
                     <span>CS</span>
                 </label>
             </div>
@@ -5448,7 +5448,7 @@ function formatSquadraAibMezzi(mezziIds = []) {
     return (mezziIds || [])
         .map(id => mezzi.find(m => m.id === id))
         .filter(Boolean)
-        .map(m => `<span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">${m.modello}<span class="text-[10px] text-slate-400 font-mono ml-1">${m.targa}</span></span>`)
+        .map(m => `<span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">${escapeHtml(m.modello)}<span class="text-[10px] text-slate-400 font-mono ml-1">${escapeHtml(m.targa)}</span></span>`)
         .join('') || `<span class="text-xs text-rose-400 font-semibold">Nessun mezzo</span>`;
 }
 
@@ -5456,7 +5456,7 @@ function formatSquadraAibVolontari(volontariIds = []) {
     return (volontariIds || [])
         .map(id => volontari.find(v => v.id === id))
         .filter(Boolean)
-        .map(v => `<span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">${v.nome} ${v.cognome}</span>`)
+        .map(v => `<span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">${escapeHtml(v.nome)} ${escapeHtml(v.cognome)}</span>`)
         .join('') || `<span class="text-xs text-rose-400 font-semibold">Nessun volontario</span>`;
 }
 
@@ -5719,7 +5719,7 @@ function renderSquadreAib() {
         const statoAssegnazione = formatSquadraAibStatoIntervento(assegnazione?.stato);
         const assegnazioneHtml = assegnazione
             ? `<div class="mt-2 text-[11px] font-semibold text-amber-300 leading-snug">
-                    Assegnata a: ${assegnazione.tipo}${statoAssegnazione ? ` · ${statoAssegnazione}` : ''}${assegnazione.data ? ` · ${formatServizioDataPianificata(assegnazione.data)}` : ''}
+                    Assegnata a: ${escapeHtml(assegnazione.tipo)}${statoAssegnazione ? ` · ${escapeHtml(statoAssegnazione)}` : ''}${assegnazione.data ? ` · ${escapeHtml(formatServizioDataPianificata(assegnazione.data))}` : ''}
                </div>`
             : '';
         const badgeClass = s.stato === 'Operativa'
@@ -5727,11 +5727,11 @@ function renderSquadreAib() {
             : 'bg-slate-500/10 text-slate-400 border-slate-500/20';
         tbody.innerHTML += `
             <tr class="hover:bg-slate-800/10 transition-colors">
-                <td class="py-4 px-6 text-white font-bold">${s.nome}</td>
-                <td class="py-4 px-6 text-slate-300">${s.associazione_appartenenza || '—'}</td>
+                <td class="py-4 px-6 text-white font-bold">${escapeHtml(s.nome)}</td>
+                <td class="py-4 px-6 text-slate-300">${escapeHtml(s.associazione_appartenenza || '—')}</td>
                 <td class="py-4 px-6 max-w-[280px]"><div class="flex flex-wrap">${formatSquadraAibMezzi(s.mezziIds)}</div></td>
                 <td class="py-4 px-6 max-w-[280px]"><div class="flex flex-wrap">${formatSquadraAibVolontari(s.volontariIds)}</div></td>
-                <td class="py-4 px-6"><span class="px-2.5 py-1 text-[10px] font-bold border rounded-full ${badgeClass}">${s.stato}</span>${assegnazioneHtml}</td>
+                <td class="py-4 px-6"><span class="px-2.5 py-1 text-[10px] font-bold border rounded-full ${badgeClass}">${escapeHtml(s.stato)}</span>${assegnazioneHtml}</td>
                 <td class="py-4 px-6 text-slate-300 font-semibold">${formatSquadraAibDisponibileDal(s.disponibileDal)}</td>
                 <td class="py-4 px-6 text-slate-300 font-semibold">${formatSquadraAibDisponibileFino(s.disponibileFino)}</td>
                 <td class="py-4 px-6 text-right">
@@ -6043,7 +6043,7 @@ function renderServizioCarrelliTrainantiOptions(selectedCarrelliTrainanti = null
     }
 
     box.classList.remove('hidden');
-    const options = trainanti.map(m => `<option value="${m.id}">${m.modello} [${m.targa}]</option>`).join('');
+    const options = trainanti.map(m => `<option value="${escapeAttr(m.id)}">${escapeHtml(m.modello)} [${escapeHtml(m.targa)}]</option>`).join('');
     box.innerHTML = carrelli.map(carrello => {
         const selectedTrainante = selectedIdSet.has(selectedCarrelliTrainanti?.[carrello.id])
             ? selectedCarrelliTrainanti[carrello.id]
@@ -6091,7 +6091,7 @@ function renderResponsabileServizioOptions(selectedResponsabileId = null) {
     const currentValue = selectedResponsabileId ?? select.value;
     const options = volontari
         .filter(v => selectedIds.has(v.id) && v.stato === 'Operativo')
-        .map(v => `<option value="${v.id}">${v.cognome} ${v.nome}${v.associazione_appartenenza ? ` - ${v.associazione_appartenenza}` : ''}</option>`)
+        .map(v => `<option value="${escapeAttr(v.id)}">${escapeHtml(v.cognome)} ${escapeHtml(v.nome)}${v.associazione_appartenenza ? ` - ${escapeHtml(v.associazione_appartenenza)}` : ''}</option>`)
         .join('');
 
     select.innerHTML = `<option value="">Seleziona responsabile servizio</option>${options}`;
@@ -6131,8 +6131,8 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
         const searchText = `${m.modello || ""} ${m.targa || ""}`.toLowerCase();
         return `
             <label data-mezzo-search="${searchText}" class="flex items-center gap-3 p-1.5 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
-                <input type="checkbox" name="s-mezzi-check" value="${m.id}" ${checked} onchange="renderServizioCarrelliTrainantiOptions(); renderServizioVolontariMezziOptions();" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
-                <span class="text-xs ${fontClass}">${m.modello} [${m.targa}] (${m.tipo})${m.associazione_appartenenza ? ` · ${m.associazione_appartenenza}` : ''}${extra}</span>
+                <input type="checkbox" name="s-mezzi-check" value="${escapeAttr(m.id)}" ${checked} onchange="renderServizioCarrelliTrainantiOptions(); renderServizioVolontariMezziOptions();" class="rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
+                <span class="text-xs ${fontClass}">${escapeHtml(m.modello)} [${escapeHtml(m.targa)}] (${escapeHtml(m.tipo)})${m.associazione_appartenenza ? ` · ${escapeHtml(m.associazione_appartenenza)}` : ''}${escapeHtml(extra)}</span>
             </label>
         `;
     };
@@ -6207,7 +6207,7 @@ function populateServizioModalOptions(selectedMezziIds = [], selectedVolontariId
             <label data-volontario-search="${searchText}" class="block p-2 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors ${textClass}">
                 <span class="flex items-start gap-3 min-w-0">
                     <input type="checkbox" name="s-volontari-check" value="${v.id}" ${checked} onchange="updateServizioVolontarioMezzoControl(this.value); renderResponsabileServizioOptions();" class="mt-0.5 rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4 shrink-0">
-                    <span class="text-xs ${fontClass} leading-snug break-words">${v.nome} ${v.cognome} (${v.ruolo})${v.associazione_appartenenza ? ` · ${v.associazione_appartenenza}` : ''}${v.matricola_regionale ? ` · Matricola Regionale: ${v.matricola_regionale}` : ''}${extra}</span>
+                    <span class="text-xs ${fontClass} leading-snug break-words">${escapeHtml(v.nome)} ${escapeHtml(v.cognome)} (${escapeHtml(v.ruolo)})${v.associazione_appartenenza ? ` · ${escapeHtml(v.associazione_appartenenza)}` : ''}${v.matricola_regionale ? ` · Matricola Regionale: ${escapeHtml(v.matricola_regionale)}` : ''}${escapeHtml(extra)}</span>
                 </span>
                 <span class="mt-3 ml-7 ${controlsGridClass}">
                     <span class="flex flex-col gap-1 min-w-0">
@@ -6272,8 +6272,8 @@ function populateServizioSquadreAibOptions(selectedSquadreIds = []) {
                     <label class="flex items-start gap-3 min-w-0 flex-1 cursor-pointer">
                         <input type="checkbox" name="s-aib-squadre-check" value="${s.id}" ${selected.has(s.id) ? 'checked' : ''} class="mt-0.5 rounded text-amber-500 focus:ring-amber-500 border-slate-700 bg-slate-900 w-4 h-4">
                         <span class="min-w-0">
-                            <span class="block text-xs font-bold text-white">${s.nome}</span>
-                            <span class="block text-[11px] text-slate-400">${s.associazione_appartenenza || '—'} · ${mezziCount} mezzi · ${volontariCount} volontari</span>
+                            <span class="block text-xs font-bold text-white">${escapeHtml(s.nome)}</span>
+                            <span class="block text-[11px] text-slate-400">${escapeHtml(s.associazione_appartenenza || '—')} · ${mezziCount} mezzi · ${volontariCount} volontari</span>
                         </span>
                     </label>
                     <button type="button" onclick="toggleServizioSquadraAibDetails('${s.id}')" title="Vedi componenti squadra" class="p-1.5 -mt-1 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-900 transition-colors shrink-0">
@@ -6330,10 +6330,10 @@ function buildServizioSquadraAibDetailsHtml(squadra) {
         .filter(Boolean);
 
     const mezziHtml = mezziList.length
-        ? mezziList.map(m => `<span class="inline-block px-2 py-1 bg-slate-900 border border-slate-700/60 rounded-lg text-[11px] text-slate-200 mr-1.5 mb-1.5">${m.modello} <span class="text-slate-400 font-mono">${m.targa}</span></span>`).join('')
+        ? mezziList.map(m => `<span class="inline-block px-2 py-1 bg-slate-900 border border-slate-700/60 rounded-lg text-[11px] text-slate-200 mr-1.5 mb-1.5">${escapeHtml(m.modello)} <span class="text-slate-400 font-mono">${escapeHtml(m.targa)}</span></span>`).join('')
         : `<span class="text-[11px] text-slate-500">Nessun mezzo associato.</span>`;
     const volontariHtml = volontariList.length
-        ? volontariList.map(v => `<span class="inline-block px-2 py-1 bg-slate-900 border border-slate-700/60 rounded-lg text-[11px] text-slate-200 mr-1.5 mb-1.5">${v.nome} ${v.cognome}</span>`).join('')
+        ? volontariList.map(v => `<span class="inline-block px-2 py-1 bg-slate-900 border border-slate-700/60 rounded-lg text-[11px] text-slate-200 mr-1.5 mb-1.5">${escapeHtml(v.nome)} ${escapeHtml(v.cognome)}</span>`).join('')
         : `<span class="text-[11px] text-slate-500">Nessun volontario associato.</span>`;
 
     return `
@@ -6373,7 +6373,7 @@ function formatServizioViewSquadreAib(squadreIds = []) {
     return (squadreIds || [])
         .map(id => squadreAib.find(s => s.id === id))
         .filter(Boolean)
-        .map(s => `<span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">${s.nome}<span class="text-[10px] text-slate-400 ml-1">${s.associazione_appartenenza || ''}</span></span>`)
+        .map(s => `<span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">${escapeHtml(s.nome)}<span class="text-[10px] text-slate-400 ml-1">${escapeHtml(s.associazione_appartenenza || '')}</span></span>`)
         .join('') || `<span class="text-xs text-slate-500 font-semibold">Nessuna squadra assegnata.</span>`;
 }
 
@@ -6803,11 +6803,11 @@ function renderAttivita() {
         });
 
         const mezziPills = mezziAssegnati.length > 0
-            ? mezziAssegnati.map(m => `<span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">${m.modello}<span class="text-[10px] text-slate-400 font-mono ml-1">${m.targa}</span></span>`).join('')
+            ? mezziAssegnati.map(m => `<span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">${escapeHtml(m.modello)}<span class="text-[10px] text-slate-400 font-mono ml-1">${escapeHtml(m.targa)}</span></span>`).join('')
             : `<span class="text-xs text-rose-400 font-semibold">Nessun mezzo assegnato</span>`;
 
         const volontariPills = equipaggio.length > 0
-            ? equipaggio.map(nome => `<span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">${nome}</span>`).join('')
+            ? equipaggio.map(nome => `<span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">${escapeHtml(nome)}</span>`).join('')
             : `<span class="text-xs text-rose-400 font-semibold">Nessun equipaggio assegnato</span>`;
 
         const editBtn = s.stato === 'Programmato'
@@ -6820,8 +6820,8 @@ function renderAttivita() {
         tbody.innerHTML += `
             <tr class="${statoBorderClass} hover:bg-slate-800/10 transition-colors">
                 <td class="py-4 px-6 max-w-[280px]">
-                    <p class="font-bold text-white text-base">${s.tipo}</p>
-                    <p class="text-xs text-slate-500 mt-1 font-medium italic break-words">${s.note || 'Nessuna nota operativa aggiuntiva'}</p>
+                    <p class="font-bold text-white text-base">${escapeHtml(s.tipo)}</p>
+                    <p class="text-xs text-slate-500 mt-1 font-medium italic break-words">${escapeHtml(s.note || 'Nessuna nota operativa aggiuntiva')}</p>
                 </td>
                 <td class="py-4 px-6 text-slate-300 font-bold">${formattedDate}</td>
                 <td class="py-4 px-6 max-w-[280px]"><div class="flex flex-wrap">${mezziPills}</div></td>
@@ -7720,7 +7720,7 @@ function renderServizi() {
         const servizioIdArg = escapeAttr(JSON.stringify(s.id));
 
         const mezziPills = mezziAssegnati.length > 0
-            ? mezziAssegnati.map(m => `<span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">${m.modello}<span class="text-[10px] text-slate-400 font-mono ml-1">${m.targa}</span></span>`).join('')
+            ? mezziAssegnati.map(m => `<span class="inline-block px-2.5 py-1 bg-slate-800 text-slate-200 border border-slate-700/60 rounded-xl text-xs font-semibold mr-1.5 mb-1.5">${escapeHtml(m.modello)}<span class="text-[10px] text-slate-400 font-mono ml-1">${escapeHtml(m.targa)}</span></span>`).join('')
             : `<span class="text-xs text-rose-400 font-semibold">Nessun mezzo assegnato!</span>`;
 
         const volontariPills = equipaggio.length > 0
@@ -7767,8 +7767,8 @@ function renderServizi() {
                     <button type="button" onclick="focusServizioMapMarker(${servizioIdArg})" title="Trova sulla mappa" class="text-left hover:text-amber-400 focus:outline-none focus:text-amber-400 transition-colors">${escapeHtml(s.id)}</button>
                 </td>
                 <td class="py-4 px-6 max-w-[280px]">
-                    <p class="font-bold text-white text-base">${s.tipo}</p>
-                    <p class="text-xs text-slate-500 mt-1 font-medium italic break-words">${s.note || "Nessuna nota operativa aggiuntiva"}</p>
+                    <p class="font-bold text-white text-base">${escapeHtml(s.tipo)}</p>
+                    <p class="text-xs text-slate-500 mt-1 font-medium italic break-words">${escapeHtml(s.note || "Nessuna nota operativa aggiuntiva")}</p>
                 </td>
                 <td class="py-4 px-6 text-slate-300 font-bold">${formattedDate}</td>
                 <td class="py-4 px-6 max-w-[280px]">
@@ -7782,7 +7782,7 @@ function renderServizi() {
                     </div>
                 </td>
                 <td class="py-4 px-0">
-                    <span class="px-2.5 py-1 text-[10px] font-bold border rounded-full ${badgeClass}">${s.stato}</span>
+                    <span class="px-2.5 py-1 text-[10px] font-bold border rounded-full ${badgeClass}">${escapeHtml(s.stato)}</span>
                 </td>
                 <td class="py-4 px-6 text-right">
                     <div class="inline-flex gap-2">
