@@ -238,6 +238,353 @@
     color: #fbbf24;
 }
 
+/*
+ * Tabelle responsive
+ *
+ * Il layout tabellare desktop resta invariato. Su schermi mobili ogni riga
+ * diventa una card leggibile; le etichette rispecchiano le intestazioni della
+ * relativa tabella senza modificare il markup generato da JavaScript.
+ */
+@media (max-width: 767px) {
+    .mobile-card-table {
+        display: block;
+        width: 100%;
+    }
+
+    .mobile-card-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .mobile-card-table tbody {
+        display: grid;
+        gap: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    .mobile-card-table tbody > tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-auto-flow: row dense;
+        gap: 0;
+        overflow: hidden;
+        min-width: 0;
+        border: 1px solid rgba(51, 65, 85, 0.78);
+        border-radius: 1rem;
+        background:
+            linear-gradient(145deg, rgba(30, 41, 59, 0.5), rgba(15, 23, 42, 0.84));
+        box-shadow: 0 7px 20px rgba(2, 6, 23, 0.18);
+    }
+
+    .mobile-card-table tbody > tr:hover {
+        background: rgba(30, 41, 59, 0.55);
+    }
+
+    .mobile-card-table tbody > tr > td {
+        --mobile-table-label: "";
+        display: block;
+        min-width: 0;
+        max-width: 100%;
+        padding: 0.625rem 0.75rem;
+        border: 0;
+        border-bottom: 1px solid rgba(51, 65, 85, 0.38);
+        text-align: left;
+        overflow-wrap: anywhere;
+    }
+
+    .mobile-card-table tbody > tr > td::before {
+        content: var(--mobile-table-label);
+        display: block;
+        margin-bottom: 0.25rem;
+        color: #94a3b8;
+        font-size: 0.5625rem;
+        font-weight: 700;
+        line-height: 1.2;
+        letter-spacing: 0.065em;
+        text-transform: uppercase;
+    }
+
+    .mobile-card-table tbody > tr > td > * {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    #protocollo-associazione-table-body td:nth-child(7).truncate,
+    #dashboard-recent-services td:nth-child(1) .truncate {
+        overflow: visible;
+        max-width: 100%;
+        white-space: normal;
+        text-overflow: clip;
+        overflow-wrap: anywhere;
+    }
+
+    .mobile-card-table tbody > tr > td.mobile-card-wide,
+    #servizi-table-body td:nth-child(4),
+    #servizi-table-body td:nth-child(5),
+    #attivita-table-body td:nth-child(3),
+    #attivita-table-body td:nth-child(4),
+    #prelievi-magazzino-table-body td:nth-child(3),
+    #protocollo-associazione-table-body td:nth-child(5),
+    #protocollo-associazione-table-body td:nth-child(7),
+    #squadre-aib-table-body td:nth-child(3),
+    #squadre-aib-table-body td:nth-child(4) {
+        grid-column: 1 / -1;
+    }
+
+    .mobile-card-table tbody > tr > td.mobile-card-primary,
+    #servizi-table-body td:nth-child(2),
+    #attivita-table-body td:nth-child(1),
+    #volontari-table-body td:nth-child(1),
+    #dashboard-recent-services td:nth-child(1),
+    #dashboard-volontari-body td:nth-child(1),
+    #prelievi-magazzino-table-body td:nth-child(1),
+    #magazzino-table-body td:nth-child(1),
+    #protocollo-ingresso-table-body td:nth-child(1),
+    #protocollo-associazione-table-body td:nth-child(1),
+    #admin-profiles-table-body td:nth-child(1),
+    #squadre-aib-table-body td:nth-child(1),
+    #statistiche-volontari-body td:nth-child(1),
+    #statistiche-mezzi-body td:nth-child(1),
+    #statistiche-tipologie-body td:nth-child(1),
+    #statistiche-squadre-aib-vuoto-body td:nth-child(2) {
+        order: -1;
+        grid-column: 1 / -1;
+        padding: 0.8rem 0.875rem;
+        background: rgba(15, 23, 42, 0.28);
+    }
+
+    .mobile-card-table tbody > tr > td.mobile-card-primary::before,
+    #servizi-table-body td:nth-child(2)::before,
+    #attivita-table-body td:nth-child(1)::before,
+    #volontari-table-body td:nth-child(1)::before,
+    #dashboard-recent-services td:nth-child(1)::before,
+    #dashboard-volontari-body td:nth-child(1)::before,
+    #prelievi-magazzino-table-body td:nth-child(1)::before,
+    #magazzino-table-body td:nth-child(1)::before,
+    #protocollo-ingresso-table-body td:nth-child(1)::before,
+    #protocollo-associazione-table-body td:nth-child(1)::before,
+    #admin-profiles-table-body td:nth-child(1)::before,
+    #squadre-aib-table-body td:nth-child(1)::before,
+    #statistiche-volontari-body td:nth-child(1)::before,
+    #statistiche-mezzi-body td:nth-child(1)::before,
+    #statistiche-tipologie-body td:nth-child(1)::before,
+    #statistiche-squadre-aib-vuoto-body td:nth-child(2)::before {
+        color: #f59e0b;
+    }
+
+    .mobile-card-table tbody > tr > td.mobile-card-actions,
+    #servizi-table-body td:nth-child(7),
+    #attivita-table-body td:nth-child(5),
+    #volontari-table-body td:nth-child(7),
+    #prelievi-magazzino-table-body td:nth-child(5),
+    #magazzino-table-body td:nth-child(6),
+    #protocollo-ingresso-table-body td:nth-child(5),
+    #protocollo-associazione-table-body td:nth-child(9),
+    #admin-profiles-table-body td:nth-child(4),
+    #squadre-aib-table-body td:nth-child(8) {
+        display: flex;
+        grid-column: 1 / -1;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 3.25rem;
+        padding: 0.3rem 0.5rem 0.3rem 0.75rem;
+        border: 0;
+        background: rgba(2, 6, 23, 0.22);
+    }
+
+    .mobile-card-table tbody > tr > td.mobile-card-actions::before,
+    #servizi-table-body td:nth-child(7)::before,
+    #attivita-table-body td:nth-child(5)::before,
+    #volontari-table-body td:nth-child(7)::before,
+    #prelievi-magazzino-table-body td:nth-child(5)::before,
+    #magazzino-table-body td:nth-child(6)::before,
+    #protocollo-ingresso-table-body td:nth-child(5)::before,
+    #protocollo-associazione-table-body td:nth-child(9)::before,
+    #admin-profiles-table-body td:nth-child(4)::before,
+    #squadre-aib-table-body td:nth-child(8)::before {
+        margin: 0;
+        flex: none;
+        white-space: nowrap;
+    }
+
+    /* Gerarchia visiva dei dati principali */
+    #servizi-table-body td:nth-child(2) > p:first-child,
+    #attivita-table-body td:nth-child(1) > p:first-child,
+    .mobile-card-table tbody > tr > td.mobile-card-primary > :first-child,
+    #volontari-table-body td:nth-child(1) > :last-child,
+    #dashboard-recent-services td:nth-child(1) > :first-child,
+    #dashboard-volontari-body td:nth-child(1) > :first-child,
+    #magazzino-table-body td:nth-child(1) > :first-child,
+    #admin-profiles-table-body td:nth-child(1) > :first-child,
+    #squadre-aib-table-body td:nth-child(1) > :first-child {
+        color: #f8fafc;
+        font-size: 0.9375rem;
+        font-weight: 750;
+        line-height: 1.3;
+    }
+
+    #servizi-table-body td:nth-child(1),
+    #protocollo-ingresso-table-body td:nth-child(1),
+    #protocollo-associazione-table-body td:nth-child(1) {
+        color: #fbbf24;
+        font-weight: 800;
+    }
+
+    #servizi-table-body td:nth-child(6),
+    #dashboard-recent-services td:nth-child(4),
+    #dashboard-volontari-body td:nth-child(4),
+    #prelievi-magazzino-table-body td:nth-child(4),
+    #squadre-aib-table-body td:nth-child(5),
+    #volontari-table-body td:nth-child(6) {
+        font-weight: 800;
+    }
+
+    .mobile-card-table tbody > tr > td.mobile-card-actions > .flex,
+    .mobile-card-table tbody > tr > td.mobile-card-actions > .inline-flex,
+    #servizi-table-body td:nth-child(7) > :is(.flex, .inline-flex),
+    #volontari-table-body td:nth-child(7) > :is(.flex, .inline-flex),
+    #prelievi-magazzino-table-body td:nth-child(5) > :is(.flex, .inline-flex),
+    #magazzino-table-body td:nth-child(6) > :is(.flex, .inline-flex),
+    #protocollo-ingresso-table-body td:nth-child(5) > :is(.flex, .inline-flex),
+    #protocollo-associazione-table-body td:nth-child(9) > :is(.flex, .inline-flex),
+    #admin-profiles-table-body td:nth-child(4) > :is(.flex, .inline-flex),
+    #squadre-aib-table-body td:nth-child(8) > :is(.flex, .inline-flex) {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .mobile-card-table tbody > tr > td.mobile-card-actions button,
+    .mobile-card-table tbody > tr > td.mobile-card-actions a,
+    #servizi-table-body td:nth-child(7) :is(button, a),
+    #attivita-table-body td:nth-child(5) :is(button, a),
+    #volontari-table-body td:nth-child(7) :is(button, a),
+    #prelievi-magazzino-table-body td:nth-child(5) :is(button, a),
+    #magazzino-table-body td:nth-child(6) :is(button, a),
+    #protocollo-ingresso-table-body td:nth-child(5) :is(button, a),
+    #protocollo-associazione-table-body td:nth-child(9) :is(button, a),
+    #admin-profiles-table-body td:nth-child(4) :is(button, a),
+    #squadre-aib-table-body td:nth-child(8) :is(button, a) {
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+    }
+
+    .mobile-card-table tbody > tr > td[colspan] {
+        display: block;
+        grid-column: 1 / -1;
+        padding: 1.5rem 1rem;
+        border: 0;
+        text-align: center;
+    }
+
+    .mobile-card-table tbody > tr > td[colspan]::before {
+        content: none;
+    }
+
+    /* Attività */
+    #attivita-table-body td:nth-child(1) { --mobile-table-label: "Tipologia"; }
+    #attivita-table-body td:nth-child(2) { --mobile-table-label: "Data e ora"; }
+    #attivita-table-body td:nth-child(3) { --mobile-table-label: "Mezzi"; }
+    #attivita-table-body td:nth-child(4) { --mobile-table-label: "Equipaggio"; }
+    #attivita-table-body td:nth-child(5) { --mobile-table-label: "Azioni"; }
+
+    /* Servizi */
+    #servizi-table-body td:nth-child(1) { --mobile-table-label: "Protocollo"; }
+    #servizi-table-body td:nth-child(2) { --mobile-table-label: "Tipologia e dettagli"; }
+    #servizi-table-body td:nth-child(3) { --mobile-table-label: "Data e ora"; }
+    #servizi-table-body td:nth-child(4) { --mobile-table-label: "Mezzi"; }
+    #servizi-table-body td:nth-child(5) { --mobile-table-label: "Equipaggio"; }
+    #servizi-table-body td:nth-child(6) { --mobile-table-label: "Stato"; }
+    #servizi-table-body td:nth-child(7) { --mobile-table-label: "Azioni"; }
+
+    /* Statistiche */
+    #statistiche-volontari-body td:nth-child(1) { --mobile-table-label: "Volontario"; }
+    #statistiche-volontari-body td:nth-child(2) { --mobile-table-label: "Tipologia"; }
+    #statistiche-volontari-body td:nth-child(3) { --mobile-table-label: "Ore"; }
+    #statistiche-mezzi-body td:nth-child(1) { --mobile-table-label: "Mezzo"; }
+    #statistiche-mezzi-body td:nth-child(2) { --mobile-table-label: "Tipologia"; }
+    #statistiche-mezzi-body td:nth-child(3) { --mobile-table-label: "Ore"; }
+    #statistiche-tipologie-body td:nth-child(1) { --mobile-table-label: "Tipologia"; }
+    #statistiche-tipologie-body td:nth-child(2) { --mobile-table-label: "Ore"; }
+    #statistiche-squadre-aib-vuoto-body td:nth-child(1) { --mobile-table-label: "Associazione"; }
+    #statistiche-squadre-aib-vuoto-body td:nth-child(2) { --mobile-table-label: "Squadra"; }
+    #statistiche-squadre-aib-vuoto-body td:nth-child(3) { --mobile-table-label: "Ore a vuoto"; }
+
+    /* Dashboard */
+    #dashboard-recent-services td:nth-child(1) { --mobile-table-label: "Missione / servizio"; }
+    #dashboard-recent-services td:nth-child(2) { --mobile-table-label: "Data e ora"; }
+    #dashboard-recent-services td:nth-child(3) { --mobile-table-label: "Mezzo"; }
+    #dashboard-recent-services td:nth-child(4) { --mobile-table-label: "Stato"; }
+    #dashboard-volontari-body td:nth-child(1) { --mobile-table-label: "Nominativo"; }
+    #dashboard-volontari-body td:nth-child(2) { --mobile-table-label: "Associazione"; }
+    #dashboard-volontari-body td:nth-child(3) { --mobile-table-label: "Ruolo"; }
+    #dashboard-volontari-body td:nth-child(4) { --mobile-table-label: "Stato"; }
+
+    /* Magazzino */
+    #prelievi-magazzino-table-body td:nth-child(1) { --mobile-table-label: "Data prelievo"; }
+    #prelievi-magazzino-table-body td:nth-child(2) { --mobile-table-label: "Consegnato a"; }
+    #prelievi-magazzino-table-body td:nth-child(3) { --mobile-table-label: "Item prelevati"; }
+    #prelievi-magazzino-table-body td:nth-child(4) { --mobile-table-label: "Stato"; }
+    #prelievi-magazzino-table-body td:nth-child(5) { --mobile-table-label: "Azioni"; }
+    #magazzino-table-body td:nth-child(1) { --mobile-table-label: "Nome attrezzatura"; }
+    #magazzino-table-body td:nth-child(2) { --mobile-table-label: "Tipo"; }
+    #magazzino-table-body td:nth-child(3) { --mobile-table-label: "N. inventario"; }
+    #magazzino-table-body td:nth-child(4) { --mobile-table-label: "Quantità"; }
+    #magazzino-table-body td:nth-child(5) { --mobile-table-label: "Associazione"; }
+    #magazzino-table-body td:nth-child(6) { --mobile-table-label: "Azioni"; }
+
+    /* Amministrazione */
+    #admin-profiles-table-body td:nth-child(1) { --mobile-table-label: "Utente"; }
+    #admin-profiles-table-body td:nth-child(2) { --mobile-table-label: "Ruolo"; }
+    #admin-profiles-table-body td:nth-child(3) { --mobile-table-label: "Associazione"; }
+    #admin-profiles-table-body td:nth-child(4) { --mobile-table-label: "Azioni"; }
+
+    /* Protocollo associazione */
+    #protocollo-associazione-table-body td:nth-child(1) { --mobile-table-label: "Protocollo"; }
+    #protocollo-associazione-table-body td:nth-child(2) { --mobile-table-label: "Tipo"; }
+    #protocollo-associazione-table-body td:nth-child(3) { --mobile-table-label: "Associazione"; }
+    #protocollo-associazione-table-body td:nth-child(4) { --mobile-table-label: "Protocollo esterno"; }
+    #protocollo-associazione-table-body td:nth-child(5) { --mobile-table-label: "Mittente / destinatario"; }
+    #protocollo-associazione-table-body td:nth-child(6) { --mobile-table-label: "Data"; }
+    #protocollo-associazione-table-body td:nth-child(7) { --mobile-table-label: "Oggetto"; }
+    #protocollo-associazione-table-body td:nth-child(8) { --mobile-table-label: "File"; }
+    #protocollo-associazione-table-body td:nth-child(9) { --mobile-table-label: "Azioni"; }
+
+    /* Squadre A.I.B. */
+    #squadre-aib-table-body td:nth-child(1) { --mobile-table-label: "Squadra"; }
+    #squadre-aib-table-body td:nth-child(2) { --mobile-table-label: "Associazione"; }
+    #squadre-aib-table-body td:nth-child(3) { --mobile-table-label: "Mezzi"; }
+    #squadre-aib-table-body td:nth-child(4) { --mobile-table-label: "Volontari"; }
+    #squadre-aib-table-body td:nth-child(5) { --mobile-table-label: "Stato"; }
+    #squadre-aib-table-body td:nth-child(6) { --mobile-table-label: "Inizio disponibilità"; }
+    #squadre-aib-table-body td:nth-child(7) { --mobile-table-label: "Fine disponibilità"; }
+    #squadre-aib-table-body td:nth-child(8) { --mobile-table-label: "Azioni"; }
+
+    /* Volontari */
+    #volontari-table-body td:nth-child(1) { --mobile-table-label: "Nominativo"; }
+    #volontari-table-body td:nth-child(2) { --mobile-table-label: "Codice fiscale"; }
+    #volontari-table-body td:nth-child(3) { --mobile-table-label: "Ruolo"; }
+    #volontari-table-body td:nth-child(4) { --mobile-table-label: "Associazione"; }
+    #volontari-table-body td:nth-child(5) { --mobile-table-label: "Recapito"; }
+    #volontari-table-body td:nth-child(6) { --mobile-table-label: "Stato operativo"; }
+    #volontari-table-body td:nth-child(7) { --mobile-table-label: "Azioni"; }
+
+    /* Protocollo ingresso */
+    #protocollo-ingresso-table-body td:nth-child(1) { --mobile-table-label: "Protocollo"; }
+    #protocollo-ingresso-table-body td:nth-child(2) { --mobile-table-label: "Protocollo esterno"; }
+    #protocollo-ingresso-table-body td:nth-child(3) { --mobile-table-label: "Data memorizzazione"; }
+    #protocollo-ingresso-table-body td:nth-child(4) { --mobile-table-label: "File"; }
+    #protocollo-ingresso-table-body td:nth-child(5) { --mobile-table-label: "Azioni"; }
+}
+
 .area-drawing-control .area-drawing-start {
     display: flex;
     align-items: center;

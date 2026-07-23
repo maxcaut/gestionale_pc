@@ -16,7 +16,7 @@
                                 <h3 class="text-sm font-bold text-white uppercase tracking-wider">Ore volontari per tipologia</h3>
                             </div>
                             <div class="overflow-x-auto">
-                                <table class="w-full text-left border-collapse">
+                                <table class="mobile-card-table w-full text-left border-collapse">
                                     <thead>
                                         <tr class="bg-slate-900/60 border-b border-slate-800 text-slate-400 text-xs font-bold uppercase tracking-wider">
                                             <th class="py-4 px-6">Volontario</th>
@@ -34,7 +34,7 @@
                                 <h3 class="text-sm font-bold text-white uppercase tracking-wider">Ore mezzi per tipologia</h3>
                             </div>
                             <div class="overflow-x-auto">
-                                <table class="w-full text-left border-collapse">
+                                <table class="mobile-card-table w-full text-left border-collapse">
                                     <thead>
                                         <tr class="bg-slate-900/60 border-b border-slate-800 text-slate-400 text-xs font-bold uppercase tracking-wider">
                                             <th class="py-4 px-6">Mezzo</th>
@@ -52,7 +52,7 @@
                                 <h3 class="text-sm font-bold text-white uppercase tracking-wider">Ore per tipologia</h3>
                             </div>
                             <div class="overflow-x-auto">
-                                <table class="w-full text-left border-collapse">
+                                <table class="mobile-card-table w-full text-left border-collapse">
                                     <thead>
                                         <tr class="bg-slate-900/60 border-b border-slate-800 text-slate-400 text-xs font-bold uppercase tracking-wider">
                                             <th class="py-4 px-6">Tipologia</th>
@@ -70,7 +70,7 @@
                             <h3 class="text-sm font-bold text-white uppercase tracking-wider">Ore a vuoto squadre A.I.B.</h3>
                         </div>
                         <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
+                            <table class="mobile-card-table w-full text-left border-collapse">
                                 <thead>
                                     <tr class="bg-slate-900/60 border-b border-slate-800 text-slate-400 text-xs font-bold uppercase tracking-wider">
                                         <th class="py-4 px-6">Associazione</th>

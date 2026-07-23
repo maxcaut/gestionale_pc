@@ -12,7 +12,7 @@
                             </button>
                         </div>
                         <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
+                            <table class="mobile-card-table w-full text-left border-collapse">
                                 <thead>
                                     <tr class="border-b border-slate-800 text-slate-400 text-xs font-semibold tracking-wider">
                                         <th class="py-3 px-4">Data prelievo</th>
@@ -66,7 +66,7 @@
                             </div>
                         </div>
                         <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
+                            <table class="mobile-card-table w-full text-left border-collapse">
                                 <thead>
                                     <tr class="border-b border-slate-800 text-slate-400 text-xs font-semibold tracking-wider">
                                         <th class="py-3 px-4">Nome attrezzatura</th>

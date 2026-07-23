@@ -83,7 +83,7 @@
                     <!-- Griglia/Lista Volontari -->
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
                         <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
+                            <table class="mobile-card-table w-full text-left border-collapse">
                                 <thead>
                                     <tr class="bg-slate-900/60 border-b border-slate-800 text-slate-400 text-xs font-bold uppercase tracking-wider">
                                         <th class="py-4 px-6">Nominativo</th>
