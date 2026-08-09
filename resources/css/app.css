@@ -65,6 +65,59 @@
     transform-origin: center;
 }
 
+.servizi-map .canadair-live-marker {
+    background: transparent;
+    border: 0;
+}
+
+.servizi-map .canadair-live-marker > span {
+    display: block;
+    width: 44px;
+    height: 44px;
+    filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.75));
+    transition: transform 0.5s linear;
+}
+
+.servizi-map .canadair-live-marker svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.canadair-body {
+    fill: #facc15;
+    stroke: #713f12;
+    stroke-width: 1.2;
+    stroke-linejoin: round;
+}
+
+.canadair-wing-band {
+    fill: #dc2626;
+}
+
+.canadair-detail {
+    fill: #fef08a;
+    opacity: 0.75;
+}
+
+.canadair-legend-icon {
+    display: inline-flex;
+    width: 1.65rem;
+    height: 1.65rem;
+    flex: none;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7));
+}
+
+.canadair-legend-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.servizi-map .canadair-live-source {
+    color: #94a3b8;
+    font-size: 0.7rem;
+}
+
 @keyframes servizioMarkerPulse {
     0% { opacity: 1; stroke-width: 2; transform: scale(1); }
     70% { opacity: 0.42; stroke-width: 7; transform: scale(1.55); }

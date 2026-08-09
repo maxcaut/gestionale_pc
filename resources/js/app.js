@@ -1005,6 +1005,8 @@ const MASSA_DI_SOMMA_CENTER = [40.850, 14.342];
 const MASSA_DI_SOMMA_ZOOM = 11;
 let serviziMap = null;
 let serviziMapMarkersLayer = null;
+let canadairLiveLayer = null;
+let canadairLiveTimer = null;
 let serviziMapRoadLayer = null;
 let serviziMapSatelliteLayer = null;
 let serviziMapMunicipalityLayer = null;
@@ -1020,6 +1022,7 @@ let areaDrawingPreviewLayer = null;
 let areaDrawingControlContainer = null;
 const geocodeCache = new Map();
 const serviziMapMarkersById = new Map();
+const canadairLiveMarkersByRegistration = new Map();
 let serviziMapUpdateToken = 0;
 let pdfExportProgressTimer = null;
 let pendingPdfDelivery = null;
@@ -7584,8 +7587,15 @@ function ensureServiziMap() {
     mapTypeControl.addTo(serviziMap);
 
     serviziMapMarkersLayer = L.layerGroup().addTo(serviziMap);
+    canadairLiveLayer = L.layerGroup().addTo(serviziMap);
     serviziMapAreeLayer = new L.FeatureGroup().addTo(serviziMap);
-    L.control.layers(null, { "Aree intervento": serviziMapAreeLayer }, { position: "bottomright", collapsed: false }).addTo(serviziMap);
+    L.control.layers(null, {
+        "Canadair in volo": canadairLiveLayer,
+        "Aree intervento": serviziMapAreeLayer,
+    }, { position: "bottomright", collapsed: false }).addTo(serviziMap);
+
+    updateCanadairLivePositions();
+    canadairLiveTimer = window.setInterval(updateCanadairLivePositions, 15000);
 
     if (canManageAreeIntervento()) {
         serviziMapDrawControl = new L.Control.Draw({
@@ -7605,6 +7615,76 @@ function ensureServiziMap() {
         console.error("Errore caricamento aree intervento:", err);
         showToast("Errore mappa", "Impossibile caricare le aree intervento.");
     });
+}
+
+function canadairMarkerIcon(heading = 0) {
+    const rotation = Number.isFinite(Number(heading)) ? Number(heading) : 0;
+
+    return L.divIcon({
+        className: "canadair-live-marker",
+        html: `<span style="transform:rotate(${rotation}deg)" aria-hidden="true"><svg viewBox="0 0 44 44"><path class="canadair-body" d="M22 2.5c-1.8 0-2.8 4.2-3.2 12.2L4 21.1v4.4l14.8-2.2.5 10-5.5 3.8v3.1l8.2-1.8 8.2 1.8v-3.1l-5.5-3.8.5-10L40 25.5v-4.4l-14.8-6.4C24.8 6.7 23.8 2.5 22 2.5Z"/><path class="canadair-wing-band" d="m9.1 18.9 4.8-2.1 1.2 7.4-5 .7Zm25.8 5.3 1.2-7.4 4.8 2.1-1 6Z"/><path class="canadair-detail" d="M20.7 8.5h2.6v18h-2.6z"/></svg></span>`,
+        iconSize: [44, 44],
+        iconAnchor: [22, 22],
+        popupAnchor: [0, -22],
+    });
+}
+
+function formatCanadairValue(value, suffix) {
+    return value === null || value === undefined ? "n/d" : `${value}${suffix}`;
+}
+
+async function updateCanadairLivePositions() {
+    if (!serviziMap || !canadairLiveLayer || document.hidden) return;
+
+    const status = document.getElementById("canadair-live-status");
+
+    try {
+        const response = await fetch("/api/canadair/live", { headers: { Accept: "application/json" } });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        const activeRegistrations = new Set();
+
+        (data.aircraft || []).forEach(aircraft => {
+            activeRegistrations.add(aircraft.registration);
+            const positionLabel = aircraft.last_position
+                ? `Ultima posizione (${Math.round(Number(aircraft.seen_seconds || 0))} s fa)`
+                : "Posizione live";
+            const source = aircraft.source ? escapeHtml(aircraft.source) : "feed ADS-B aperto";
+            const popup = `<strong>${escapeHtml(aircraft.registration)}</strong>${aircraft.callsign ? `<br>Callsign: ${escapeHtml(aircraft.callsign)}` : ""}<br>Quota: ${formatCanadairValue(aircraft.altitude_ft, " ft")}<br>Velocità: ${formatCanadairValue(aircraft.speed_kts, " kt")}<br><span class="canadair-live-source">${positionLabel} · ${source}</span>`;
+            let marker = canadairLiveMarkersByRegistration.get(aircraft.registration);
+
+            if (marker) {
+                marker.setLatLng([aircraft.lat, aircraft.lon]);
+                marker.setIcon(canadairMarkerIcon(aircraft.heading));
+                marker.setPopupContent(popup);
+            } else {
+                marker = L.marker([aircraft.lat, aircraft.lon], {
+                    icon: canadairMarkerIcon(aircraft.heading),
+                    title: `Canadair ${aircraft.registration}`,
+                }).bindPopup(popup).addTo(canadairLiveLayer);
+                canadairLiveMarkersByRegistration.set(aircraft.registration, marker);
+            }
+        });
+
+        canadairLiveMarkersByRegistration.forEach((marker, registration) => {
+            if (!activeRegistrations.has(registration)) {
+                canadairLiveLayer.removeLayer(marker);
+                canadairLiveMarkersByRegistration.delete(registration);
+            }
+        });
+
+        if (status) {
+            const detected = Number(data.detected || activeRegistrations.size);
+            const unavailablePositions = Array.isArray(data.without_position) ? data.without_position : [];
+            status.lastChild.textContent = ` Canadair live: ${activeRegistrations.size} in mappa / ${detected} rilevati${data.stale ? " (ritardo)" : ""}`;
+            status.title = unavailablePositions.length
+                ? `Senza coordinate ADS-B: ${unavailablePositions.join(", ")}`
+                : "Sono mostrati solo i velivoli in volo con posizione ADS-B ricevuta";
+        }
+    } catch (error) {
+        console.error("Errore caricamento Canadair live:", error);
+        if (status) status.lastChild.textContent = " Canadair live: non disponibile";
+    }
 }
 
 async function updateServiziMap(filteredServizi) {

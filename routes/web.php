@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminAssociazioneController;
 use App\Http\Controllers\AdminProfileController;
+use App\Http\Controllers\CanadairLiveController;
 use App\Http\Controllers\MagazzinoPrelievoPdfController;
 use App\Http\Controllers\ServizioPdfController;
 use App\Http\Controllers\SquadraAibPdfController;
@@ -16,6 +17,7 @@ Route::post('/servizi/pdf', [ServizioPdfController::class, 'export'])->name('ser
 Route::post('/squadre-aib/pdf', [SquadraAibPdfController::class, 'export'])->name('squadre-aib.pdf');
 Route::post('/volontari/pdf', [VolontarioPdfController::class, 'export'])->name('volontari.pdf');
 Route::post('/magazzino/prelievi/pdf', [MagazzinoPrelievoPdfController::class, 'export'])->name('magazzino.prelievi.pdf');
+Route::get('/api/canadair/live', CanadairLiveController::class)->name('canadair.live');
 
 Route::middleware('supabase.master')->prefix('api/admin')->group(function () {
     Route::get('/associazioni', [AdminAssociazioneController::class, 'index']);

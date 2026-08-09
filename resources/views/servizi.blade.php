@@ -72,6 +72,7 @@
                                 <p class="text-xs text-slate-500 mt-0.5">Posizioni da coordinate inserite in fase di pianificazione missione</p>
                             </div>
                             <div class="flex flex-wrap items-center gap-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                <span id="canadair-live-status" class="inline-flex items-center gap-1.5"><span class="canadair-legend-icon" aria-hidden="true"><svg viewBox="0 0 44 44"><path class="canadair-body" d="M22 2.5c-1.8 0-2.8 4.2-3.2 12.2L4 21.1v4.4l14.8-2.2.5 10-5.5 3.8v3.1l8.2-1.8 8.2 1.8v-3.1l-5.5-3.8.5-10L40 25.5v-4.4l-14.8-6.4C24.8 6.7 23.8 2.5 22 2.5Z"/><path class="canadair-wing-band" d="m9.1 18.9 4.8-2.1 1.2 7.4-5 .7Zm25.8 5.3 1.2-7.4 4.8 2.1-1 6Z"/></svg></span> Canadair live: —</span>
                                 <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-400"></span> Programmato</span>
                                 <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> In corso</span>
                                 <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Completato</span>
