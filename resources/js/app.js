@@ -3389,6 +3389,30 @@ function renderStatisticheSquadreAibVuoto(rows) {
     });
 }
 
+function renderStatisticheInterventiAibOperatori(rows) {
+    const tbody = document.getElementById('statistiche-interventi-aib-operatori-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+    if (rows.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="2" class="py-8 px-6 text-center text-slate-500 font-medium">Nessun intervento antincendio boschivo completato.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    rows.forEach(row => {
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-800/10 transition-colors">
+                <td class="py-4 px-6 text-slate-100 font-semibold">${escapeHtml(row.label)}</td>
+                <td class="py-4 px-6 text-right text-amber-400 font-bold">${row.count}</td>
+            </tr>
+        `;
+    });
+}
+
 function renderStatisticheNonCalcolabili(serviziList) {
     const wrap = document.getElementById('statistiche-non-calcolabili');
     const list = document.getElementById('statistiche-non-calcolabili-list');
@@ -3452,6 +3476,7 @@ function getStatisticheData() {
     const volontariStats = new Map();
     const mezziStats = new Map();
     const tipologieStats = new Map();
+    const interventiAibOperatoriStats = new Map();
     const squadreAibVuotoStats = new Map();
     const nonCalcolabili = [];
     let soruTotale = 0;
@@ -3466,6 +3491,19 @@ function getStatisticheData() {
         }
 
         if (servizio.stato !== 'Completato') return;
+
+        if (isAntincendioBoschivo(servizio.tipo)) {
+            [...new Set(servizio.volontariIds || [])].forEach(id => {
+                const volontario = volontariById.get(id);
+                if (!volontario) return;
+                const current = interventiAibOperatoriStats.get(id) || {
+                    label: `${volontario.nome} ${volontario.cognome}`,
+                    count: 0,
+                };
+                current.count += 1;
+                interventiAibOperatoriStats.set(id, current);
+            });
+        }
 
         const hours = getServizioDurationHours(servizio);
         if (hours === null) {
@@ -3531,6 +3569,7 @@ function getStatisticheData() {
         volontariStats: [...volontariStats.values()].sort(byLabelAndTipologia),
         mezziStats: [...mezziStats.values()].sort(byLabelAndTipologia),
         tipologieStats: [...tipologieStats.values()].sort(byTipologia),
+        interventiAibOperatoriStats: [...interventiAibOperatoriStats.values()].sort((a, b) => a.label.localeCompare(b.label, 'it')),
         squadreAibVuotoStats: [...squadreAibVuotoStats.values()].sort(byAssociazioneAndNome),
         nonCalcolabili,
         soruTotale,
@@ -3604,6 +3643,7 @@ function renderStatistiche() {
         volontariStats,
         mezziStats,
         tipologieStats,
+        interventiAibOperatoriStats,
         squadreAibVuotoStats,
         nonCalcolabili,
         soruTotale,
@@ -3626,6 +3666,7 @@ function renderStatistiche() {
         'Nessuna ora per tipologia calcolabile.',
         2
     );
+    renderStatisticheInterventiAibOperatori(interventiAibOperatoriStats);
     renderStatisticheSquadreAibVuoto(squadreAibVuotoStats);
     renderStatisticheSoruSenzaProtocollo(soruSenzaProtocollo, soruTotale);
     renderStatisticheNonCalcolabili(nonCalcolabili);

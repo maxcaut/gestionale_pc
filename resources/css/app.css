@@ -407,6 +407,7 @@
     #statistiche-volontari-body td:nth-child(1),
     #statistiche-mezzi-body td:nth-child(1),
     #statistiche-tipologie-body td:nth-child(1),
+    #statistiche-interventi-aib-operatori-body td:nth-child(1),
     #statistiche-squadre-aib-vuoto-body td:nth-child(2) {
         order: -1;
         grid-column: 1 / -1;
@@ -429,6 +430,7 @@
     #statistiche-volontari-body td:nth-child(1)::before,
     #statistiche-mezzi-body td:nth-child(1)::before,
     #statistiche-tipologie-body td:nth-child(1)::before,
+    #statistiche-interventi-aib-operatori-body td:nth-child(1)::before,
     #statistiche-squadre-aib-vuoto-body td:nth-child(2)::before {
         color: #f59e0b;
     }
@@ -567,6 +569,8 @@
     #statistiche-mezzi-body td:nth-child(3) { --mobile-table-label: "Ore"; }
     #statistiche-tipologie-body td:nth-child(1) { --mobile-table-label: "Tipologia"; }
     #statistiche-tipologie-body td:nth-child(2) { --mobile-table-label: "Ore"; }
+    #statistiche-interventi-aib-operatori-body td:nth-child(1) { --mobile-table-label: "Operatore"; }
+    #statistiche-interventi-aib-operatori-body td:nth-child(2) { --mobile-table-label: "Interventi"; }
     #statistiche-squadre-aib-vuoto-body td:nth-child(1) { --mobile-table-label: "Associazione"; }
     #statistiche-squadre-aib-vuoto-body td:nth-child(2) { --mobile-table-label: "Squadra"; }
     #statistiche-squadre-aib-vuoto-body td:nth-child(3) { --mobile-table-label: "Ore a vuoto"; }

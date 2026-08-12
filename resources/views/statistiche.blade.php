@@ -67,6 +67,23 @@
 
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
                         <div class="px-6 py-4 border-b border-slate-800">
+                            <h3 class="text-sm font-bold text-white uppercase tracking-wider">Interventi antincendio boschivo per operatore</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="mobile-card-table w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-900/60 border-b border-slate-800 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                                        <th class="py-4 px-6">Operatore</th>
+                                        <th class="py-4 px-6 text-right">Interventi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="statistiche-interventi-aib-operatori-body" class="text-sm divide-y divide-slate-800/40"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                        <div class="px-6 py-4 border-b border-slate-800">
                             <h3 class="text-sm font-bold text-white uppercase tracking-wider">Ore a vuoto squadre A.I.B.</h3>
                         </div>
                         <div class="overflow-x-auto">
