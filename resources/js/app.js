@@ -6095,7 +6095,7 @@ async function exportSquadraAibPdf(id, delivery = 'download', email = null) {
                     caposquadra_id: caposquadraId,
                     stato: squadra.stato || '',
                     disponibile_dal: squadra.disponibileDal || '',
-                    disponibile_fino: squadra.disponibileFino || '',
+                    disponibile_fino: normalizeTimeValue(squadra.disponibileFino) || '',
                 },
                 mezzi: mezziExport.map(m => ({
                     id: m.id,
@@ -6127,6 +6127,11 @@ async function exportSquadraAibPdf(id, delivery = 'download', email = null) {
             showToast('Invio email avviato', data.message || 'Il PDF della squadra A.I.B. verrà inviato a breve.');
             hidePdfExportProgress(true);
             return;
+        }
+
+        const contentType = response.headers.get('Content-Type') || '';
+        if (!contentType.toLowerCase().includes('application/pdf')) {
+            throw new Error('Il server non ha restituito un PDF valido. Riprova.');
         }
 
         const blob = await response.blob();

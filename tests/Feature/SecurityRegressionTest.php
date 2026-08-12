@@ -129,4 +129,27 @@ class SecurityRegressionTest extends TestCase
 
         self::assertSame(422, $response->getStatusCode());
     }
+
+    public function test_squad_pdf_accepts_supabase_time_with_seconds(): void
+    {
+        $response = $this->postJson('/squadre-aib/pdf', [
+            'delivery' => 'download',
+            'squadra' => [
+                'id' => 'squad-id',
+                'nome' => 'Squadra Test',
+                'disponibile_dal' => '2026-08-12T08:00:00+02:00',
+                'disponibile_fino' => '18:00:00',
+            ],
+            'equipaggio' => [[
+                'id' => 'volunteer-id',
+                'nome' => 'Mario',
+                'cognome' => 'Rossi',
+            ]],
+        ]);
+
+        $response->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+        self::assertStringStartsWith('%PDF-', $response->getContent());
+        self::assertStringContainsString('%%EOF', $response->getContent());
+    }
 }

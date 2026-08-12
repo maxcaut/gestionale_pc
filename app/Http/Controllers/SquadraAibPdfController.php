@@ -27,7 +27,7 @@ class SquadraAibPdfController extends Controller
             'squadra.caposquadra_id' => 'nullable|string',
             'squadra.stato' => 'nullable|string',
             'squadra.disponibile_dal' => 'nullable|date',
-            'squadra.disponibile_fino' => ['nullable', 'date_format:H:i'],
+            'squadra.disponibile_fino' => ['nullable', 'date_format:H:i,H:i:s'],
             'mezzi' => 'nullable|array',
             'mezzi.*.id' => 'nullable|string',
             'mezzi.*.modello' => 'nullable|string',
@@ -73,7 +73,7 @@ class SquadraAibPdfController extends Controller
 
         $disponibileFino = trim((string) ($squadra['disponibile_fino'] ?? ''));
         $oraFine = $disponibileFino !== ''
-            ? Carbon::createFromFormat('H:i', $disponibileFino, 'Europe/Rome')->format('H:i')
+            ? Carbon::parse($disponibileFino, 'Europe/Rome')->format('H:i')
             : '';
         $pdf = Pdf::loadView('pdf.squadra-aib', [
             'squadra' => $squadra,
