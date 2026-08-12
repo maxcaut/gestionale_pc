@@ -477,6 +477,7 @@ function toggleResponsabileServizioField() {
 function getSegreteriaAttivitaHiddenBlocks() {
     const blocks = [
         document.getElementById('s-aib-section'),
+        document.getElementById('s-aib-ora-arrivo-block'),
         document.getElementById('s-aib-orari-fine'),
         document.getElementById('s-lat')?.parentElement?.parentElement ?? null,
         document.getElementById('s-stato')?.parentElement ?? null,
@@ -2172,11 +2173,13 @@ function toggleServizioAibFields() {
     const tipo = document.getElementById('s-tipo')?.value ?? '';
     const show = isAntincendioBoschivo(tipo);
     const section = document.getElementById('s-aib-section');
+    const oraArrivoBlock = document.getElementById('s-aib-ora-arrivo-block');
     const tipologiaBlock = document.getElementById('s-aib-tipologia-servizio-block');
     const tipologia = document.getElementById('s-aib-tipologia-servizio');
     const orariFine = document.getElementById('s-aib-orari-fine');
     const squadreBlock = document.getElementById('s-aib-squadre-block');
     if (section) section.classList.toggle('hidden', !show);
+    if (oraArrivoBlock) oraArrivoBlock.classList.toggle('hidden', !show);
     if (tipologiaBlock) tipologiaBlock.classList.toggle('hidden', !show);
     if (tipologia) {
         tipologia.required = show;
@@ -2186,6 +2189,19 @@ function toggleServizioAibFields() {
     if (squadreBlock) squadreBlock.classList.toggle('hidden', !(show && isSalaOperativa()));
     document.querySelectorAll('.servizio-mezzi-required').forEach(el => el.classList.toggle('hidden', !show));
     populateServizioSquadreAibOptions(collectCheckedValues('s-aib-squadre-check'));
+}
+
+function setServizioCurrentTime(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input || input.disabled) return;
+
+    const now = new Date();
+    const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+    input.value = input.type === 'datetime-local'
+        ? localNow.toISOString().slice(0, 16)
+        : localNow.toISOString().slice(11, 16);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 function toggleProtocolloRegionaleField() {
@@ -10048,6 +10064,7 @@ window.closeAreaInterventoModal = closeAreaInterventoModal;
 window.saveAreaIntervento = saveAreaIntervento;
 window.deleteAreaIntervento = deleteAreaIntervento;
 window.toggleServizioAibFields = toggleServizioAibFields;
+window.setServizioCurrentTime = setServizioCurrentTime;
 window.fillCoordinateFromGps = fillCoordinateFromGps;
 window.saveServizio = saveServizio;
 window.completaServizio = completaServizio;

@@ -1378,22 +1378,48 @@
                     <p class="text-[10px] text-slate-500 mt-1 font-medium">Disponibile solo per interventi di antincendio boschivo.</p>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Data e Ora Pianificazione <span class="text-amber-500">*</span></label>
-                    <input type="datetime-local" id="s-data" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Orario di fine intervento</label>
-                    <input type="time" id="s-aib-ora-fine" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
-                </div>
-
-                <div id="s-aib-section" class="hidden space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Orario di arrivo sull'incendio</label>
-                        <input type="time" id="s-aib-ora-arrivo" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                <section class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 sm:p-5" aria-labelledby="s-orari-title">
+                    <div class="mb-4">
+                        <h4 id="s-orari-title" class="text-xs font-bold uppercase tracking-wider text-amber-500">Orari intervento</h4>
+                        <p class="text-[11px] text-slate-500 mt-1">Inserisci gli orari manualmente oppure usa il pulsante Adesso.</p>
                     </div>
 
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2" for="s-data">Inizio intervento <span class="text-amber-500">*</span></label>
+                            <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-stretch">
+                                <input type="datetime-local" id="s-data" required class="min-w-0 w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-3 sm:px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                                <button type="button" onclick="setServizioCurrentTime('s-data')" class="min-h-11 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-amber-500 font-bold text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500/70" aria-label="Imposta l'orario attuale come inizio intervento" title="Inserisci data e ora attuali">Adesso</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2" for="s-aib-ora-fine">Fine intervento</label>
+                            <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-stretch">
+                                <input type="time" id="s-aib-ora-fine" class="min-w-0 w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-3 sm:px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                                <button type="button" onclick="setServizioCurrentTime('s-aib-ora-fine')" class="min-h-11 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-amber-500 font-bold text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500/70" aria-label="Imposta l'orario attuale come fine intervento" title="Inserisci l'ora attuale">Adesso</button>
+                            </div>
+                        </div>
+
+                        <div id="s-aib-ora-arrivo-block" class="hidden">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2" for="s-aib-ora-arrivo">Arrivo sull'incendio</label>
+                            <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-stretch">
+                                <input type="time" id="s-aib-ora-arrivo" class="min-w-0 w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-3 sm:px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                                <button type="button" onclick="setServizioCurrentTime('s-aib-ora-arrivo')" class="min-h-11 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-amber-500 font-bold text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500/70" aria-label="Imposta l'orario attuale come arrivo sull'incendio" title="Inserisci l'ora attuale">Adesso</button>
+                            </div>
+                        </div>
+
+                        <div id="s-aib-orari-fine" class="hidden">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2" for="s-aib-ora-rientro">Rientro in sede</label>
+                            <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-stretch">
+                                <input type="time" id="s-aib-ora-rientro" class="min-w-0 w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-3 sm:px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
+                                <button type="button" onclick="setServizioCurrentTime('s-aib-ora-rientro')" class="min-h-11 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-amber-500 font-bold text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500/70" aria-label="Imposta l'orario attuale come rientro in sede" title="Inserisci l'ora attuale">Adesso</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div id="s-aib-section" class="hidden space-y-4">
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Superficie percorsa dal fuoco (ha)</label>
                         <p class="text-[10px] text-slate-500 mb-3 font-medium">Compila i valori per tipologia (es. 0,45 ha, 1 ha).</p>
@@ -1544,13 +1570,6 @@
                         <option value="In corso">In corso</option>
                         <option value="Completato">Completato</option>
                     </select>
-                </div>
-
-                <div id="s-aib-orari-fine" class="hidden space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Orario di rientro in sede</label>
-                        <input type="time" id="s-aib-ora-rientro" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors">
-                    </div>
                 </div>
 
                 <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">
