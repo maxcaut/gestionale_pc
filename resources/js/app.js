@@ -1,9 +1,38 @@
 import { createClient } from '@supabase/supabase-js';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import 'leaflet-draw';
-import 'leaflet-draw/dist/leaflet.draw.css';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+
+let L = null;
+let mapLibrariesPromise = null;
+let pdfLibraryPromise = null;
+
+async function loadMapLibraries() {
+    if (!mapLibrariesPromise) {
+        mapLibrariesPromise = (async () => {
+            const [{ default: leaflet }] = await Promise.all([
+                import('leaflet'),
+                import('leaflet/dist/leaflet.css'),
+                import('leaflet-draw/dist/leaflet.draw.css'),
+            ]);
+            L = leaflet;
+            window.L = leaflet;
+            await import('leaflet-draw');
+            return leaflet;
+        })().catch(error => {
+            mapLibrariesPromise = null;
+            throw error;
+        });
+    }
+    return mapLibrariesPromise;
+}
+
+function loadPdfLibrary() {
+    if (!pdfLibraryPromise) {
+        pdfLibraryPromise = import('pdf-lib').catch(error => {
+            pdfLibraryPromise = null;
+            throw error;
+        });
+    }
+    return pdfLibraryPromise;
+}
 
 // --- INIZIALIZZAZIONE SUPABASE ---
 // Invece di import.meta.env, leggiamo una variabile passata da Laravel nel file HTML
@@ -826,7 +855,6 @@ async function checkDatabaseConnection(forLoginScreen = false) {
 }
 
 async function bootstrapApp(user) {
-    appNavigationRefreshEnabled = false;
     await loadUserProfile(user);
 
     if (!currentUserProfile) {
@@ -848,19 +876,21 @@ async function bootstrapApp(user) {
     }
 
     applyRoleBasedUI();
-    const pendingViewAfterRefresh = sessionStorage.getItem(PENDING_VIEW_AFTER_REFRESH_KEY);
-    if (pendingViewAfterRefresh) {
-        sessionStorage.removeItem(PENDING_VIEW_AFTER_REFRESH_KEY);
-        switchTab(pendingViewAfterRefresh);
-    } else if (!document.querySelector(".tab-content:not(.hidden)")) {
+    if (!document.querySelector(".tab-content:not(.hidden)")) {
         switchTab('dashboard');
     }
     showApp(user);
     await checkDatabaseConnection();
-    await fetchDataFromSupabase();
-    appNavigationRefreshEnabled = true;
+    const initialTab = document.querySelector('.tab-content:not(.hidden)')?.id?.replace(/^tab-/, '') || 'dashboard';
+    if (initialTab === 'dashboard' || initialTab === 'statistiche') {
+        await fetchDataFromSupabase(true);
+    } else {
+        await refreshDataForTab(initialTab);
+    }
+    appDataReady = true;
     startRealtimeClock();
     startSquadreAibScadenzaTimer();
+    startServiziRealtimeSync();
     return true;
 }
 
@@ -936,6 +966,8 @@ async function handleLogin(event) {
 }
 
 async function handleLogout() {
+    stopServiziRealtimeSync();
+    appDataReady = false;
     await supabase.auth.signOut();
     currentUserProfile = null;
     volontari = [];
@@ -1030,8 +1062,12 @@ let pendingPdfDelivery = null;
 let pendingPdfServizioId = null;
 let pendingVolontarioDocumentiId = null;
 let squadreAibScadenzaTimer = null;
-const PENDING_VIEW_AFTER_REFRESH_KEY = 'pc_pending_view_after_refresh';
-let appNavigationRefreshEnabled = false;
+let serviziRealtimeChannel = null;
+let serviziFallbackTimer = null;
+let serviziRefreshTimer = null;
+let serviziRefreshPromise = null;
+let appDataReady = false;
+const SERVIZI_FALLBACK_INTERVAL_MS = 120000;
 
 const ICON_EDIT = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>`;
 const ICON_EYE = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`;
@@ -2372,7 +2408,7 @@ function startSquadreAibScadenzaTimer() {
 
     squadreAibScadenzaTimer = setInterval(async () => {
         try {
-            await fetchDataFromSupabase();
+            await refreshSquadreAibData();
         } catch (err) {
             console.error('Errore controllo scadenza squadre AIB:', err);
         }
@@ -2385,7 +2421,22 @@ function stopSquadreAibScadenzaTimer() {
     squadreAibScadenzaTimer = null;
 }
 
-async function fetchDataFromSupabase() {
+async function fetchDataFromSupabase(fullLoad = false) {
+    if (!fullLoad) {
+        const activeTab = document.querySelector('.tab-content:not(.hidden)')?.id?.replace(/^tab-/, '');
+        if (activeTab) {
+            try {
+                await refreshDataForTab(activeTab);
+                setSystemStatus(true);
+            } catch (err) {
+                setSystemStatus(false);
+                console.error('Errore durante il caricamento mirato:', err);
+                showToast('Errore di caricamento', 'Impossibile aggiornare i dati da Supabase.');
+            }
+            return;
+        }
+    }
+
     try {
         let volQuery = supabase
             .from('volontari')
@@ -2568,6 +2619,224 @@ async function fetchDataFromSupabase() {
     }
 }
 
+async function refreshDataForTab(tabId) {
+    if (tabId === 'dashboard' || tabId === 'statistiche') {
+        await fetchDataFromSupabase(true);
+        return;
+    }
+    if (tabId === 'volontari') return refreshVolontariData();
+    if (tabId === 'mezzi') return refreshMezziData();
+    if (tabId === 'magazzino') return refreshMagazzinoData();
+    if (tabId === 'protocollo-ingresso') return refreshProtocolloIngressoData();
+    if (tabId === 'protocollo-associazione') return refreshProtocolloAssociazioneData();
+
+    if (tabId === 'squadre-aib' || tabId === 'dashboard-caposquadra') {
+        await Promise.all([refreshVolontariData(), refreshMezziData()]);
+        await refreshSquadreAibData();
+        if (tabId === 'dashboard-caposquadra') await refreshServiziFromSupabase();
+        return;
+    }
+
+    if (tabId === 'servizi' || tabId === 'attivita') {
+        await Promise.all([refreshVolontariData(), refreshMezziData()]);
+        if (canAccessSquadreAib() || isSalaOperativa()) await refreshSquadreAibData();
+        await refreshServiziFromSupabase();
+    }
+}
+
+async function refreshVolontariData() {
+    let query = supabase.from('volontari').select('*').order('created_at', { ascending: true });
+    if (!canSeeAllVolontari()) {
+        const assoc = getUserAssociazione();
+        if (!assoc) {
+            volontari = [];
+            renderVolontari();
+            return;
+        }
+        query = query.eq('associazione_appartenenza', assoc);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    volontari = await attachVolontariFotoUrls(applyVolontariScope(data || []));
+    renderVolontari();
+}
+
+async function refreshMezziData() {
+    let query = supabase.from('mezzi').select('*').order('created_at', { ascending: true });
+    if (shouldFilterMezziQueryByAssociazione()) {
+        const assoc = getUserAssociazione();
+        if (!assoc) {
+            mezzi = [];
+            renderMezzi();
+            return;
+        }
+        query = query.eq('associazione_appartenenza', assoc);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    mezzi = applyMezziScope(data || []);
+    await updateMezziScaduti();
+    renderMezzi();
+    if (isServiziTabVisible()) renderServizi();
+}
+
+async function refreshSquadreAibData() {
+    let query = supabase.from('squadre_aib').select('*').order('created_at', { ascending: true });
+    if (isSegreteria()) {
+        const assoc = getUserAssociazione();
+        if (!assoc) {
+            squadreAib = [];
+            renderSquadreAib();
+            return;
+        }
+        query = query.eq('associazione_appartenenza', assoc);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    squadreAib = (data || []).map(mapSquadraAibRow);
+    await cleanupSquadreAibScadute();
+    renderSquadreAib();
+    renderDashboardCaposquadra();
+}
+
+async function refreshMagazzinoData() {
+    let attrezzatureQuery = supabase.from('magazzino_attrezzature').select('*').order('created_at', { ascending: true });
+    let prelieviQuery = supabase.from('magazzino_prelievi').select('*')
+        .order('data_prelievo', { ascending: false }).order('created_at', { ascending: false });
+    if (isSegreteria()) {
+        const assoc = getUserAssociazione();
+        if (!assoc) {
+            attrezzatureQuery = Promise.resolve({ data: [], error: null });
+            prelieviQuery = Promise.resolve({ data: [], error: null });
+        } else {
+            attrezzatureQuery = attrezzatureQuery.eq('associazione_appartenenza', assoc);
+            prelieviQuery = prelieviQuery.eq('associazione_appartenenza', assoc);
+        }
+    }
+    const [attrezzatureResponse, tipiResponse, prelieviResponse, righeResponse] = await Promise.all([
+        attrezzatureQuery,
+        supabase.from('magazzino_tipi_attrezzatura').select('*').order('nome', { ascending: true }),
+        prelieviQuery,
+        supabase.from('magazzino_prelievi_righe').select('*'),
+    ]);
+    for (const response of [attrezzatureResponse, tipiResponse, prelieviResponse, righeResponse]) {
+        if (response.error) throw response.error;
+    }
+    attrezzatureMagazzino = attrezzatureResponse.data || [];
+    tipiAttrezzaturaMagazzino = tipiResponse.data || [];
+    prelieviMagazzino = prelieviResponse.data || [];
+    prelievoRigheMagazzino = righeResponse.data || [];
+    renderMagazzino();
+}
+
+async function refreshProtocolloIngressoData() {
+    const { data, error } = await supabase.from('protocollo_ingresso').select('*')
+        .order('created_at', { ascending: false });
+    if (error) throw error;
+    protocolliIngresso = data || [];
+    renderProtocolloIngresso();
+}
+
+async function refreshProtocolloAssociazioneData() {
+    let query = supabase.from('protocollo_associazione').select('*').order('created_at', { ascending: false });
+    if (isSegreteria()) {
+        const assoc = getUserAssociazione();
+        if (!assoc) {
+            protocolliAssociazione = [];
+            renderProtocolloAssociazione();
+            return;
+        }
+        query = query.eq('associazione_appartenenza', assoc);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    protocolliAssociazione = data || [];
+    renderProtocolloAssociazione();
+}
+
+function updateServiziViews() {
+    updateDashboardStats();
+    renderDashboardCaposquadra();
+    renderServizi();
+    renderAttivita();
+    renderStatistiche();
+}
+
+async function refreshServiziFromSupabase() {
+    if (!currentUserProfile || !canLoadServizi()) return;
+    if (serviziRefreshPromise) return serviziRefreshPromise;
+
+    serviziRefreshPromise = (async () => {
+        const { data, error } = await supabase
+            .from('servizi')
+            .select('*')
+            .order('created_at', { ascending: true });
+        if (error) throw error;
+
+        servizi = (data || []).map(mapServizioRow);
+        await enrichMezziFromServizi(servizi);
+        await enrichVolontariFromServizi(servizi);
+        updateServiziViews();
+        setSystemStatus(true);
+    })();
+
+    try {
+        await serviziRefreshPromise;
+    } catch (err) {
+        setSystemStatus(false);
+        console.error('Errore aggiornamento servizi:', err);
+    } finally {
+        serviziRefreshPromise = null;
+    }
+}
+
+function scheduleServiziRefresh() {
+    if (serviziRefreshTimer) clearTimeout(serviziRefreshTimer);
+    serviziRefreshTimer = setTimeout(() => {
+        serviziRefreshTimer = null;
+        refreshServiziFromSupabase();
+    }, 250);
+}
+
+function startServiziRealtimeSync() {
+    stopServiziRealtimeSync();
+    if (!canLoadServizi()) return;
+
+    serviziRealtimeChannel = supabase
+        .channel(`servizi-live-${currentUserProfile?.id || 'utente'}`)
+        .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'servizi',
+        }, scheduleServiziRefresh)
+        .subscribe(status => {
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                console.warn('Realtime servizi non disponibile; resta attivo il controllo periodico.');
+            }
+        });
+
+    serviziFallbackTimer = setInterval(refreshServiziFromSupabase, SERVIZI_FALLBACK_INTERVAL_MS);
+}
+
+function stopServiziRealtimeSync() {
+    if (serviziRefreshTimer) {
+        clearTimeout(serviziRefreshTimer);
+        serviziRefreshTimer = null;
+    }
+    if (serviziFallbackTimer) {
+        clearInterval(serviziFallbackTimer);
+        serviziFallbackTimer = null;
+    }
+    if (serviziRealtimeChannel) {
+        supabase.removeChannel(serviziRealtimeChannel);
+        serviziRealtimeChannel = null;
+    }
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refreshServiziFromSupabase();
+});
+
 // --- SISTEMA DI TOAST (NOTIFICHE) ---
 function showToast(title, message) {
     const toast = document.getElementById("toast");
@@ -2660,14 +2929,6 @@ function switchTab(tabId) {
         else tabId = 'mezzi';
     }
 
-    const currentTab = document.querySelector(".tab-content:not(.hidden)");
-    const currentTabId = currentTab?.id?.replace(/^tab-/, "");
-    if (appNavigationRefreshEnabled && currentTabId && currentTabId !== tabId) {
-        sessionStorage.setItem(PENDING_VIEW_AFTER_REFRESH_KEY, tabId);
-        window.location.reload();
-        return;
-    }
-
     // Nascondi tutti i contenuti delle tab
     document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
     // Rimuovi classe attiva da tutti i bottoni nav (sidebar)
@@ -2756,6 +3017,8 @@ function switchTab(tabId) {
     if (tabId === "dashboard-caposquadra") {
         renderDashboardCaposquadra();
     }
+
+    if (appDataReady) fetchDataFromSupabase();
 }
 
 // --- FUNZIONI SIDEBAR MOBILE ---
@@ -7076,8 +7339,8 @@ function buildServizioMapPopup(servizio) {
     `;
 }
 
-function focusServizioMapMarker(id) {
-    ensureServiziMap();
+async function focusServizioMapMarker(id) {
+    await ensureServiziMap();
     if (!serviziMap) return;
 
     const marker = serviziMapMarkersById.get(String(id));
@@ -7519,9 +7782,19 @@ function addAreaDrawingControl() {
     drawingControl.addTo(serviziMap);
 }
 
-function ensureServiziMap() {
+async function ensureServiziMap() {
     const mapEl = document.getElementById("servizi-map");
     if (!mapEl || serviziMap || !isServiziTabVisible()) return;
+
+    try {
+        await loadMapLibraries();
+    } catch (error) {
+        console.error("Errore caricamento librerie mappa:", error);
+        showToast("Errore mappa", "Impossibile caricare la mappa. Riprova.");
+        return;
+    }
+
+    if (serviziMap || !isServiziTabVisible()) return;
 
     serviziMap = L.map(mapEl, {
         scrollWheelZoom: true,
@@ -7707,7 +7980,7 @@ async function updateServiziMap(filteredServizi) {
     if (!isServiziTabVisible()) return;
 
     const mapHint = document.getElementById("servizi-map-hint");
-    ensureServiziMap();
+    await ensureServiziMap();
     if (!serviziMap || !serviziMapMarkersLayer) return;
 
     const updateToken = ++serviziMapUpdateToken;
@@ -9117,6 +9390,7 @@ function getProtocolloAssociazioneWatermarkedFilename(filename, protocolloId) {
 }
 
 async function addProtocolloAssociazionePdfWatermark(blob, watermarkText) {
+    const { PDFDocument, StandardFonts, rgb } = await loadPdfLibrary();
     const bytes = await blob.arrayBuffer();
     const pdfDoc = await PDFDocument.load(bytes);
     const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -10144,6 +10418,8 @@ window.addEventListener("DOMContentLoaded", async () => {
     // Ascolta i cambiamenti di stato auth
     supabase.auth.onAuthStateChange(async (event) => {
         if (event === 'SIGNED_OUT') {
+            stopServiziRealtimeSync();
+            appDataReady = false;
             currentUserProfile = null;
             volontari = [];
             mezzi = [];
