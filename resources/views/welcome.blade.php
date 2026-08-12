@@ -1384,7 +1384,7 @@
                         <p class="text-[11px] text-slate-500 mt-1">Inserisci gli orari manualmente oppure usa il pulsante Adesso.</p>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 gap-4">
                         <div>
                             <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2" for="s-data">Inizio intervento <span class="text-amber-500">*</span></label>
                             <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-stretch">
