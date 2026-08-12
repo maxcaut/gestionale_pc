@@ -2438,6 +2438,8 @@ async function fetchDataFromSupabase(fullLoad = false) {
     }
 
     try {
+        const emptyResponse = Promise.resolve({ data: [], error: null });
+
         let volQuery = supabase
             .from('volontari')
             .select('*')
@@ -2446,108 +2448,64 @@ async function fetchDataFromSupabase(fullLoad = false) {
         if (!canSeeAllVolontari()) {
             const assoc = getUserAssociazione();
             if (!assoc) {
-                volontari = [];
+                volQuery = emptyResponse;
             } else {
                 volQuery = volQuery.eq('associazione_appartenenza', assoc);
             }
         }
 
-        if (canSeeAllVolontari() || getUserAssociazione()) {
-            const volResponse = await volQuery;
-
-            if (volResponse.error) throw volResponse.error;
-            volontari = await attachVolontariFotoUrls(applyVolontariScope(volResponse.data || []));
-        }
-
+        let mezQuery = emptyResponse;
+        let serviziQuery = emptyResponse;
         if (canAccessMezzi() || canLoadServizi()) {
-            let mezQuery = supabase.from('mezzi').select('*').order('created_at', { ascending: true });
+            mezQuery = supabase.from('mezzi').select('*').order('created_at', { ascending: true });
 
             if (shouldFilterMezziQueryByAssociazione()) {
                 const assoc = getUserAssociazione();
                 if (!assoc) {
-                    mezzi = [];
+                    mezQuery = emptyResponse;
                 } else {
                     mezQuery = mezQuery.eq('associazione_appartenenza', assoc);
                 }
             }
 
-            const loadMezzi = canSeeAllMezzi() || getUserAssociazione() || isCapoSquadra()
-                ? mezQuery
-                : Promise.resolve({ data: [], error: null });
-
             if (canLoadServizi()) {
-                const [mezResponse, serResponse] = await Promise.all([
-                    loadMezzi,
-                    supabase.from('servizi').select('*').order('created_at', { ascending: true })
-                ]);
-
-                if (mezResponse.error) throw mezResponse.error;
-                if (serResponse.error) throw serResponse.error;
-
-                mezzi = applyMezziScope(mezResponse.data || []);
-                servizi = (serResponse.data || []).map(mapServizioRow);
-                await updateMezziScaduti();
-                await enrichMezziFromServizi(servizi);
-                await enrichVolontariFromServizi(servizi);
-            } else if (canAccessMezzi()) {
-                const mezResponse = await loadMezzi;
-
-                if (mezResponse.error) throw mezResponse.error;
-
-                mezzi = applyMezziScope(mezResponse.data || []);
-                await updateMezziScaduti();
-                servizi = [];
-            } else {
-                mezzi = [];
-                servizi = [];
+                serviziQuery = supabase.from('servizi').select('*').order('created_at', { ascending: true });
             }
-        } else {
-            mezzi = [];
-            servizi = [];
+
+            if (!canSeeAllMezzi() && !getUserAssociazione() && !isCapoSquadra()) {
+                mezQuery = emptyResponse;
+            }
         }
 
+        let squadreQuery = emptyResponse;
         if (canAccessSquadreAib() || canAccessDashboardCaposquadra() || isSalaOperativa()) {
-            let squadreQuery = supabase.from('squadre_aib').select('*').order('created_at', { ascending: true });
+            squadreQuery = supabase.from('squadre_aib').select('*').order('created_at', { ascending: true });
             if (isSegreteria()) {
                 const assoc = getUserAssociazione();
                 squadreQuery = assoc
                     ? squadreQuery.eq('associazione_appartenenza', assoc)
-                    : Promise.resolve({ data: [], error: null });
+                    : emptyResponse;
             }
-
-            const squadreResponse = await squadreQuery;
-            if (squadreResponse.error) throw squadreResponse.error;
-            squadreAib = (squadreResponse.data || []).map(mapSquadraAibRow);
-            await cleanupSquadreAibScadute();
-        } else {
-            squadreAib = [];
         }
 
-        if (canAccessDashboardCaposquadra() || isSalaOperativa()) {
-            const operatoreSalaResponse = await supabase
+        const operatoreSalaQuery = canAccessDashboardCaposquadra() || isSalaOperativa()
+            ? supabase
                 .from('operatore_sala_turno')
                 .select('*')
                 .eq('id', 1)
-                .maybeSingle();
-            if (operatoreSalaResponse.error) throw operatoreSalaResponse.error;
-            operatoreSalaTurno = operatoreSalaResponse.data || null;
-        } else {
-            operatoreSalaTurno = null;
-        }
+                .maybeSingle()
+            : Promise.resolve({ data: null, error: null });
 
-        if (canAccessProtocolloIngresso()) {
-            const protocolloResponse = await supabase
+        const protocolloQuery = canAccessProtocolloIngresso()
+            ? supabase
                 .from('protocollo_ingresso')
                 .select('*')
-                .order('created_at', { ascending: false });
-            if (protocolloResponse.error) throw protocolloResponse.error;
-            protocolliIngresso = protocolloResponse.data || [];
-        } else {
-            protocolliIngresso = [];
-        }
+                .order('created_at', { ascending: false })
+            : emptyResponse;
 
+        let protocolloAssociazioneQuery = emptyResponse;
         if (canAccessProtocolloAssociazione()) {
-            let protocolloAssociazioneQuery = supabase
+            protocolloAssociazioneQuery = supabase
                 .from('protocollo_associazione')
                 .select('*')
                 .order('created_at', { ascending: false });
@@ -2556,58 +2514,99 @@ async function fetchDataFromSupabase(fullLoad = false) {
                 const assoc = getUserAssociazione();
                 protocolloAssociazioneQuery = assoc
                     ? protocolloAssociazioneQuery.eq('associazione_appartenenza', assoc)
-                    : Promise.resolve({ data: [], error: null });
+                    : emptyResponse;
             }
-
-            const protocolloAssociazioneResponse = await protocolloAssociazioneQuery;
-            if (protocolloAssociazioneResponse.error) throw protocolloAssociazioneResponse.error;
-            protocolliAssociazione = protocolloAssociazioneResponse.data || [];
-        } else {
-            protocolliAssociazione = [];
         }
 
+        let attrezzatureQuery = emptyResponse;
+        let tipiAttrezzaturaQuery = emptyResponse;
+        let prelieviQuery = emptyResponse;
+        let prelievoRigheQuery = emptyResponse;
         if (canAccessMagazzino()) {
-            let attrezzatureQuery = supabase
+            attrezzatureQuery = supabase
                 .from('magazzino_attrezzature')
                 .select('*')
                 .order('created_at', { ascending: true });
-            let prelieviQuery = supabase
+            tipiAttrezzaturaQuery = supabase.from('magazzino_tipi_attrezzatura').select('*').order('nome', { ascending: true });
+            prelieviQuery = supabase
                 .from('magazzino_prelievi')
                 .select('*')
                 .order('data_prelievo', { ascending: false })
                 .order('created_at', { ascending: false });
+            prelievoRigheQuery = supabase.from('magazzino_prelievi_righe').select('*');
 
             if (isSegreteria()) {
                 const assoc = getUserAssociazione();
                 attrezzatureQuery = assoc
                     ? attrezzatureQuery.eq('associazione_appartenenza', assoc)
-                    : Promise.resolve({ data: [], error: null });
+                    : emptyResponse;
                 prelieviQuery = assoc
                     ? prelieviQuery.eq('associazione_appartenenza', assoc)
-                    : Promise.resolve({ data: [], error: null });
+                    : emptyResponse;
             }
+        }
 
-            const [attrezzatureResponse, tipiResponse, prelieviResponse, prelievoRigheResponse] = await Promise.all([
-                attrezzatureQuery,
-                supabase.from('magazzino_tipi_attrezzatura').select('*').order('nome', { ascending: true }),
-                prelieviQuery,
-                supabase.from('magazzino_prelievi_righe').select('*')
-            ]);
+        const [
+            volResponse,
+            mezResponse,
+            serResponse,
+            squadreResponse,
+            operatoreSalaResponse,
+            protocolloResponse,
+            protocolloAssociazioneResponse,
+            attrezzatureResponse,
+            tipiResponse,
+            prelieviResponse,
+            prelievoRigheResponse,
+        ] = await Promise.all([
+            volQuery,
+            mezQuery,
+            serviziQuery,
+            squadreQuery,
+            operatoreSalaQuery,
+            protocolloQuery,
+            protocolloAssociazioneQuery,
+            attrezzatureQuery,
+            tipiAttrezzaturaQuery,
+            prelieviQuery,
+            prelievoRigheQuery,
+        ]);
 
-            if (attrezzatureResponse.error) throw attrezzatureResponse.error;
-            if (tipiResponse.error) throw tipiResponse.error;
-            if (prelieviResponse.error) throw prelieviResponse.error;
-            if (prelievoRigheResponse.error) throw prelievoRigheResponse.error;
+        for (const response of [
+            volResponse,
+            mezResponse,
+            serResponse,
+            squadreResponse,
+            operatoreSalaResponse,
+            protocolloResponse,
+            protocolloAssociazioneResponse,
+            attrezzatureResponse,
+            tipiResponse,
+            prelieviResponse,
+            prelievoRigheResponse,
+        ]) {
+            if (response.error) throw response.error;
+        }
 
-            attrezzatureMagazzino = attrezzatureResponse.data || [];
-            tipiAttrezzaturaMagazzino = tipiResponse.data || [];
-            prelieviMagazzino = prelieviResponse.data || [];
-            prelievoRigheMagazzino = prelievoRigheResponse.data || [];
-        } else {
-            attrezzatureMagazzino = [];
-            tipiAttrezzaturaMagazzino = [];
-            prelieviMagazzino = [];
-            prelievoRigheMagazzino = [];
+        volontari = await attachVolontariFotoUrls(applyVolontariScope(volResponse.data || []));
+        mezzi = applyMezziScope(mezResponse.data || []);
+        servizi = (serResponse.data || []).map(mapServizioRow);
+        squadreAib = (squadreResponse.data || []).map(mapSquadraAibRow);
+        operatoreSalaTurno = operatoreSalaResponse.data || null;
+        protocolliIngresso = protocolloResponse.data || [];
+        protocolliAssociazione = protocolloAssociazioneResponse.data || [];
+        attrezzatureMagazzino = attrezzatureResponse.data || [];
+        tipiAttrezzaturaMagazzino = tipiResponse.data || [];
+        prelieviMagazzino = prelieviResponse.data || [];
+        prelievoRigheMagazzino = prelievoRigheResponse.data || [];
+
+        if (canAccessMezzi() || canLoadServizi()) await updateMezziScaduti();
+        if (canLoadServizi()) {
+            await enrichMezziFromServizi(servizi);
+            await enrichVolontariFromServizi(servizi);
+        }
+        if (canAccessSquadreAib() || canAccessDashboardCaposquadra() || isSalaOperativa()) {
+            await cleanupSquadreAibScadute();
         }
 
         setSystemStatus(true);
