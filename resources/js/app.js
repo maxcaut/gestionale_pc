@@ -41,6 +41,75 @@ const supabaseKey = window.laravelConfig?.supabaseKey || import.meta.env.VITE_SU
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+const ACTIVE_SESSION_CHECK_INTERVAL_MS = 5000;
+let activeSessionCheckTimer = null;
+let forcedLogoutInProgress = false;
+
+function getSessionId(session) {
+    if (!session?.access_token) return null;
+
+    try {
+        const payload = session.access_token.split('.')[1]
+            .replace(/-/g, '+')
+            .replace(/_/g, '/');
+        const decoded = JSON.parse(atob(payload.padEnd(Math.ceil(payload.length / 4) * 4, '=')));
+        return decoded.session_id || null;
+    } catch {
+        return null;
+    }
+}
+
+async function claimActiveSession(session) {
+    const sessionId = getSessionId(session);
+    if (!sessionId) throw new Error('Identificativo sessione non disponibile.');
+
+    const { error } = await supabase.rpc('claim_active_session', { p_session_id: sessionId });
+    if (error) throw error;
+}
+
+async function isCurrentSessionActive(session) {
+    const sessionId = getSessionId(session);
+    if (!sessionId) return false;
+
+    const { data, error } = await supabase.rpc('is_active_session', { p_session_id: sessionId });
+    if (error) throw error;
+    return data === true;
+}
+
+function stopActiveSessionCheck() {
+    if (activeSessionCheckTimer) clearInterval(activeSessionCheckTimer);
+    activeSessionCheckTimer = null;
+}
+
+async function forceLogoutFromPreviousDevice() {
+    if (forcedLogoutInProgress) return;
+    forcedLogoutInProgress = true;
+    stopActiveSessionCheck();
+    await supabase.auth.signOut({ scope: 'local' });
+    await showLogin();
+    const errorDiv = document.getElementById('login-error');
+    const errorText = document.getElementById('login-error-text');
+    if (errorDiv && errorText) {
+        errorText.innerText = 'Sessione terminata: questo utente ha effettuato l\'accesso da un altro dispositivo.';
+        errorDiv.classList.remove('hidden');
+    }
+    forcedLogoutInProgress = false;
+}
+
+function startActiveSessionCheck() {
+    stopActiveSessionCheck();
+    activeSessionCheckTimer = setInterval(async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session && !(await isCurrentSessionActive(session))) {
+                await forceLogoutFromPreviousDevice();
+            }
+        } catch (error) {
+            console.error('Errore durante il controllo della sessione attiva:', error);
+        }
+    }, ACTIVE_SESSION_CHECK_INTERVAL_MS);
+}
+
 const TIPO_FUORISTRADA = "Fuoristrada";
 const TIPO_CARRELLO_APPENDICE = "Carrello appendice";
 const TIPI_MEZZI_TRAINANTI_CARRELLO = ["Fuoristrada", "Mezzo A.I.B", "Pickup con gancio traino"];
@@ -891,6 +960,7 @@ async function bootstrapApp(user) {
     startRealtimeClock();
     startSquadreAibScadenzaTimer();
     startServiziRealtimeSync();
+    startActiveSessionCheck();
     return true;
 }
 
@@ -947,6 +1017,8 @@ async function handleLogin(event) {
 
         if (error) throw error;
 
+        await claimActiveSession(data.session);
+
         const ok = await bootstrapApp(data.user);
         if (!ok) return;
     } catch (err) {
@@ -967,6 +1039,7 @@ async function handleLogin(event) {
 
 async function handleLogout() {
     stopServiziRealtimeSync();
+    stopActiveSessionCheck();
     appDataReady = false;
     await supabase.auth.signOut();
     currentUserProfile = null;
@@ -10455,7 +10528,16 @@ window.addEventListener("DOMContentLoaded", async () => {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (session && session.user) {
-        await bootstrapApp(session.user);
+        try {
+            if (await isCurrentSessionActive(session)) {
+                await bootstrapApp(session.user);
+            } else {
+                await forceLogoutFromPreviousDevice();
+            }
+        } catch (error) {
+            console.error('Errore durante la verifica della sessione attiva:', error);
+            await showLogin();
+        }
     } else {
         await showLogin();
     }
@@ -10464,6 +10546,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     supabase.auth.onAuthStateChange(async (event) => {
         if (event === 'SIGNED_OUT') {
             stopServiziRealtimeSync();
+            stopActiveSessionCheck();
             appDataReady = false;
             currentUserProfile = null;
             volontari = [];
