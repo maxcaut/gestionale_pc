@@ -268,6 +268,14 @@
                     </svg>
                     <span>Utenti</span>
                 </button>
+
+                <a href="https://tlc.coordinamentovesuvius.it" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 text-slate-400 hover:text-white hover:bg-slate-800/50">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s6.75-5.19 6.75-11.25a6.75 6.75 0 10-13.5 0C5.25 15.81 12 21 12 21z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 9.75a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                    </svg>
+                    <span>ARGO-X</span>
+                </a>
             </nav>
 
             <!-- Bottom Sidebar (Stato Centrale) -->
@@ -629,6 +637,13 @@
             </svg>
             <span class="text-[10px] font-bold">Utenti</span>
         </button>
+        <a href="https://tlc.coordinamentovesuvius.it" class="flex-none w-20 flex flex-col items-center gap-1 px-2 py-2 rounded-2xl text-slate-400 transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s6.75-5.19 6.75-11.25a6.75 6.75 0 10-13.5 0C5.25 15.81 12 21 12 21z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 9.75a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+            </svg>
+            <span class="text-[10px] font-bold">ARGO-X</span>
+        </a>
     </nav>
 
 
