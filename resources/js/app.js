@@ -1136,6 +1136,7 @@ let radioLiveSnapshot = [];
 let radioLiveExpandedGroup = null;
 let hideOfflineRadios = true;
 let serviziMapUpdateToken = 0;
+let serviziMapInitialViewSet = false;
 let pdfExportProgressTimer = null;
 let pendingPdfDelivery = null;
 let pendingPdfServizioId = null;
@@ -8350,11 +8351,14 @@ async function updateServiziMap(filteredServizi) {
 
     if (updateToken !== serviziMapUpdateToken) return;
 
-    if (boundsPoints.length > 0) {
-        const bounds = L.latLngBounds(boundsPoints);
-        serviziMap.fitBounds(bounds.pad(0.15), { maxZoom: 15 });
-    } else {
-        serviziMap.setView(MASSA_DI_SOMMA_CENTER, MASSA_DI_SOMMA_ZOOM);
+    if (!serviziMapInitialViewSet) {
+        if (boundsPoints.length > 0) {
+            const bounds = L.latLngBounds(boundsPoints);
+            serviziMap.fitBounds(bounds.pad(0.15), { maxZoom: 15 });
+        } else {
+            serviziMap.setView(MASSA_DI_SOMMA_CENTER, MASSA_DI_SOMMA_ZOOM);
+        }
+        serviziMapInitialViewSet = true;
     }
 
     addSpreadServizioMapMarkers(markerEntries);
