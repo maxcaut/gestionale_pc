@@ -10,7 +10,8 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     libzip-dev \
-    nginx
+    nginx \
+    supervisor
 
 # 1b. INSERITO: Installazione di Node.js e NPM (necessari per compilare Vite)
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
@@ -60,11 +61,12 @@ RUN rm /etc/nginx/sites-enabled/default || true
 COPY nginx.conf /etc/nginx/sites-available/laravel.conf
 RUN ln -s /etc/nginx/sites-available/laravel.conf /etc/nginx/sites-enabled/
 
+# Supervisor mantiene attivi e riavvia automaticamente i processi del container.
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
 # Esponi la porta 80 per Render
 EXPOSE 80
 
 # 7. Avvio e pulizia cache di Laravel a runtime
 CMD su -s /bin/sh -c "php artisan config:clear && php artisan cache:clear && php artisan view:clear" www-data && \
-    su -s /bin/sh -c "php artisan argo:listen &" www-data && \
-    php-fpm -D && \
-    nginx -g "daemon off;"
+    exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
