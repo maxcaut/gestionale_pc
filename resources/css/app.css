@@ -29,7 +29,7 @@
 
 /* Mappa servizi (Leaflet) */
 .servizi-map {
-    height: 80dvh;
+    height: 70dvh;
     min-height: 280px;
     background: #0f172a;
     z-index: 0;
