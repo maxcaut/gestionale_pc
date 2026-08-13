@@ -42,9 +42,9 @@ return [
     ],
 
     'argo_x' => [
-        'url' => env('ARGO_X_URL', 'https://tlc.protezionecivilepomigliano.it'),
-        'username' => env('ARGO_X_USERNAME'),
-        'password' => env('ARGO_X_PASSWORD'),
+        'host' => env('ARGO_X_CONNECTOR_HOST', 'tlc.protezionecivilepomigliano.it'),
+        'port' => env('ARGO_X_CONNECTOR_PORT', 1025),
+        'read_key' => env('ARGO_X_API_KEY'),
     ],
 
 ];

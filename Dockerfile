@@ -65,5 +65,6 @@ EXPOSE 80
 
 # 7. Avvio e pulizia cache di Laravel a runtime
 CMD su -s /bin/sh -c "php artisan config:clear && php artisan cache:clear && php artisan view:clear" www-data && \
+    su -s /bin/sh -c "php artisan argo:listen &" www-data && \
     php-fpm -D && \
     nginx -g "daemon off;"

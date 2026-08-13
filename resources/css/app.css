@@ -240,11 +240,25 @@
     opacity: 0.82;
 }
 
-.servizi-map .radio-live-marker.is-online > span,
+.servizi-map .radio-live-marker.state-green > span,
 .radio-legend-icon.is-online {
     background: #22c55e;
     color: #052e16;
     border-color: #bbf7d0;
+    opacity: 1;
+}
+
+.servizi-map .radio-live-marker.state-red > span {
+    background: #ef4444;
+    color: #450a0a;
+    border-color: #fecaca;
+    opacity: 1;
+}
+
+.servizi-map .radio-live-marker.state-yellow > span {
+    background: #facc15;
+    color: #422006;
+    border-color: #fef08a;
     opacity: 1;
 }
 
@@ -868,6 +882,12 @@
     display: flex;
     align-items: center;
     gap: 0.35rem;
+}
+
+.servizi-map .leaflet-control-layers label.radio-offline-visibility-filter {
+    margin-left: 1.15rem;
+    font-size: 0.65rem;
+    text-transform: none;
 }
 
 .area-intervento-popup-foto {

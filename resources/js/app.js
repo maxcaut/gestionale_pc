@@ -1134,6 +1134,7 @@ const canadairLiveMarkersByRegistration = new Map();
 const radioLiveMarkersById = new Map();
 let radioLiveSnapshot = [];
 let radioLiveExpandedGroup = null;
+let hideOfflineRadios = true;
 let serviziMapUpdateToken = 0;
 let pdfExportProgressTimer = null;
 let pendingPdfDelivery = null;
@@ -8007,11 +8008,22 @@ async function ensureServiziMap() {
     });
     serviziMap.on("zoomend", renderRadioLiveMarkers);
     serviziMapAreeLayer = new L.FeatureGroup().addTo(serviziMap);
-    L.control.layers(null, {
+    const mapLayersControl = L.control.layers(null, {
         "Canadair in volo": canadairLiveLayer,
         "Radio TLC": radioLiveLayer,
         "Aree intervento": serviziMapAreeLayer,
     }, { position: "bottomright", collapsed: false }).addTo(serviziMap);
+    const radioVisibilityLabel = document.createElement("label");
+    radioVisibilityLabel.className = "radio-offline-visibility-filter";
+    radioVisibilityLabel.innerHTML = '<input type="checkbox" checked> <span>Nascondi radio spente</span>';
+    radioVisibilityLabel.querySelector("input").addEventListener("change", event => {
+        hideOfflineRadios = event.target.checked;
+        radioLiveExpandedGroup = null;
+        renderRadioLiveMarkers();
+    });
+    const radioLayerLabel = [...mapLayersControl.getContainer().querySelectorAll(".leaflet-control-layers-overlays > label")]
+        .find(label => label.textContent.trim() === "Radio TLC");
+    radioLayerLabel.insertAdjacentElement("afterend", radioVisibilityLabel);
 
     updateCanadairLivePositions();
     canadairLiveTimer = window.setInterval(updateCanadairLivePositions, 15000);
@@ -8054,9 +8066,9 @@ function formatCanadairValue(value, suffix) {
     return value === null || value === undefined ? "n/d" : `${value}${suffix}`;
 }
 
-function radioMarkerIcon(label, recent = false, online = false) {
+function radioMarkerIcon(label, recent = false, online = false, stateColor = "black") {
     return L.divIcon({
-        className: `radio-live-marker${recent ? "" : " is-stale"}${online ? " is-online" : ""}`,
+        className: `radio-live-marker${recent ? "" : " is-stale"}${online ? " is-online" : ""} state-${stateColor}`,
         html: `<span aria-hidden="true"><svg class="radio-walkie-icon" viewBox="0 0 24 24"><path d="M8 5 6 1M7 5h10a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path d="M8 8h8v4H8zM9 16h6M9 19h6M19 9h2"/></svg></span><small>${escapeHtml(label)}</small>`,
         iconSize: [90, 52],
         iconAnchor: [45, 17],
@@ -8102,7 +8114,10 @@ function renderRadioLiveMarkers() {
     radioLiveMarkersById.clear();
 
     const overlapDistance = 46;
-    const pending = radioLiveSnapshot.map(radio => ({
+    const visibleRadios = hideOfflineRadios
+        ? radioLiveSnapshot.filter(radio => radio.online)
+        : radioLiveSnapshot;
+    const pending = visibleRadios.map(radio => ({
         radio,
         point: serviziMap.latLngToLayerPoint([Number(radio.lat), Number(radio.lon)]),
     }));
@@ -8171,7 +8186,7 @@ function renderRadioLiveMarkers() {
             }
 
             const marker = L.marker(markerPosition, {
-                icon: radioMarkerIcon(radio.name, radio.recent, radio.online),
+                icon: radioMarkerIcon(radio.name, radio.recent, radio.online, radio.state_color),
                 title: radio.name,
                 zIndexOffset: 1100,
             }).bindPopup(radio.popup).addTo(radioLiveLayer);
@@ -8221,7 +8236,7 @@ async function updateRadioLivePositions() {
 
         if (status) {
             status.lastChild.textContent = ` Radio TLC: ${activeIds.size} in mappa / ${Number(data.online || 0)} accese${data.stale ? " (ritardo)" : ""}`;
-            status.title = "Verde: radio accesa. Azzurro: posizione aggiornata. Grigio: ultima posizione nota.";
+            status.title = "Verde: posizione recente. Giallo: posizione scaduta. Rosso: accesa senza posizione aggiornata. Grigio: spenta o fuori copertura.";
         }
     } catch (error) {
         console.error("Errore caricamento radio ARGO-X:", error);
