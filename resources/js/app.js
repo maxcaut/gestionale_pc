@@ -1113,6 +1113,8 @@ let serviziMap = null;
 let serviziMapMarkersLayer = null;
 let canadairLiveLayer = null;
 let canadairLiveTimer = null;
+let radioLiveLayer = null;
+let radioLiveTimer = null;
 let serviziMapRoadLayer = null;
 let serviziMapSatelliteLayer = null;
 let serviziMapMunicipalityLayer = null;
@@ -1129,6 +1131,7 @@ let areaDrawingControlContainer = null;
 const geocodeCache = new Map();
 const serviziMapMarkersById = new Map();
 const canadairLiveMarkersByRegistration = new Map();
+const radioLiveMarkersById = new Map();
 let serviziMapUpdateToken = 0;
 let pdfExportProgressTimer = null;
 let pendingPdfDelivery = null;
@@ -7995,14 +7998,18 @@ async function ensureServiziMap() {
 
     serviziMapMarkersLayer = L.layerGroup().addTo(serviziMap);
     canadairLiveLayer = L.layerGroup().addTo(serviziMap);
+    radioLiveLayer = L.layerGroup().addTo(serviziMap);
     serviziMapAreeLayer = new L.FeatureGroup().addTo(serviziMap);
     L.control.layers(null, {
         "Canadair in volo": canadairLiveLayer,
+        "Radio TLC": radioLiveLayer,
         "Aree intervento": serviziMapAreeLayer,
     }, { position: "bottomright", collapsed: false }).addTo(serviziMap);
 
     updateCanadairLivePositions();
     canadairLiveTimer = window.setInterval(updateCanadairLivePositions, 15000);
+    updateRadioLivePositions();
+    radioLiveTimer = window.setInterval(updateRadioLivePositions, 30000);
 
     if (canManageAreeIntervento()) {
         serviziMapDrawControl = new L.Control.Draw({
@@ -8038,6 +8045,91 @@ function canadairMarkerIcon(heading = 0) {
 
 function formatCanadairValue(value, suffix) {
     return value === null || value === undefined ? "n/d" : `${value}${suffix}`;
+}
+
+function radioMarkerIcon(label, recent = false, online = false) {
+    return L.divIcon({
+        className: `radio-live-marker${recent ? "" : " is-stale"}${online ? " is-online" : ""}`,
+        html: `<span aria-hidden="true"><svg class="radio-walkie-icon" viewBox="0 0 24 24"><path d="M8 5 6 1M7 5h10a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path d="M8 8h8v4H8zM9 16h6M9 19h6M19 9h2"/></svg></span><small>${escapeHtml(label)}</small>`,
+        iconSize: [90, 52],
+        iconAnchor: [45, 17],
+        popupAnchor: [0, -17],
+    });
+}
+
+function formatRadioPositionTime(value) {
+    if (!value) return "orario non disponibile";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "orario non disponibile";
+
+    return new Intl.DateTimeFormat("it-IT", {
+        dateStyle: "short",
+        timeStyle: "medium",
+    }).format(date);
+}
+
+async function updateRadioLivePositions() {
+    if (!serviziMap || !radioLiveLayer || document.hidden) return;
+
+    const status = document.getElementById("radio-live-status");
+
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) throw new Error("Sessione non disponibile");
+
+        const response = await fetch("/api/radios/live", {
+            headers: {
+                Accept: "application/json",
+                Authorization: `Bearer ${session.access_token}`,
+            },
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        const activeIds = new Set();
+
+        (data.radios || []).forEach(radio => {
+            const id = String(radio.id || "");
+            if (!id || !Number.isFinite(Number(radio.lat)) || !Number.isFinite(Number(radio.lon))) return;
+
+            activeIds.add(id);
+            const name = radio.alias || `Radio ${id}`;
+            const positionLabel = radio.fixed_position
+                ? "Posizione fissa"
+                : `${radio.recent ? "Posizione recente" : "Ultima posizione"}: ${formatRadioPositionTime(radio.position_at)}`;
+            const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${Number(radio.lat)},${Number(radio.lon)}`)}`;
+            const radioStatus = radio.status || (radio.online ? "Accesa" : "Spenta o fuori copertura");
+            const popup = `<strong>${escapeHtml(name)}</strong><br>ID radio: ${escapeHtml(id)}${radio.type ? `<br>Tipo: ${escapeHtml(radio.type)}` : ""}<br>Stato: <strong class="${radio.online ? "radio-status-online" : ""}">${radioStatus}</strong><br><span class="radio-live-source">${escapeHtml(positionLabel)} · ARGO-X</span><br><a class="radio-directions-button" href="${directionsUrl}" target="_blank" rel="noopener noreferrer">Raggiungi</a>`;
+            let marker = radioLiveMarkersById.get(id);
+
+            if (marker) {
+                marker.setLatLng([radio.lat, radio.lon]);
+                marker.setIcon(radioMarkerIcon(name, radio.recent, radio.online));
+                marker.setPopupContent(popup);
+            } else {
+                marker = L.marker([radio.lat, radio.lon], {
+                    icon: radioMarkerIcon(name, radio.recent, radio.online),
+                    title: name,
+                }).bindPopup(popup).addTo(radioLiveLayer);
+                radioLiveMarkersById.set(id, marker);
+            }
+        });
+
+        radioLiveMarkersById.forEach((marker, id) => {
+            if (!activeIds.has(id)) {
+                radioLiveLayer.removeLayer(marker);
+                radioLiveMarkersById.delete(id);
+            }
+        });
+
+        if (status) {
+            status.lastChild.textContent = ` Radio TLC: ${activeIds.size} in mappa / ${Number(data.online || 0)} accese${data.stale ? " (ritardo)" : ""}`;
+            status.title = "Verde: radio accesa. Azzurro: posizione aggiornata. Grigio: ultima posizione nota.";
+        }
+    } catch (error) {
+        console.error("Errore caricamento radio ARGO-X:", error);
+        if (status) status.lastChild.textContent = " Radio TLC: non disponibili";
+    }
 }
 
 async function updateCanadairLivePositions() {

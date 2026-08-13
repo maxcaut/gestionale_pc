@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureExternalReadToken;
+use App\Http\Middleware\EnsureSupabaseAuthenticated;
 use App\Http\Middleware\EnsureSupabaseMaster;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
         $middleware->alias([
             'supabase.master' => EnsureSupabaseMaster::class,
+            'supabase.authenticated' => EnsureSupabaseAuthenticated::class,
             'external.read' => EnsureExternalReadToken::class,
         ]);
     })

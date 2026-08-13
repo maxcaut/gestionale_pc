@@ -41,4 +41,10 @@ return [
         'service_role_key' => env('SUPABASE_SERVICE_ROLE_KEY'),
     ],
 
+    'argo_x' => [
+        'url' => env('ARGO_X_URL', 'https://tlc.protezionecivilepomigliano.it'),
+        'username' => env('ARGO_X_USERNAME'),
+        'password' => env('ARGO_X_PASSWORD'),
+    ],
+
 ];

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminAssociazioneController;
 use App\Http\Controllers\AdminProfileController;
+use App\Http\Controllers\ArgoXRadioController;
 use App\Http\Controllers\CanadairLiveController;
 use App\Http\Controllers\MagazzinoPrelievoPdfController;
 use App\Http\Controllers\ServizioPdfController;
@@ -18,6 +19,9 @@ Route::post('/squadre-aib/pdf', [SquadraAibPdfController::class, 'export'])->nam
 Route::post('/volontari/pdf', [VolontarioPdfController::class, 'export'])->name('volontari.pdf');
 Route::post('/magazzino/prelievi/pdf', [MagazzinoPrelievoPdfController::class, 'export'])->name('magazzino.prelievi.pdf');
 Route::get('/api/canadair/live', CanadairLiveController::class)->name('canadair.live');
+Route::get('/api/radios/live', ArgoXRadioController::class)
+    ->middleware('supabase.authenticated')
+    ->name('radios.live');
 
 Route::middleware('supabase.master')->prefix('api/admin')->group(function () {
     Route::get('/associazioni', [AdminAssociazioneController::class, 'index']);

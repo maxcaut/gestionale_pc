@@ -118,6 +118,109 @@
     font-size: 0.7rem;
 }
 
+.radio-legend-icon,
+.servizi-map .radio-live-marker > span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background: #22d3ee;
+    color: #083344;
+    border: 2px solid #cffafe;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.55);
+}
+
+.radio-legend-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.servizi-map .radio-live-marker {
+    background: transparent;
+    border: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.servizi-map .radio-live-marker > span {
+    width: 34px;
+    height: 34px;
+    flex: none;
+}
+
+.servizi-map .radio-live-marker > small {
+    display: block;
+    max-width: 90px;
+    margin-top: 2px;
+    padding: 1px 4px;
+    overflow: hidden;
+    border-radius: 3px;
+    background: rgba(15, 23, 42, 0.88);
+    color: #f8fafc;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.25;
+    text-align: center;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 2px #000;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+}
+
+.radio-walkie-icon {
+    width: 70%;
+    height: 70%;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.servizi-map .radio-live-marker.is-stale > span {
+    background: #64748b;
+    color: #e2e8f0;
+    border-color: #cbd5e1;
+    opacity: 0.82;
+}
+
+.servizi-map .radio-live-marker.is-online > span,
+.radio-legend-icon.is-online {
+    background: #22c55e;
+    color: #052e16;
+    border-color: #bbf7d0;
+    opacity: 1;
+}
+
+.servizi-map .radio-status-online {
+    color: #4ade80;
+}
+
+.servizi-map .radio-live-source {
+    color: #94a3b8;
+    font-size: 0.7rem;
+}
+
+.servizi-map .radio-directions-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.55rem;
+    padding: 0.38rem 0.75rem;
+    border-radius: 0.45rem;
+    background: #0891b2;
+    color: #ecfeff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.servizi-map .radio-directions-button:hover {
+    background: #06b6d4;
+    color: #083344;
+}
+
 @keyframes servizioMarkerPulse {
     0% { opacity: 1; stroke-width: 2; transform: scale(1); }
     70% { opacity: 0.42; stroke-width: 7; transform: scale(1.55); }
