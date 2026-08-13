@@ -173,6 +173,31 @@
     align-items: center;
 }
 
+.servizi-map .radio-live-cluster {
+    background: transparent;
+    border: 0;
+}
+
+.servizi-map .radio-live-cluster > span {
+    display: flex;
+    width: 40px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid #cffafe;
+    border-radius: 9999px;
+    background: #0891b2;
+    color: #fff;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6);
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.servizi-map .radio-spider-leg {
+    stroke-linecap: round;
+}
+
 .servizi-map .radio-live-marker > span {
     width: 34px;
     height: 34px;

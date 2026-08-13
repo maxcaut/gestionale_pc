@@ -1132,6 +1132,8 @@ const geocodeCache = new Map();
 const serviziMapMarkersById = new Map();
 const canadairLiveMarkersByRegistration = new Map();
 const radioLiveMarkersById = new Map();
+let radioLiveSnapshot = [];
+let radioLiveExpandedGroup = null;
 let serviziMapUpdateToken = 0;
 let pdfExportProgressTimer = null;
 let pendingPdfDelivery = null;
@@ -7999,6 +8001,11 @@ async function ensureServiziMap() {
     serviziMapMarkersLayer = L.layerGroup().addTo(serviziMap);
     canadairLiveLayer = L.layerGroup().addTo(serviziMap);
     radioLiveLayer = L.layerGroup().addTo(serviziMap);
+    serviziMap.on("click", collapseRadioSpiderfy);
+    serviziMap.on("zoomstart", () => {
+        radioLiveExpandedGroup = null;
+    });
+    serviziMap.on("zoomend", renderRadioLiveMarkers);
     serviziMapAreeLayer = new L.FeatureGroup().addTo(serviziMap);
     L.control.layers(null, {
         "Canadair in volo": canadairLiveLayer,
@@ -8068,6 +8075,111 @@ function formatRadioPositionTime(value) {
     }).format(date);
 }
 
+function radioClusterIcon(count) {
+    return L.divIcon({
+        className: "radio-live-cluster",
+        html: `<span aria-label="${count} radio nella stessa posizione">${count}</span>`,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
+    });
+}
+
+function collapseRadioSpiderfy() {
+    if (!radioLiveExpandedGroup) return;
+    radioLiveExpandedGroup = null;
+    renderRadioLiveMarkers();
+}
+
+function expandRadioSpiderfy(key) {
+    radioLiveExpandedGroup = key;
+    renderRadioLiveMarkers();
+}
+
+function renderRadioLiveMarkers() {
+    if (!serviziMap || !radioLiveLayer) return;
+
+    radioLiveLayer.clearLayers();
+    radioLiveMarkersById.clear();
+
+    const overlapDistance = 46;
+    const pending = radioLiveSnapshot.map(radio => ({
+        radio,
+        point: serviziMap.latLngToLayerPoint([Number(radio.lat), Number(radio.lon)]),
+    }));
+    const groups = [];
+
+    while (pending.length) {
+        const group = [pending.shift()];
+        for (let index = 0; index < group.length; index += 1) {
+            for (let candidateIndex = pending.length - 1; candidateIndex >= 0; candidateIndex -= 1) {
+                if (group[index].point.distanceTo(pending[candidateIndex].point) <= overlapDistance) {
+                    group.push(pending.splice(candidateIndex, 1)[0]);
+                }
+            }
+        }
+        groups.push(group.map(entry => entry.radio));
+    }
+
+    const groupKeys = new Set(groups.map(radios => radios.map(radio => radio.id).sort().join("|")));
+    if (radioLiveExpandedGroup && !groupKeys.has(radioLiveExpandedGroup)) {
+        radioLiveExpandedGroup = null;
+    }
+
+    groups.forEach(radios => {
+        const key = radios.map(radio => radio.id).sort().join("|");
+        const radioPoints = radios.map(radio => serviziMap.latLngToLayerPoint([
+            Number(radio.lat),
+            Number(radio.lon),
+        ]));
+        const centerPoint = radioPoints.reduce(
+            (total, point) => total.add(point),
+            L.point(0, 0),
+        ).divideBy(radios.length);
+        const origin = serviziMap.layerPointToLatLng(centerPoint);
+
+        if (radios.length > 1 && radioLiveExpandedGroup !== key) {
+            const cluster = L.marker(origin, {
+                icon: radioClusterIcon(radios.length),
+                title: `${radios.length} radio nella stessa posizione`,
+                zIndexOffset: 1000,
+            }).addTo(radioLiveLayer);
+            cluster.on("click", event => {
+                if (event.originalEvent) L.DomEvent.stopPropagation(event.originalEvent);
+                expandRadioSpiderfy(key);
+            });
+            return;
+        }
+
+        radios.forEach((radio, index) => {
+            const realPosition = L.latLng(Number(radio.lat), Number(radio.lon));
+            let markerPosition = realPosition;
+            if (radios.length > 1) {
+                const angle = (-Math.PI / 2) + ((2 * Math.PI * index) / radios.length);
+                const radius = Math.max(48, Math.min(82, 38 + (radios.length * 5)));
+                const originPoint = serviziMap.latLngToLayerPoint(origin);
+                markerPosition = serviziMap.layerPointToLatLng(originPoint.add([
+                    Math.cos(angle) * radius,
+                    Math.sin(angle) * radius,
+                ]));
+                L.polyline([realPosition, markerPosition], {
+                    className: "radio-spider-leg",
+                    color: "#67e8f9",
+                    weight: 2,
+                    opacity: 0.8,
+                    interactive: false,
+                }).addTo(radioLiveLayer);
+            }
+
+            const marker = L.marker(markerPosition, {
+                icon: radioMarkerIcon(radio.name, radio.recent, radio.online),
+                title: radio.name,
+                zIndexOffset: 1100,
+            }).bindPopup(radio.popup).addTo(radioLiveLayer);
+            radioLiveMarkersById.set(radio.id, marker);
+        });
+    });
+}
+
 async function updateRadioLivePositions() {
     if (!serviziMap || !radioLiveLayer || document.hidden) return;
 
@@ -8087,6 +8199,7 @@ async function updateRadioLivePositions() {
 
         const data = await response.json();
         const activeIds = new Set();
+        const nextSnapshot = [];
 
         (data.radios || []).forEach(radio => {
             const id = String(radio.id || "");
@@ -8100,27 +8213,11 @@ async function updateRadioLivePositions() {
             const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${Number(radio.lat)},${Number(radio.lon)}`)}`;
             const radioStatus = radio.status || (radio.online ? "Accesa" : "Spenta o fuori copertura");
             const popup = `<strong>${escapeHtml(name)}</strong><br>ID radio: ${escapeHtml(id)}${radio.type ? `<br>Tipo: ${escapeHtml(radio.type)}` : ""}<br>Stato: <strong class="${radio.online ? "radio-status-online" : ""}">${radioStatus}</strong><br><span class="radio-live-source">${escapeHtml(positionLabel)} · ARGO-X</span><br><a class="radio-directions-button" href="${directionsUrl}" target="_blank" rel="noopener noreferrer">Raggiungi</a>`;
-            let marker = radioLiveMarkersById.get(id);
-
-            if (marker) {
-                marker.setLatLng([radio.lat, radio.lon]);
-                marker.setIcon(radioMarkerIcon(name, radio.recent, radio.online));
-                marker.setPopupContent(popup);
-            } else {
-                marker = L.marker([radio.lat, radio.lon], {
-                    icon: radioMarkerIcon(name, radio.recent, radio.online),
-                    title: name,
-                }).bindPopup(popup).addTo(radioLiveLayer);
-                radioLiveMarkersById.set(id, marker);
-            }
+            nextSnapshot.push({ ...radio, id, name, popup });
         });
 
-        radioLiveMarkersById.forEach((marker, id) => {
-            if (!activeIds.has(id)) {
-                radioLiveLayer.removeLayer(marker);
-                radioLiveMarkersById.delete(id);
-            }
-        });
+        radioLiveSnapshot = nextSnapshot;
+        renderRadioLiveMarkers();
 
         if (status) {
             status.lastChild.textContent = ` Radio TLC: ${activeIds.size} in mappa / ${Number(data.online || 0)} accese${data.stale ? " (ritardo)" : ""}`;
