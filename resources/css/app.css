@@ -35,6 +35,36 @@
     z-index: 0;
 }
 
+@media (max-width: 639px) {
+    .servizi-map-legend {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        width: 100%;
+        gap: 0.45rem 0.5rem;
+    }
+
+    .servizi-map-legend > span {
+        min-width: 0;
+        padding: 0.125rem 0;
+        line-height: 1.25;
+    }
+
+    .servizi-map-legend > span:nth-child(-n + 2) {
+        grid-column: span 6;
+    }
+
+    .servizi-map-legend > span:nth-child(n + 3) {
+        grid-column: span 2;
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    .servizi-map-legend .canadair-legend-icon {
+        width: 1.35rem;
+        height: 1.35rem;
+    }
+}
+
 .servizi-map .leaflet-popup-content-wrapper {
     background: #1e293b;
     color: #e2e8f0;
