@@ -154,7 +154,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 9999px;
-    background: #22d3ee;
+    background: #67e8f9;
     color: #083344;
     border: 2px solid #cffafe;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.55);
@@ -234,7 +234,7 @@
 }
 
 .servizi-map .radio-live-marker.is-stale > span {
-    background: #64748b;
+    background: #94a3b8;
     color: #e2e8f0;
     border-color: #cbd5e1;
     opacity: 0.82;
@@ -242,21 +242,21 @@
 
 .servizi-map .radio-live-marker.state-green > span,
 .radio-legend-icon.is-online {
-    background: #22c55e;
+    background: #86efac;
     color: #052e16;
     border-color: #bbf7d0;
     opacity: 1;
 }
 
 .servizi-map .radio-live-marker.state-red > span {
-    background: #ef4444;
+    background: #fca5a5;
     color: #450a0a;
     border-color: #fecaca;
     opacity: 1;
 }
 
 .servizi-map .radio-live-marker.state-yellow > span {
-    background: #facc15;
+    background: #fde68a;
     color: #422006;
     border-color: #fef08a;
     opacity: 1;
