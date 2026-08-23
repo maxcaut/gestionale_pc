@@ -10,6 +10,24 @@
                         </button>
                     </div>
 
+                    <div class="space-y-3">
+                        <h3 class="text-sm font-bold text-white uppercase tracking-wider">Distribuzione ore</h3>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                                <h4 class="text-sm font-bold text-white">Per tipologia</h4>
+                                <div id="statistiche-grafico-tipologie" class="mt-5"></div>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                                <h4 class="text-sm font-bold text-white">Per volontario</h4>
+                                <div id="statistiche-grafico-volontari" class="mt-5"></div>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                                <h4 class="text-sm font-bold text-white">Per mezzo</h4>
+                                <div id="statistiche-grafico-mezzi" class="mt-5"></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
                             <div class="px-6 py-4 border-b border-slate-800">

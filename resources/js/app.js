@@ -3301,6 +3301,73 @@ function addStatHours(map, key, label, tipologia, hours) {
     map.set(mapKey, current);
 }
 
+function renderStatistichePieChart(containerId, rows, labelKey) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const grouped = new Map();
+    rows.forEach(row => {
+        const label = row[labelKey];
+        grouped.set(label, (grouped.get(label) || 0) + row.hours);
+    });
+
+    const data = [...grouped.entries()]
+        .map(([label, hours]) => ({ label, hours }))
+        .filter(item => item.hours > 0)
+        .sort((a, b) => b.hours - a.hours);
+
+    if (data.length === 0) {
+        container.innerHTML = '<div class="py-16 text-center text-sm font-medium text-slate-500">Nessun dato calcolabile.</div>';
+        return;
+    }
+
+    const colors = [
+        '#f59e0b', '#06b6d4', '#8b5cf6', '#22c55e', '#f43f5e',
+        '#3b82f6', '#eab308', '#14b8a6', '#d946ef', '#f97316',
+    ];
+    const total = data.reduce((sum, item) => sum + item.hours, 0);
+    let progress = 0;
+    const segments = data.map((item, index) => {
+        const start = (progress / total) * 100;
+        progress += item.hours;
+        const end = (progress / total) * 100;
+        item.startPercentage = start;
+        item.endPercentage = end;
+        return `${colors[index % colors.length]} ${start}% ${end}%`;
+    });
+    const legend = data.map((item, index) => `
+        <div class="flex items-center justify-between gap-3 text-xs">
+            <div class="flex min-w-0 items-center gap-2">
+                <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: ${colors[index % colors.length]}"></span>
+                <span class="truncate text-slate-300" title="${escapeAttr(item.label)}">${escapeHtml(item.label)}</span>
+            </div>
+            <span class="shrink-0 font-bold text-amber-400">${formatHours(item.hours)}</span>
+        </div>
+    `).join('');
+
+    container.innerHTML = `
+        <div class="statistiche-pie-chart mx-auto aspect-square w-full max-w-48 cursor-pointer rounded-full border-4 border-slate-800 shadow-inner" style="background: conic-gradient(${segments.join(', ')})" role="img" aria-label="Distribuzione percentuale delle ore. Clicca una fetta per visualizzarne i dettagli."></div>
+        <div class="statistiche-pie-detail mt-4 min-h-16 rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-center text-xs text-slate-500">Clicca una fetta per visualizzare i dettagli.</div>
+        <div class="mt-5 max-h-48 space-y-2 overflow-y-auto pr-1">${legend}</div>
+    `;
+
+    const chart = container.querySelector('.statistiche-pie-chart');
+    const detail = container.querySelector('.statistiche-pie-detail');
+    chart.addEventListener('click', event => {
+        const bounds = chart.getBoundingClientRect();
+        const x = event.clientX - (bounds.left + (bounds.width / 2));
+        const y = event.clientY - (bounds.top + (bounds.height / 2));
+        const percentage = ((Math.atan2(x, -y) * 180 / Math.PI + 360) % 360) / 3.6;
+        const selected = data.find(item => percentage >= item.startPercentage && percentage < item.endPercentage) || data[data.length - 1];
+        const selectedPercentage = (selected.hours / total) * 100;
+
+        detail.innerHTML = `
+            <div class="font-semibold text-slate-100">${escapeHtml(selected.label)}</div>
+            <div class="mt-1 text-amber-400"><span class="font-bold">${formatHours(selected.hours)} ore</span> · ${selectedPercentage.toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</div>
+        `;
+    });
+}
+
 function renderStatisticheTable(tbodyId, rows, emptyMessage, columns) {
     const tbody = document.getElementById(tbodyId);
     if (!tbody) return;
@@ -3728,6 +3795,10 @@ function renderStatistiche() {
         soruTotale,
         soruSenzaProtocollo,
     } = getStatisticheData();
+
+    renderStatistichePieChart('statistiche-grafico-tipologie', tipologieStats, 'tipologia');
+    renderStatistichePieChart('statistiche-grafico-volontari', volontariStats, 'label');
+    renderStatistichePieChart('statistiche-grafico-mezzi', mezziStats, 'label');
 
     renderStatisticheGroupedTable(
         'statistiche-volontari-body',
