@@ -80,7 +80,7 @@
                             </div>
                         </div>
                         <div id="servizi-map" class="servizi-map w-full" role="region" aria-label="Mappa dei servizi sul territorio di Massa di Somma"></div>
-                        <p id="servizi-map-hint" class="px-6 py-2 text-[10px] text-slate-500 border-t border-slate-800/80 hidden"></p>
+                        <button type="button" id="servizi-map-hint" aria-haspopup="dialog" aria-controls="modal-servizi-senza-posizione" class="w-full text-left px-6 py-2 text-[10px] text-slate-500 border-t border-slate-800/80 hover:text-amber-400 focus-visible:text-amber-400 cursor-pointer transition-colors hidden"></button>
                     </div>
 
                     <!-- Elenco Tabella Servizi -->
@@ -105,6 +105,21 @@
                         </div>
                     </div>
                 </section>
+
+                <div id="modal-servizi-senza-posizione" role="dialog" aria-modal="true" aria-labelledby="servizi-senza-posizione-title" class="fixed inset-0 z-[70] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+                    <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl slide-in">
+                        <div class="p-6 border-b border-slate-800">
+                            <h3 id="servizi-senza-posizione-title" class="text-lg font-bold text-white">Servizi senza coordinate né indirizzo</h3>
+                        </div>
+                        <div class="p-6 max-h-[60vh] overflow-y-auto">
+                            <p class="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Protocollo</p>
+                            <ul id="servizi-senza-posizione-list" class="divide-y divide-slate-800 text-sm font-mono text-slate-200"></ul>
+                        </div>
+                        <div class="p-6 border-t border-slate-800 flex justify-end">
+                            <button type="button" id="servizi-senza-posizione-close" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold transition-colors">Chiudi</button>
+                        </div>
+                    </div>
+                </div>
 
                 <div id="modal-area-intervento" class="fixed inset-0 z-[70] bg-slate-950/80 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4 hidden">
                     <div class="mt-4 bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl slide-in">

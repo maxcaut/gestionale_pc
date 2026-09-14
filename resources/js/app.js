@@ -8386,6 +8386,28 @@ async function updateServiziMap(filteredServizi) {
     const withoutLocation = filteredServizi.filter(s => !hasValidServizioCoordinates(s) && !hasServizioIndirizzo(s));
 
     if (mapHint) {
+        const locationModal = document.getElementById("modal-servizi-senza-posizione");
+        const locationList = document.getElementById("servizi-senza-posizione-list");
+        const closeButton = document.getElementById("servizi-senza-posizione-close");
+        if (locationModal && locationList && closeButton) {
+            locationList.innerHTML = withoutLocation.map(s => `<li class="py-2">${escapeHtml(s.id)}</li>`).join("");
+            const closeLocationModal = () => {
+                locationModal.classList.add("hidden");
+                mapHint.focus();
+            };
+            mapHint.onclick = () => {
+                locationModal.classList.remove("hidden");
+                closeButton.focus();
+            };
+            closeButton.onclick = closeLocationModal;
+            locationModal.onkeydown = event => {
+                if (event.key === "Escape") closeLocationModal();
+                if (event.key === "Tab") {
+                    event.preventDefault();
+                    closeButton.focus();
+                }
+            };
+        }
         if (withoutLocation.length > 0 && filteredServizi.length > 0) {
             mapHint.textContent = `${withoutLocation.length} missione/i senza coordinate né indirizzo non mostrate sulla mappa. Inserisci almeno uno dei due dal modulo «Nuova Missione / Servizio».`;
             mapHint.classList.remove("hidden");
