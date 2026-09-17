@@ -1,3 +1,51 @@
+-- Coordinamento Vesuvius: installazione completa su un NUOVO progetto Supabase.
+-- Generato con: node scripts/build-supabase-migration.mjs
+-- Include lo schema iniziale e tutti i 51 file delle migration storiche.
+-- La numerazione arriva a 048; 006, 030 e 041 hanno due file ciascuno.
+-- Eseguire una sola volta nel SQL Editor come postgres, su database applicativo vuoto.
+-- Supabase deve avere gia predisposto auth, storage e i ruoli anon/authenticated/service_role.
+-- Non eseguire anche le migration individuali su questa nuova istanza.
+-- Non importa utenti, record operativi o file dalla vecchia istanza.
+
+BEGIN;
+SET LOCAL search_path = public, extensions;
+
+CREATE TABLE public.volontari (
+    id TEXT PRIMARY KEY,
+    nome TEXT NOT NULL,
+    cognome TEXT NOT NULL,
+    cf TEXT NOT NULL UNIQUE,
+    ruolo TEXT NOT NULL,
+    telefono TEXT NOT NULL,
+    stato TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE public.mezzi (
+    id TEXT PRIMARY KEY,
+    modello TEXT NOT NULL,
+    targa TEXT NOT NULL UNIQUE,
+    tipo TEXT NOT NULL,
+    stato TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE public.servizi (
+    id TEXT PRIMARY KEY,
+    tipo TEXT NOT NULL,
+    data TEXT NOT NULL,
+    mezzi_ids TEXT[] NOT NULL DEFAULT '{}',
+    volontari_ids TEXT[] NOT NULL DEFAULT '{}',
+    note TEXT,
+    stato TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    -- Campi usati da resources/js/app.js, assenti dalle migration storiche.
+    latitudine DOUBLE PRECISION,
+    longitudine DOUBLE PRECISION,
+    indirizzo_intervento TEXT,
+    altri_enti_coinvolti TEXT
+);
+
 -- ============================================================================
 -- supabase/migrations/001_profiles_rls_volontari.sql
 -- ============================================================================
@@ -140,7 +188,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.volontari TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.mezzi TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.servizi TO authenticated;
 
-
 -- ============================================================================
 -- supabase/migrations/002_profiles_admin_rls.sql
 -- ============================================================================
@@ -172,7 +219,6 @@ CREATE POLICY "profiles_delete_master"
     FOR DELETE
     TO authenticated
     USING (public.is_master());
-
 
 -- ============================================================================
 -- supabase/migrations/003_capo_squadra.sql
@@ -281,7 +327,6 @@ CREATE POLICY "servizi_manage"
     TO authenticated
     USING (public.can_manage_servizi())
     WITH CHECK (public.can_manage_servizi());
-
 
 -- ============================================================================
 -- supabase/migrations/004_fix_rls_permissive_policies.sql
@@ -497,7 +542,6 @@ CREATE POLICY "servizi_manage"
     USING (public.can_manage_servizi())
     WITH CHECK (public.can_manage_servizi());
 
-
 -- ============================================================================
 -- supabase/migrations/005_sala_operativa.sql
 -- ============================================================================
@@ -573,7 +617,6 @@ CREATE POLICY "mezzi_select"
         OR public.is_sala_operativa()
     );
 
-
 -- ============================================================================
 -- supabase/migrations/006_mezzi_segreteria.sql
 -- ============================================================================
@@ -581,9 +624,6 @@ CREATE POLICY "mezzi_select"
 
 ALTER TABLE public.mezzi
     ADD COLUMN IF NOT EXISTS associazione_appartenenza TEXT;
-
-ALTER TABLE public.servizi
-    ADD COLUMN IF NOT EXISTS carrelli_trainanti JSONB NOT NULL DEFAULT '{}';
 
 DROP POLICY IF EXISTS "mezzi_select" ON public.mezzi;
 DROP POLICY IF EXISTS "mezzi_insert_master" ON public.mezzi;
@@ -646,7 +686,6 @@ CREATE POLICY "mezzi_delete"
         )
     );
 
-
 -- ============================================================================
 -- supabase/migrations/006_servizi_aib_fields.sql
 -- ============================================================================
@@ -666,7 +705,6 @@ COMMENT ON COLUMN public.servizi.ora_rientro_sede IS 'Orario rientro in sede (HH
 COMMENT ON COLUMN public.servizi.superficie_ceduo IS 'Superficie ceduo: matricianato, compostato, degradato, macchia (valori testo, es. ha)';
 COMMENT ON COLUMN public.servizi.superficie_alto_fusto IS 'Superficie alto fusto: resinoso, latifoglie, misto, rimboschimento';
 COMMENT ON COLUMN public.servizi.superficie_non_boscato IS 'Superficie non boscato: cespugliato, pascolo, seminativo, incolto';
-
 
 -- ============================================================================
 -- supabase/migrations/007_capo_squadra_mezzi_servizi.sql
@@ -695,7 +733,6 @@ CREATE POLICY "mezzi_select"
         )
     );
 
-
 -- ============================================================================
 -- supabase/migrations/008_capo_squadra_volontari_servizi.sql
 -- ============================================================================
@@ -722,7 +759,6 @@ CREATE POLICY "volontari_select"
             )
         )
     );
-
 
 -- ============================================================================
 -- supabase/migrations/009_segreteria_attivita.sql
@@ -763,7 +799,6 @@ CREATE POLICY "servizi_segreteria_assign"
         public.is_segreteria()
         AND stato = 'Programmato'
     );
-
 
 -- ============================================================================
 -- supabase/migrations/010_super_user.sql
@@ -815,7 +850,6 @@ AS $$
     );
 $$;
 
-
 -- ============================================================================
 -- supabase/migrations/011_servizi_tipologia_aib.sql
 -- ============================================================================
@@ -826,7 +860,6 @@ ALTER TABLE public.servizi
 
 COMMENT ON COLUMN public.servizi.tipologia_aib IS 'Tipologia AIB: L = Lotta attiva, P = Pattugliamento';
 
-
 -- ============================================================================
 -- supabase/migrations/012_servizi_volontari_art39.sql
 -- ============================================================================
@@ -836,7 +869,6 @@ ALTER TABLE public.servizi
     ADD COLUMN IF NOT EXISTS volontari_art39 jsonb DEFAULT '{}'::jsonb;
 
 COMMENT ON COLUMN public.servizi.volontari_art39 IS 'Mappa volontario_id -> Si/No per art.39 sull''intervento';
-
 
 -- ============================================================================
 -- supabase/migrations/013_segreteria_attivita_completati.sql
@@ -849,7 +881,6 @@ ALTER POLICY "servizi_segreteria_select"
         public.is_segreteria()
         AND stato IN ('Programmato', 'Completato')
     );
-
 
 -- ============================================================================
 -- supabase/migrations/014_servizi_richiedente_check.sql
@@ -879,7 +910,6 @@ ALTER TABLE public.servizi
         )
     );
 
-
 -- ============================================================================
 -- supabase/migrations/015_volontari_anagrafica_qualifiche.sql
 -- ============================================================================
@@ -893,7 +923,6 @@ ALTER TABLE public.volontari
     ADD COLUMN IF NOT EXISTS qualifica_antincendio TEXT[] NOT NULL DEFAULT '{}',
     ADD COLUMN IF NOT EXISTS qualifiche_coordinamento TEXT[] NOT NULL DEFAULT '{}';
 
-
 -- ============================================================================
 -- supabase/migrations/016_servizi_art39.sql
 -- ============================================================================
@@ -904,7 +933,6 @@ ALTER TABLE public.servizi
     CHECK (art39 IN ('Si', 'No'));
 
 COMMENT ON COLUMN public.servizi.art39 IS 'Abilita gestione Art.39 per volontario assegnato al servizio';
-
 
 -- ============================================================================
 -- supabase/migrations/017_squadre_aib.sql
@@ -1008,7 +1036,6 @@ CREATE POLICY "squadre_aib_delete"
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.squadre_aib TO authenticated;
 
-
 -- ============================================================================
 -- supabase/migrations/018_segreteria_servizi_in_corso.sql
 -- ============================================================================
@@ -1022,7 +1049,6 @@ ALTER POLICY "servizi_segreteria_select"
         AND stato IN ('Programmato', 'Pianificato', 'In corso', 'Completato')
     );
 
-
 -- ============================================================================
 -- supabase/migrations/019_squadre_aib_disponibile_fino.sql
 -- ============================================================================
@@ -1031,6 +1057,27 @@ ALTER POLICY "servizi_segreteria_select"
 ALTER TABLE public.squadre_aib
     ADD COLUMN IF NOT EXISTS disponibile_fino TIME;
 
+-- ============================================================================
+-- supabase/migrations/020_mezzi_carrello_appendice.sql
+-- ============================================================================
+ALTER TABLE public.servizi
+    ADD COLUMN IF NOT EXISTS carrelli_trainanti JSONB NOT NULL DEFAULT '{}';
+
+ALTER TABLE public.mezzi
+    DROP COLUMN IF EXISTS mezzo_trainante_id;
+
+-- ============================================================================
+-- supabase/migrations/021_mezzi_scadenze_rca_revisione.sql
+-- ============================================================================
+ALTER TABLE public.mezzi
+    ADD COLUMN IF NOT EXISTS scadenza_rca DATE,
+    ADD COLUMN IF NOT EXISTS scadenza_revisione DATE;
+
+-- ============================================================================
+-- supabase/migrations/022_servizi_protocollo_regionale.sql
+-- ============================================================================
+ALTER TABLE public.servizi
+    ADD COLUMN IF NOT EXISTS protocollo_regionale text;
 
 -- ============================================================================
 -- supabase/migrations/023_volontari_foto_storage.sql
@@ -1158,7 +1205,6 @@ CREATE POLICY "volontari_foto_delete"
         )
     );
 
-
 -- ============================================================================
 -- supabase/migrations/024_volontari_patenti_storage.sql
 -- ============================================================================
@@ -1236,16 +1282,728 @@ CREATE POLICY "volontari_patenti_delete"
         )
     );
 
+-- ============================================================================
+-- supabase/migrations/025_volontari_carte_identita_storage.sql
+-- ============================================================================
+-- Carte d'identita volontari su Supabase Storage.
+-- Bucket privato: file PDF o immagini associati alla carta d'identita.
+
+ALTER TABLE public.volontari
+    ADD COLUMN IF NOT EXISTS carta_identita_path TEXT;
+
+COMMENT ON COLUMN public.volontari.carta_identita_path IS 'Path della carta d''identita nel bucket Storage volontari-carte-identita';
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'volontari-carte-identita',
+    'volontari-carte-identita',
+    false,
+    10485760,
+    ARRAY['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET
+    public = EXCLUDED.public,
+    file_size_limit = EXCLUDED.file_size_limit,
+    allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+DROP POLICY IF EXISTS "volontari_carte_identita_select" ON storage.objects;
+CREATE POLICY "volontari_carte_identita_select"
+    ON storage.objects
+    FOR SELECT
+    TO authenticated
+    USING (
+        bucket_id = 'volontari-carte-identita'
+        AND public.can_read_volontario((storage.foldername(name))[1])
+    );
+
+DROP POLICY IF EXISTS "volontari_carte_identita_insert" ON storage.objects;
+CREATE POLICY "volontari_carte_identita_insert"
+    ON storage.objects
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        bucket_id = 'volontari-carte-identita'
+        AND public.can_manage_volontario((storage.foldername(name))[1])
+    );
+
+DROP POLICY IF EXISTS "volontari_carte_identita_update" ON storage.objects;
+CREATE POLICY "volontari_carte_identita_update"
+    ON storage.objects
+    FOR UPDATE
+    TO authenticated
+    USING (
+        bucket_id = 'volontari-carte-identita'
+        AND public.can_manage_volontario((storage.foldername(name))[1])
+    )
+    WITH CHECK (
+        bucket_id = 'volontari-carte-identita'
+        AND public.can_manage_volontario((storage.foldername(name))[1])
+    );
+
+DROP POLICY IF EXISTS "volontari_carte_identita_delete" ON storage.objects;
+CREATE POLICY "volontari_carte_identita_delete"
+    ON storage.objects
+    FOR DELETE
+    TO authenticated
+    USING (
+        bucket_id = 'volontari-carte-identita'
+        AND (
+            public.can_manage_volontario((storage.foldername(name))[1])
+            OR NOT EXISTS (
+                SELECT 1
+                FROM public.volontari v
+                WHERE v.id = (storage.foldername(name))[1]
+            )
+        )
+    );
+
+-- ============================================================================
+-- supabase/migrations/026_volontari_qualifiche_date.sql
+-- ============================================================================
+ALTER TABLE public.volontari
+    ADD COLUMN IF NOT EXISTS qualifica_antincendio_date jsonb NOT NULL DEFAULT '{}'::jsonb,
+    ADD COLUMN IF NOT EXISTS qualifiche_coordinamento_date jsonb NOT NULL DEFAULT '{}'::jsonb;
+
+COMMENT ON COLUMN public.volontari.qualifica_antincendio_date IS 'Mappa qualifica antincendio -> data conseguimento';
+COMMENT ON COLUMN public.volontari.qualifiche_coordinamento_date IS 'Mappa qualifica coordinamento -> data conseguimento';
+
+-- ============================================================================
+-- supabase/migrations/027_protocollo_ingresso.sql
+-- ============================================================================
+-- Protocollo in ingresso: tabella record + bucket Storage privato.
+
+CREATE SEQUENCE IF NOT EXISTS public.protocollo_ingresso_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+CREATE TABLE IF NOT EXISTS public.protocollo_ingresso (
+    id TEXT PRIMARY KEY DEFAULT ('C.V.-I.-' || lpad(nextval('public.protocollo_ingresso_seq')::TEXT, 6, '0')),
+    protocollo_esterno TEXT,
+    data_memorizzazione DATE NOT NULL,
+    file_path TEXT NOT NULL DEFAULT '',
+    file_name TEXT NOT NULL,
+    file_mime_type TEXT,
+    file_size BIGINT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT protocollo_ingresso_id_format CHECK (id ~ '^C\.V\.-I\.-[0-9]{6}$')
+);
+
+ALTER TABLE public.protocollo_ingresso
+    ALTER COLUMN id SET DEFAULT ('C.V.-I.-' || lpad(nextval('public.protocollo_ingresso_seq')::TEXT, 6, '0'));
+
+CREATE OR REPLACE FUNCTION public.set_protocollo_ingresso_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS protocollo_ingresso_updated_at ON public.protocollo_ingresso;
+CREATE TRIGGER protocollo_ingresso_updated_at
+    BEFORE UPDATE ON public.protocollo_ingresso
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_protocollo_ingresso_updated_at();
+
+ALTER TABLE public.protocollo_ingresso ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.protocollo_ingresso FORCE ROW LEVEL SECURITY;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.protocollo_ingresso TO authenticated;
+GRANT USAGE, SELECT ON SEQUENCE public.protocollo_ingresso_seq TO authenticated;
+
+DROP POLICY IF EXISTS "protocollo_ingresso_select_master" ON public.protocollo_ingresso;
+CREATE POLICY "protocollo_ingresso_select_master"
+    ON public.protocollo_ingresso
+    FOR SELECT
+    TO authenticated
+    USING (public.is_master());
+
+DROP POLICY IF EXISTS "protocollo_ingresso_insert_master" ON public.protocollo_ingresso;
+CREATE POLICY "protocollo_ingresso_insert_master"
+    ON public.protocollo_ingresso
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (public.is_master());
+
+DROP POLICY IF EXISTS "protocollo_ingresso_update_master" ON public.protocollo_ingresso;
+CREATE POLICY "protocollo_ingresso_update_master"
+    ON public.protocollo_ingresso
+    FOR UPDATE
+    TO authenticated
+    USING (public.is_master())
+    WITH CHECK (public.is_master());
+
+DROP POLICY IF EXISTS "protocollo_ingresso_delete_master" ON public.protocollo_ingresso;
+CREATE POLICY "protocollo_ingresso_delete_master"
+    ON public.protocollo_ingresso
+    FOR DELETE
+    TO authenticated
+    USING (public.is_master());
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'protocollo-ingresso',
+    'protocollo-ingresso',
+    false,
+    NULL,
+    NULL
+)
+ON CONFLICT (id) DO UPDATE SET
+    public = EXCLUDED.public,
+    file_size_limit = EXCLUDED.file_size_limit,
+    allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+DROP POLICY IF EXISTS "protocollo_ingresso_storage_select" ON storage.objects;
+CREATE POLICY "protocollo_ingresso_storage_select"
+    ON storage.objects
+    FOR SELECT
+    TO authenticated
+    USING (
+        bucket_id = 'protocollo-ingresso'
+        AND public.is_master()
+    );
+
+DROP POLICY IF EXISTS "protocollo_ingresso_storage_insert" ON storage.objects;
+CREATE POLICY "protocollo_ingresso_storage_insert"
+    ON storage.objects
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        bucket_id = 'protocollo-ingresso'
+        AND public.is_master()
+    );
+
+DROP POLICY IF EXISTS "protocollo_ingresso_storage_update" ON storage.objects;
+CREATE POLICY "protocollo_ingresso_storage_update"
+    ON storage.objects
+    FOR UPDATE
+    TO authenticated
+    USING (
+        bucket_id = 'protocollo-ingresso'
+        AND public.is_master()
+    )
+    WITH CHECK (
+        bucket_id = 'protocollo-ingresso'
+        AND public.is_master()
+    );
+
+DROP POLICY IF EXISTS "protocollo_ingresso_storage_delete" ON storage.objects;
+CREATE POLICY "protocollo_ingresso_storage_delete"
+    ON storage.objects
+    FOR DELETE
+    TO authenticated
+    USING (
+        bucket_id = 'protocollo-ingresso'
+        AND public.is_master()
+    );
+
+-- ============================================================================
+-- supabase/migrations/028_volontari_attestati_storage.sql
+-- ============================================================================
+-- Attestati qualifiche coordinamento volontari su Supabase Storage.
+-- Bucket privato: file PDF o immagini associati agli attestati selezionati.
+
+ALTER TABLE public.volontari
+    ADD COLUMN IF NOT EXISTS qualifiche_coordinamento_files JSONB NOT NULL DEFAULT '{}'::jsonb;
+
+COMMENT ON COLUMN public.volontari.qualifiche_coordinamento_files IS 'Mappa qualifica coordinamento -> path attestato nel bucket Storage volontari-attestati';
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'volontari-attestati',
+    'volontari-attestati',
+    false,
+    10485760,
+    ARRAY['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET
+    public = EXCLUDED.public,
+    file_size_limit = EXCLUDED.file_size_limit,
+    allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+DROP POLICY IF EXISTS "volontari_attestati_select" ON storage.objects;
+CREATE POLICY "volontari_attestati_select"
+    ON storage.objects
+    FOR SELECT
+    TO authenticated
+    USING (
+        bucket_id = 'volontari-attestati'
+        AND public.can_read_volontario((storage.foldername(name))[1])
+    );
+
+DROP POLICY IF EXISTS "volontari_attestati_insert" ON storage.objects;
+CREATE POLICY "volontari_attestati_insert"
+    ON storage.objects
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        bucket_id = 'volontari-attestati'
+        AND public.can_manage_volontario((storage.foldername(name))[1])
+    );
+
+DROP POLICY IF EXISTS "volontari_attestati_update" ON storage.objects;
+CREATE POLICY "volontari_attestati_update"
+    ON storage.objects
+    FOR UPDATE
+    TO authenticated
+    USING (
+        bucket_id = 'volontari-attestati'
+        AND public.can_manage_volontario((storage.foldername(name))[1])
+    )
+    WITH CHECK (
+        bucket_id = 'volontari-attestati'
+        AND public.can_manage_volontario((storage.foldername(name))[1])
+    );
+
+DROP POLICY IF EXISTS "volontari_attestati_delete" ON storage.objects;
+CREATE POLICY "volontari_attestati_delete"
+    ON storage.objects
+    FOR DELETE
+    TO authenticated
+    USING (
+        bucket_id = 'volontari-attestati'
+        AND (
+            public.can_manage_volontario((storage.foldername(name))[1])
+            OR NOT EXISTS (
+                SELECT 1
+                FROM public.volontari v
+                WHERE v.id = (storage.foldername(name))[1]
+            )
+        )
+    );
 
 -- ============================================================================
 -- supabase/migrations/029_servizi_volontari_mezzi.sql
 -- ============================================================================
--- Mezzo assegnato per ogni volontario dell'intervento
-
 ALTER TABLE public.servizi
     ADD COLUMN IF NOT EXISTS volontari_mezzi jsonb DEFAULT '{}'::jsonb;
 
 COMMENT ON COLUMN public.servizi.volontari_mezzi IS 'Mappa volontario_id -> mezzo_id per assegnazione equipaggio ai mezzi';
+
+-- ============================================================================
+-- supabase/migrations/030_gestione_magazzino.sql
+-- ============================================================================
+-- Gestione Magazzino: tipi attrezzatura e attrezzature assegnate alle associazioni.
+
+CREATE TABLE IF NOT EXISTS public.magazzino_tipi_attrezzatura (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nome TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.magazzino_attrezzature (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nome_attrezzatura TEXT NOT NULL,
+    tipo_attrezzatura TEXT NOT NULL,
+    numero_inventario TEXT NOT NULL,
+    associazione_appartenenza TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT magazzino_attrezzature_numero_inventario_unique UNIQUE (numero_inventario),
+    CONSTRAINT magazzino_attrezzature_tipo_fk
+        FOREIGN KEY (tipo_attrezzatura)
+        REFERENCES public.magazzino_tipi_attrezzatura(nome)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+CREATE OR REPLACE FUNCTION public.set_magazzino_attrezzature_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS magazzino_attrezzature_updated_at ON public.magazzino_attrezzature;
+CREATE TRIGGER magazzino_attrezzature_updated_at
+    BEFORE UPDATE ON public.magazzino_attrezzature
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_magazzino_attrezzature_updated_at();
+
+INSERT INTO public.magazzino_tipi_attrezzatura (nome)
+VALUES
+    ('Tende'),
+    ('Motopompe'),
+    ('Gruppi elettrogeni'),
+    ('Manichette antincendio da 45'),
+    ('Manichette antincendio da 70'),
+    ('Prolunghe elettriche'),
+    ('Riduttori industriali -> civili'),
+    ('Riduttori civili -> industriali')
+ON CONFLICT (nome) DO NOTHING;
+
+ALTER TABLE public.magazzino_tipi_attrezzatura ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.magazzino_tipi_attrezzatura FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.magazzino_attrezzature ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.magazzino_attrezzature FORCE ROW LEVEL SECURITY;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.magazzino_tipi_attrezzatura TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.magazzino_attrezzature TO authenticated;
+
+DROP POLICY IF EXISTS "magazzino_tipi_select_allowed" ON public.magazzino_tipi_attrezzatura;
+CREATE POLICY "magazzino_tipi_select_allowed"
+    ON public.magazzino_tipi_attrezzatura
+    FOR SELECT
+    TO authenticated
+    USING (
+        public.is_master()
+        OR EXISTS (
+            SELECT 1
+            FROM public.profiles p
+            WHERE p.id = auth.uid()
+              AND p.ruolo = 'segreteria'
+        )
+    );
+
+DROP POLICY IF EXISTS "magazzino_tipi_insert_allowed" ON public.magazzino_tipi_attrezzatura;
+CREATE POLICY "magazzino_tipi_insert_allowed"
+    ON public.magazzino_tipi_attrezzatura
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        public.is_master()
+        OR EXISTS (
+            SELECT 1
+            FROM public.profiles p
+            WHERE p.id = auth.uid()
+              AND p.ruolo = 'segreteria'
+        )
+    );
+
+DROP POLICY IF EXISTS "magazzino_tipi_delete_allowed" ON public.magazzino_tipi_attrezzatura;
+CREATE POLICY "magazzino_tipi_delete_allowed"
+    ON public.magazzino_tipi_attrezzatura
+    FOR DELETE
+    TO authenticated
+    USING (
+        public.is_master()
+        OR EXISTS (
+            SELECT 1
+            FROM public.profiles p
+            WHERE p.id = auth.uid()
+              AND p.ruolo = 'segreteria'
+        )
+    );
+
+DROP POLICY IF EXISTS "magazzino_attrezzature_select_allowed" ON public.magazzino_attrezzature;
+CREATE POLICY "magazzino_attrezzature_select_allowed"
+    ON public.magazzino_attrezzature
+    FOR SELECT
+    TO authenticated
+    USING (
+        public.is_master()
+        OR EXISTS (
+            SELECT 1
+            FROM public.profiles p
+            WHERE p.id = auth.uid()
+              AND p.ruolo = 'segreteria'
+              AND p.associazione = associazione_appartenenza
+        )
+    );
+
+DROP POLICY IF EXISTS "magazzino_attrezzature_insert_allowed" ON public.magazzino_attrezzature;
+CREATE POLICY "magazzino_attrezzature_insert_allowed"
+    ON public.magazzino_attrezzature
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        public.is_master()
+        OR EXISTS (
+            SELECT 1
+            FROM public.profiles p
+            WHERE p.id = auth.uid()
+              AND p.ruolo = 'segreteria'
+              AND p.associazione = associazione_appartenenza
+        )
+    );
+
+DROP POLICY IF EXISTS "magazzino_attrezzature_update_allowed" ON public.magazzino_attrezzature;
+CREATE POLICY "magazzino_attrezzature_update_allowed"
+    ON public.magazzino_attrezzature
+    FOR UPDATE
+    TO authenticated
+    USING (
+        public.is_master()
+        OR EXISTS (
+            SELECT 1
+            FROM public.profiles p
+            WHERE p.id = auth.uid()
+              AND p.ruolo = 'segreteria'
+              AND p.associazione = associazione_appartenenza
+        )
+    )
+    WITH CHECK (
+        public.is_master()
+        OR EXISTS (
+            SELECT 1
+            FROM public.profiles p
+            WHERE p.id = auth.uid()
+              AND p.ruolo = 'segreteria'
+              AND p.associazione = associazione_appartenenza
+        )
+    );
+
+DROP POLICY IF EXISTS "magazzino_attrezzature_delete_allowed" ON public.magazzino_attrezzature;
+CREATE POLICY "magazzino_attrezzature_delete_allowed"
+    ON public.magazzino_attrezzature
+    FOR DELETE
+    TO authenticated
+    USING (
+        public.is_master()
+        OR EXISTS (
+            SELECT 1
+            FROM public.profiles p
+            WHERE p.id = auth.uid()
+              AND p.ruolo = 'segreteria'
+              AND p.associazione = associazione_appartenenza
+        )
+    );
+
+-- ============================================================================
+-- supabase/migrations/030_mezzi_dove_ubicato.sql
+-- ============================================================================
+ALTER TABLE public.mezzi
+    ADD COLUMN IF NOT EXISTS dove_ubicato TEXT;
+
+-- ============================================================================
+-- supabase/migrations/031_magazzino_prelievi_quantita.sql
+-- ============================================================================
+-- Gestione Magazzino: quantità disponibili e transazioni di prelievo/rientro.
+
+ALTER TABLE public.magazzino_attrezzature
+    ADD COLUMN IF NOT EXISTS quantita INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE public.magazzino_attrezzature
+    DROP CONSTRAINT IF EXISTS magazzino_attrezzature_quantita_check;
+
+ALTER TABLE public.magazzino_attrezzature
+    ADD CONSTRAINT magazzino_attrezzature_quantita_check CHECK (quantita >= 0);
+
+CREATE TABLE IF NOT EXISTS public.magazzino_prelievi (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    data_prelievo DATE NOT NULL,
+    consegnato_a TEXT NOT NULL,
+    stato TEXT NOT NULL DEFAULT 'aperto',
+    associazione_appartenenza TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT magazzino_prelievi_stato_check CHECK (stato IN ('aperto', 'completato'))
+);
+
+CREATE TABLE IF NOT EXISTS public.magazzino_prelievi_righe (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    prelievo_id UUID NOT NULL REFERENCES public.magazzino_prelievi(id) ON DELETE CASCADE,
+    attrezzatura_id UUID NOT NULL REFERENCES public.magazzino_attrezzature(id) ON DELETE RESTRICT,
+    quantita INTEGER NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT magazzino_prelievi_righe_quantita_check CHECK (quantita > 0)
+);
+
+CREATE OR REPLACE FUNCTION public.set_magazzino_prelievi_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS magazzino_prelievi_updated_at ON public.magazzino_prelievi;
+CREATE TRIGGER magazzino_prelievi_updated_at
+    BEFORE UPDATE ON public.magazzino_prelievi
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_magazzino_prelievi_updated_at();
+
+ALTER TABLE public.magazzino_prelievi ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.magazzino_prelievi FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.magazzino_prelievi_righe ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.magazzino_prelievi_righe FORCE ROW LEVEL SECURITY;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.magazzino_prelievi TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.magazzino_prelievi_righe TO authenticated;
+
+DROP POLICY IF EXISTS "magazzino_prelievi_select_allowed" ON public.magazzino_prelievi;
+CREATE POLICY "magazzino_prelievi_select_allowed"
+    ON public.magazzino_prelievi
+    FOR SELECT
+    TO authenticated
+    USING (
+        public.is_master()
+        OR EXISTS (
+            SELECT 1
+            FROM public.profiles p
+            WHERE p.id = auth.uid()
+              AND p.ruolo = 'segreteria'
+              AND p.associazione = associazione_appartenenza
+        )
+    );
+
+DROP POLICY IF EXISTS "magazzino_prelievi_insert_allowed" ON public.magazzino_prelievi;
+CREATE POLICY "magazzino_prelievi_insert_allowed"
+    ON public.magazzino_prelievi
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        public.is_master()
+        OR EXISTS (
+            SELECT 1
+            FROM public.profiles p
+            WHERE p.id = auth.uid()
+              AND p.ruolo = 'segreteria'
+              AND p.associazione = associazione_appartenenza
+        )
+    );
+
+DROP POLICY IF EXISTS "magazzino_prelievi_update_allowed" ON public.magazzino_prelievi;
+CREATE POLICY "magazzino_prelievi_update_allowed"
+    ON public.magazzino_prelievi
+    FOR UPDATE
+    TO authenticated
+    USING (
+        public.is_master()
+        OR EXISTS (
+            SELECT 1
+            FROM public.profiles p
+            WHERE p.id = auth.uid()
+              AND p.ruolo = 'segreteria'
+              AND p.associazione = associazione_appartenenza
+        )
+    )
+    WITH CHECK (
+        public.is_master()
+        OR EXISTS (
+            SELECT 1
+            FROM public.profiles p
+            WHERE p.id = auth.uid()
+              AND p.ruolo = 'segreteria'
+              AND p.associazione = associazione_appartenenza
+        )
+    );
+
+DROP POLICY IF EXISTS "magazzino_prelievi_delete_allowed" ON public.magazzino_prelievi;
+CREATE POLICY "magazzino_prelievi_delete_allowed"
+    ON public.magazzino_prelievi
+    FOR DELETE
+    TO authenticated
+    USING (
+        public.is_master()
+        OR EXISTS (
+            SELECT 1
+            FROM public.profiles p
+            WHERE p.id = auth.uid()
+              AND p.ruolo = 'segreteria'
+              AND p.associazione = associazione_appartenenza
+        )
+    );
+
+DROP POLICY IF EXISTS "magazzino_prelievi_righe_select_allowed" ON public.magazzino_prelievi_righe;
+CREATE POLICY "magazzino_prelievi_righe_select_allowed"
+    ON public.magazzino_prelievi_righe
+    FOR SELECT
+    TO authenticated
+    USING (
+        public.is_master()
+        OR EXISTS (
+            SELECT 1
+            FROM public.magazzino_prelievi mp
+            JOIN public.profiles p ON p.id = auth.uid()
+            WHERE mp.id = prelievo_id
+              AND p.ruolo = 'segreteria'
+              AND p.associazione = mp.associazione_appartenenza
+        )
+    );
+
+DROP POLICY IF EXISTS "magazzino_prelievi_righe_insert_allowed" ON public.magazzino_prelievi_righe;
+CREATE POLICY "magazzino_prelievi_righe_insert_allowed"
+    ON public.magazzino_prelievi_righe
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        public.is_master()
+        OR EXISTS (
+            SELECT 1
+            FROM public.magazzino_prelievi mp
+            JOIN public.magazzino_attrezzature ma ON ma.id = attrezzatura_id
+            JOIN public.profiles p ON p.id = auth.uid()
+            WHERE mp.id = prelievo_id
+              AND p.ruolo = 'segreteria'
+              AND p.associazione = mp.associazione_appartenenza
+              AND ma.associazione_appartenenza = mp.associazione_appartenenza
+        )
+    );
+
+DROP POLICY IF EXISTS "magazzino_prelievi_righe_update_allowed" ON public.magazzino_prelievi_righe;
+CREATE POLICY "magazzino_prelievi_righe_update_allowed"
+    ON public.magazzino_prelievi_righe
+    FOR UPDATE
+    TO authenticated
+    USING (
+        public.is_master()
+        OR EXISTS (
+            SELECT 1
+            FROM public.magazzino_prelievi mp
+            JOIN public.profiles p ON p.id = auth.uid()
+            WHERE mp.id = prelievo_id
+              AND p.ruolo = 'segreteria'
+              AND p.associazione = mp.associazione_appartenenza
+        )
+    )
+    WITH CHECK (
+        public.is_master()
+        OR EXISTS (
+            SELECT 1
+            FROM public.magazzino_prelievi mp
+            JOIN public.magazzino_attrezzature ma ON ma.id = attrezzatura_id
+            JOIN public.profiles p ON p.id = auth.uid()
+            WHERE mp.id = prelievo_id
+              AND p.ruolo = 'segreteria'
+              AND p.associazione = mp.associazione_appartenenza
+              AND ma.associazione_appartenenza = mp.associazione_appartenenza
+        )
+    );
+
+DROP POLICY IF EXISTS "magazzino_prelievi_righe_delete_allowed" ON public.magazzino_prelievi_righe;
+CREATE POLICY "magazzino_prelievi_righe_delete_allowed"
+    ON public.magazzino_prelievi_righe
+    FOR DELETE
+    TO authenticated
+    USING (
+        public.is_master()
+        OR EXISTS (
+            SELECT 1
+            FROM public.magazzino_prelievi mp
+            JOIN public.profiles p ON p.id = auth.uid()
+            WHERE mp.id = prelievo_id
+              AND p.ruolo = 'segreteria'
+              AND p.associazione = mp.associazione_appartenenza
+        )
+    );
+
+-- ============================================================================
+-- supabase/migrations/032_volontari_email.sql
+-- ============================================================================
+ALTER TABLE public.volontari
+    ADD COLUMN IF NOT EXISTS email TEXT;
+
+-- ============================================================================
+-- supabase/migrations/033_servizi_volontari_report_flags.sql
+-- ============================================================================
+ALTER TABLE public.servizi
+    ADD COLUMN IF NOT EXISTS volontari_conta_ore jsonb DEFAULT '{}'::jsonb,
+    ADD COLUMN IF NOT EXISTS volontari_in_report jsonb DEFAULT '{}'::jsonb;
+
+COMMENT ON COLUMN public.servizi.volontari_conta_ore IS 'Mappa volontario_id -> Si/No per includere il servizio nelle statistiche ore del volontario';
+COMMENT ON COLUMN public.servizi.volontari_in_report IS 'Mappa volontario_id -> Si/No per includere il volontario nei report consuntivi';
 
 -- ============================================================================
 -- supabase/migrations/034_magazzino_prelievi_rpc_atomici.sql
@@ -1515,18 +2273,103 @@ $$;
 GRANT EXECUTE ON FUNCTION public.save_magazzino_prelievo(UUID, DATE, TEXT, TEXT, JSONB) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.rientro_magazzino_prelievo(UUID) TO authenticated;
 
+-- ============================================================================
+-- supabase/migrations/035_volontari_allegato_v_storage.sql
+-- ============================================================================
+-- ALLEGATO V volontari su Supabase Storage.
+-- Bucket privato: file PDF o immagini associati all'ALLEGATO V.
+
+ALTER TABLE public.volontari
+    ADD COLUMN IF NOT EXISTS allegato_v_path TEXT;
+
+COMMENT ON COLUMN public.volontari.allegato_v_path IS 'Path dell''ALLEGATO V nel bucket Storage volontari-allegato-v';
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'volontari-allegato-v',
+    'volontari-allegato-v',
+    false,
+    10485760,
+    ARRAY['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET
+    public = EXCLUDED.public,
+    file_size_limit = EXCLUDED.file_size_limit,
+    allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+DROP POLICY IF EXISTS "volontari_allegato_v_select" ON storage.objects;
+CREATE POLICY "volontari_allegato_v_select"
+    ON storage.objects
+    FOR SELECT
+    TO authenticated
+    USING (
+        bucket_id = 'volontari-allegato-v'
+        AND public.can_read_volontario((storage.foldername(name))[1])
+    );
+
+DROP POLICY IF EXISTS "volontari_allegato_v_insert" ON storage.objects;
+CREATE POLICY "volontari_allegato_v_insert"
+    ON storage.objects
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        bucket_id = 'volontari-allegato-v'
+        AND public.can_manage_volontario((storage.foldername(name))[1])
+    );
+
+DROP POLICY IF EXISTS "volontari_allegato_v_update" ON storage.objects;
+CREATE POLICY "volontari_allegato_v_update"
+    ON storage.objects
+    FOR UPDATE
+    TO authenticated
+    USING (
+        bucket_id = 'volontari-allegato-v'
+        AND public.can_manage_volontario((storage.foldername(name))[1])
+    )
+    WITH CHECK (
+        bucket_id = 'volontari-allegato-v'
+        AND public.can_manage_volontario((storage.foldername(name))[1])
+    );
+
+DROP POLICY IF EXISTS "volontari_allegato_v_delete" ON storage.objects;
+CREATE POLICY "volontari_allegato_v_delete"
+    ON storage.objects
+    FOR DELETE
+    TO authenticated
+    USING (
+        bucket_id = 'volontari-allegato-v'
+        AND (
+            public.can_manage_volontario((storage.foldername(name))[1])
+            OR NOT EXISTS (
+                SELECT 1
+                FROM public.volontari v
+                WHERE v.id = (storage.foldername(name))[1]
+            )
+        )
+    );
+
+-- ============================================================================
+-- supabase/migrations/036_squadre_aib_turno_terminato.sql
+-- ============================================================================
+-- Squadre A.I.B.: conserva lo storico dei turni terminati
+
+ALTER TABLE public.squadre_aib
+    DROP CONSTRAINT IF EXISTS squadre_aib_stato_check;
+
+ALTER TABLE public.squadre_aib
+    ADD CONSTRAINT squadre_aib_stato_check
+    CHECK (stato IN ('Operativa', 'Non operativa', 'Turno Terminato'));
+
+-- ============================================================================
 -- supabase/migrations/037_associazioni_gestibili.sql
+-- ============================================================================
 -- Associazioni gestibili da master/super_user.
 
 CREATE TABLE IF NOT EXISTS public.associazioni (
     id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
     nome TEXT NOT NULL,
-    legale_rappresentante TEXT,
-    recapito_telefonico TEXT,
-    mail_pec TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT associazioni_nome_not_blank CHECK (length(trim(nome)) > 0),
-    CONSTRAINT associazioni_legale_rappresentante_not_blank CHECK (legale_rappresentante IS NULL OR length(trim(legale_rappresentante)) > 0),
     CONSTRAINT associazioni_nome_unique UNIQUE (nome)
 );
 
@@ -1567,12 +2410,26 @@ VALUES
     ('COPCSV Pomigliano')
 ON CONFLICT (nome) DO NOTHING;
 
+-- ============================================================================
+-- supabase/migrations/038_associazioni_dettagli.sql
+-- ============================================================================
+-- Dettagli anagrafici delle associazioni gestibili.
+
+ALTER TABLE public.associazioni
+    ADD COLUMN IF NOT EXISTS legale_rappresentante TEXT,
+    ADD COLUMN IF NOT EXISTS recapito_telefonico TEXT,
+    ADD COLUMN IF NOT EXISTS mail_pec TEXT;
+
+ALTER TABLE public.associazioni
+    DROP CONSTRAINT IF EXISTS associazioni_legale_rappresentante_not_blank;
+
+ALTER TABLE public.associazioni
+    ADD CONSTRAINT associazioni_legale_rappresentante_not_blank
+    CHECK (legale_rappresentante IS NULL OR length(trim(legale_rappresentante)) > 0);
 
 -- ============================================================================
 -- supabase/migrations/039_servizi_report_redatto_da.sql
 -- ============================================================================
--- Traccia il profilo che completa il servizio per riportarlo nei PDF consuntivi.
-
 ALTER TABLE public.profiles
     ADD COLUMN IF NOT EXISTS nome TEXT,
     ADD COLUMN IF NOT EXISTS cognome TEXT;
@@ -1591,7 +2448,6 @@ COMMENT ON COLUMN public.servizi.completato_da_nome IS 'Snapshot del nome del pr
 COMMENT ON COLUMN public.servizi.completato_da_cognome IS 'Snapshot del cognome del profilo che ha completato il servizio';
 COMMENT ON COLUMN public.servizi.completato_il IS 'Data e ora in cui il servizio e stato portato allo stato Completato';
 
-
 -- ============================================================================
 -- supabase/migrations/040_squadre_aib_disponibile_dal.sql
 -- ============================================================================
@@ -1600,6 +2456,102 @@ COMMENT ON COLUMN public.servizi.completato_il IS 'Data e ora in cui il servizio
 ALTER TABLE public.squadre_aib
     ADD COLUMN IF NOT EXISTS disponibile_dal TIMESTAMPTZ;
 
+-- ============================================================================
+-- supabase/migrations/041_delete_magazzino_tipo_attrezzatura_rpc.sql
+-- ============================================================================
+-- RPC sicura per cancellare un tipo attrezzatura anche con RLS attiva.
+
+CREATE OR REPLACE FUNCTION public.delete_magazzino_tipo_attrezzatura(p_tipo_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_profile public.profiles%ROWTYPE;
+    v_nome TEXT;
+BEGIN
+    SELECT *
+    INTO v_profile
+    FROM public.profiles
+    WHERE id = auth.uid();
+
+    IF v_profile.ruolo IS NULL OR v_profile.ruolo NOT IN ('master', 'super_user', 'segreteria') THEN
+        RAISE EXCEPTION 'Non autorizzato a eliminare tipi attrezzatura.'
+            USING ERRCODE = '42501';
+    END IF;
+
+    SELECT nome
+    INTO v_nome
+    FROM public.magazzino_tipi_attrezzatura
+    WHERE id = p_tipo_id;
+
+    IF v_nome IS NULL THEN
+        RAISE EXCEPTION 'Tipo attrezzatura non trovato.'
+            USING ERRCODE = 'P0002';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM public.magazzino_attrezzature
+        WHERE tipo_attrezzatura = v_nome
+    ) THEN
+        RAISE EXCEPTION 'Questa categoria ha almeno 1 item associato.'
+            USING ERRCODE = '23503';
+    END IF;
+
+    DELETE FROM public.magazzino_tipi_attrezzatura
+    WHERE id = p_tipo_id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.delete_magazzino_tipo_attrezzatura(UUID) TO authenticated;
+
+-- ============================================================================
+-- supabase/migrations/041_squadre_aib_caposquadra.sql
+-- ============================================================================
+-- Squadre A.I.B.: caposquadra scelto tra i volontari della squadra
+
+ALTER TABLE public.squadre_aib
+    ADD COLUMN IF NOT EXISTS caposquadra_id TEXT;
+
+COMMENT ON COLUMN public.squadre_aib.caposquadra_id IS 'Volontario scelto come caposquadra della squadra A.I.B.';
+
+CREATE OR REPLACE FUNCTION public.validate_squadra_aib_associazione()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM unnest(NEW.mezzi_ids) AS mezzo_id
+        LEFT JOIN public.mezzi m ON m.id = mezzo_id
+        WHERE m.id IS NULL OR m.associazione_appartenenza IS DISTINCT FROM NEW.associazione_appartenenza
+    ) THEN
+        RAISE EXCEPTION 'I mezzi della squadra AIB devono appartenere alla stessa associazione';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM unnest(NEW.volontari_ids) AS volontario_id
+        LEFT JOIN public.volontari v ON v.id = volontario_id
+        WHERE v.id IS NULL OR v.associazione_appartenenza IS DISTINCT FROM NEW.associazione_appartenenza
+    ) THEN
+        RAISE EXCEPTION 'I volontari della squadra AIB devono appartenere alla stessa associazione';
+    END IF;
+
+    IF NEW.caposquadra_id IS NOT NULL
+        AND btrim(NEW.caposquadra_id) <> ''
+        AND NOT (NEW.caposquadra_id = ANY (NEW.volontari_ids))
+    THEN
+        RAISE EXCEPTION 'Il caposquadra deve essere uno dei volontari della squadra AIB';
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
 
 -- ============================================================================
 -- supabase/migrations/042_servizi_responsabile_servizio.sql
@@ -1608,3 +2560,499 @@ ALTER TABLE public.servizi
     ADD COLUMN IF NOT EXISTS responsabile_servizio_id TEXT;
 
 COMMENT ON COLUMN public.servizi.responsabile_servizio_id IS 'Volontario assegnato come responsabile del servizio programmato';
+
+-- ============================================================================
+-- supabase/migrations/043_protocollo_associazione.sql
+-- ============================================================================
+-- Protocollo associazione: registri in ingresso/uscita per singola associazione.
+
+CREATE SEQUENCE IF NOT EXISTS public.protocollo_associazione_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+CREATE TABLE IF NOT EXISTS public.protocollo_associazione (
+    id TEXT PRIMARY KEY DEFAULT ('C.V.-A.-' || lpad(nextval('public.protocollo_associazione_seq')::TEXT, 6, '0')),
+    tipo TEXT NOT NULL CHECK (tipo IN ('ingresso', 'uscita')),
+    protocollo_esterno TEXT,
+    data_memorizzazione DATE NOT NULL,
+    oggetto TEXT,
+    associazione_appartenenza TEXT NOT NULL,
+    file_path TEXT NOT NULL DEFAULT '',
+    file_name TEXT NOT NULL,
+    file_mime_type TEXT,
+    file_size BIGINT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT protocollo_associazione_id_format CHECK (id ~ '^C\.V\.-A\.-[0-9]{6}$'),
+    CONSTRAINT protocollo_associazione_associazione_not_blank CHECK (length(trim(associazione_appartenenza)) > 0)
+);
+
+ALTER TABLE public.protocollo_associazione
+    ALTER COLUMN id SET DEFAULT ('C.V.-A.-' || lpad(nextval('public.protocollo_associazione_seq')::TEXT, 6, '0'));
+
+CREATE OR REPLACE FUNCTION public.set_protocollo_associazione_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS protocollo_associazione_updated_at ON public.protocollo_associazione;
+CREATE TRIGGER protocollo_associazione_updated_at
+    BEFORE UPDATE ON public.protocollo_associazione
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_protocollo_associazione_updated_at();
+
+CREATE INDEX IF NOT EXISTS protocollo_associazione_associazione_idx
+    ON public.protocollo_associazione (associazione_appartenenza);
+
+CREATE INDEX IF NOT EXISTS protocollo_associazione_tipo_created_idx
+    ON public.protocollo_associazione (tipo, created_at DESC);
+
+ALTER TABLE public.protocollo_associazione ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.protocollo_associazione FORCE ROW LEVEL SECURITY;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.protocollo_associazione TO authenticated;
+GRANT USAGE, SELECT ON SEQUENCE public.protocollo_associazione_seq TO authenticated;
+
+DROP POLICY IF EXISTS "protocollo_associazione_select" ON public.protocollo_associazione;
+CREATE POLICY "protocollo_associazione_select"
+    ON public.protocollo_associazione
+    FOR SELECT
+    TO authenticated
+    USING (
+        public.is_master()
+        OR (
+            public.is_segreteria()
+            AND
+            public.my_associazione() IS NOT NULL
+            AND associazione_appartenenza = public.my_associazione()
+        )
+    );
+
+DROP POLICY IF EXISTS "protocollo_associazione_insert" ON public.protocollo_associazione;
+CREATE POLICY "protocollo_associazione_insert"
+    ON public.protocollo_associazione
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        public.is_master()
+        OR (
+            public.is_segreteria()
+            AND
+            public.my_associazione() IS NOT NULL
+            AND associazione_appartenenza = public.my_associazione()
+        )
+    );
+
+DROP POLICY IF EXISTS "protocollo_associazione_update" ON public.protocollo_associazione;
+CREATE POLICY "protocollo_associazione_update"
+    ON public.protocollo_associazione
+    FOR UPDATE
+    TO authenticated
+    USING (
+        public.is_master()
+        OR (
+            public.is_segreteria()
+            AND
+            public.my_associazione() IS NOT NULL
+            AND associazione_appartenenza = public.my_associazione()
+        )
+    )
+    WITH CHECK (
+        public.is_master()
+        OR (
+            public.is_segreteria()
+            AND
+            public.my_associazione() IS NOT NULL
+            AND associazione_appartenenza = public.my_associazione()
+        )
+    );
+
+DROP POLICY IF EXISTS "protocollo_associazione_delete" ON public.protocollo_associazione;
+CREATE POLICY "protocollo_associazione_delete"
+    ON public.protocollo_associazione
+    FOR DELETE
+    TO authenticated
+    USING (
+        public.is_master()
+        OR (
+            public.is_segreteria()
+            AND
+            public.my_associazione() IS NOT NULL
+            AND associazione_appartenenza = public.my_associazione()
+        )
+    );
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'protocollo-associazione',
+    'protocollo-associazione',
+    false,
+    NULL,
+    NULL
+)
+ON CONFLICT (id) DO UPDATE SET
+    public = EXCLUDED.public,
+    file_size_limit = EXCLUDED.file_size_limit,
+    allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+DROP POLICY IF EXISTS "protocollo_associazione_storage_select" ON storage.objects;
+CREATE POLICY "protocollo_associazione_storage_select"
+    ON storage.objects
+    FOR SELECT
+    TO authenticated
+    USING (
+        bucket_id = 'protocollo-associazione'
+        AND (
+            public.is_master()
+            OR (
+                public.is_segreteria()
+                AND EXISTS (
+                    SELECT 1
+                    FROM public.protocollo_associazione p
+                    WHERE (
+                        p.file_path = name
+                        OR p.id = (storage.foldername(name))[1]
+                    )
+                      AND p.associazione_appartenenza = public.my_associazione()
+                )
+            )
+        )
+    );
+
+DROP POLICY IF EXISTS "protocollo_associazione_storage_insert" ON storage.objects;
+CREATE POLICY "protocollo_associazione_storage_insert"
+    ON storage.objects
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        bucket_id = 'protocollo-associazione'
+        AND (
+            public.is_master()
+            OR (
+                public.is_segreteria()
+                AND EXISTS (
+                    SELECT 1
+                    FROM public.protocollo_associazione p
+                    WHERE p.id = (storage.foldername(name))[1]
+                      AND p.associazione_appartenenza = public.my_associazione()
+                )
+            )
+        )
+    );
+
+DROP POLICY IF EXISTS "protocollo_associazione_storage_update" ON storage.objects;
+CREATE POLICY "protocollo_associazione_storage_update"
+    ON storage.objects
+    FOR UPDATE
+    TO authenticated
+    USING (
+        bucket_id = 'protocollo-associazione'
+        AND public.is_master()
+    )
+    WITH CHECK (
+        bucket_id = 'protocollo-associazione'
+        AND public.is_master()
+    );
+
+DROP POLICY IF EXISTS "protocollo_associazione_storage_delete" ON storage.objects;
+CREATE POLICY "protocollo_associazione_storage_delete"
+    ON storage.objects
+    FOR DELETE
+    TO authenticated
+    USING (
+        bucket_id = 'protocollo-associazione'
+        AND (
+            public.is_master()
+            OR (
+                public.is_segreteria()
+                AND EXISTS (
+                    SELECT 1
+                    FROM public.protocollo_associazione p
+                    WHERE (
+                        p.file_path = name
+                        OR p.id = (storage.foldername(name))[1]
+                    )
+                      AND p.associazione_appartenenza = public.my_associazione()
+                )
+            )
+        )
+    );
+
+-- ============================================================================
+-- supabase/migrations/044_protocollo_associazione_mittente_destinatario.sql
+-- ============================================================================
+ALTER TABLE public.protocollo_associazione
+    ADD COLUMN IF NOT EXISTS mittente TEXT,
+    ADD COLUMN IF NOT EXISTS destinatario TEXT;
+
+DROP POLICY IF EXISTS "protocollo_associazione_delete" ON public.protocollo_associazione;
+CREATE POLICY "protocollo_associazione_delete"
+    ON public.protocollo_associazione
+    FOR DELETE
+    TO authenticated
+    USING (public.is_master());
+
+DROP POLICY IF EXISTS "protocollo_associazione_storage_delete" ON storage.objects;
+CREATE POLICY "protocollo_associazione_storage_delete"
+    ON storage.objects
+    FOR DELETE
+    TO authenticated
+    USING (
+        bucket_id = 'protocollo-associazione'
+        AND public.is_master()
+    );
+
+-- ============================================================================
+-- supabase/migrations/045_operatore_sala_turno.sql
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.operatore_sala_turno (
+    id SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+    volontario_id TEXT NOT NULL,
+    nome TEXT NOT NULL,
+    cognome TEXT NOT NULL,
+    telefono TEXT,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.operatore_sala_turno ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "operatore_sala_turno_select" ON public.operatore_sala_turno;
+CREATE POLICY "operatore_sala_turno_select"
+    ON public.operatore_sala_turno
+    FOR SELECT
+    TO authenticated
+    USING (public.is_master() OR public.is_sala_operativa() OR public.is_capo_squadra());
+
+DROP POLICY IF EXISTS "operatore_sala_turno_insert" ON public.operatore_sala_turno;
+CREATE POLICY "operatore_sala_turno_insert"
+    ON public.operatore_sala_turno
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (public.is_master() OR public.is_sala_operativa());
+
+DROP POLICY IF EXISTS "operatore_sala_turno_update" ON public.operatore_sala_turno;
+CREATE POLICY "operatore_sala_turno_update"
+    ON public.operatore_sala_turno
+    FOR UPDATE
+    TO authenticated
+    USING (public.is_master() OR public.is_sala_operativa())
+    WITH CHECK (public.is_master() OR public.is_sala_operativa());
+
+GRANT SELECT, INSERT, UPDATE ON public.operatore_sala_turno TO authenticated;
+
+-- ============================================================================
+-- supabase/migrations/046_sala_operativa_aree_intervento.sql
+-- ============================================================================
+-- Aree disegnate sulla mappa della Sala Operativa, con foto private.
+
+CREATE TABLE IF NOT EXISTS public.sala_operativa_aree_intervento (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    servizio_id TEXT REFERENCES public.servizi(id) ON DELETE SET NULL,
+    descrizione TEXT NOT NULL,
+    geometria JSONB NOT NULL,
+    foto JSONB NOT NULL DEFAULT '[]'::JSONB,
+    created_by UUID NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE RESTRICT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT sala_operativa_aree_descrizione_not_blank CHECK (length(trim(descrizione)) > 0),
+    CONSTRAINT sala_operativa_aree_geometria_polygon CHECK (
+        geometria->>'type' = 'Polygon'
+        AND jsonb_typeof(geometria->'coordinates') = 'array'
+    ),
+    CONSTRAINT sala_operativa_aree_foto_array CHECK (jsonb_typeof(foto) = 'array')
+);
+
+CREATE INDEX IF NOT EXISTS sala_operativa_aree_servizio_idx
+    ON public.sala_operativa_aree_intervento (servizio_id);
+
+CREATE INDEX IF NOT EXISTS sala_operativa_aree_created_at_idx
+    ON public.sala_operativa_aree_intervento (created_at DESC);
+
+CREATE OR REPLACE FUNCTION public.set_sala_operativa_area_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS sala_operativa_aree_updated_at ON public.sala_operativa_aree_intervento;
+CREATE TRIGGER sala_operativa_aree_updated_at
+    BEFORE UPDATE ON public.sala_operativa_aree_intervento
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_sala_operativa_area_updated_at();
+
+ALTER TABLE public.sala_operativa_aree_intervento ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sala_operativa_aree_intervento FORCE ROW LEVEL SECURITY;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.sala_operativa_aree_intervento TO authenticated;
+
+DROP POLICY IF EXISTS "sala_operativa_aree_select" ON public.sala_operativa_aree_intervento;
+CREATE POLICY "sala_operativa_aree_select"
+    ON public.sala_operativa_aree_intervento
+    FOR SELECT
+    TO authenticated
+    USING (public.is_master() OR public.is_super_user() OR public.is_sala_operativa() OR public.is_capo_squadra());
+
+DROP POLICY IF EXISTS "sala_operativa_aree_insert" ON public.sala_operativa_aree_intervento;
+CREATE POLICY "sala_operativa_aree_insert"
+    ON public.sala_operativa_aree_intervento
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        (public.is_master() OR public.is_super_user() OR public.is_sala_operativa())
+        AND created_by = auth.uid()
+    );
+
+DROP POLICY IF EXISTS "sala_operativa_aree_update" ON public.sala_operativa_aree_intervento;
+CREATE POLICY "sala_operativa_aree_update"
+    ON public.sala_operativa_aree_intervento
+    FOR UPDATE
+    TO authenticated
+    USING (public.is_master() OR public.is_super_user() OR public.is_sala_operativa())
+    WITH CHECK (public.is_master() OR public.is_super_user() OR public.is_sala_operativa());
+
+DROP POLICY IF EXISTS "sala_operativa_aree_delete" ON public.sala_operativa_aree_intervento;
+CREATE POLICY "sala_operativa_aree_delete"
+    ON public.sala_operativa_aree_intervento
+    FOR DELETE
+    TO authenticated
+    USING (public.is_master() OR public.is_super_user() OR public.is_sala_operativa());
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'sala-operativa-aree-foto',
+    'sala-operativa-aree-foto',
+    false,
+    10485760,
+    ARRAY['image/jpeg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET
+    public = EXCLUDED.public,
+    file_size_limit = EXCLUDED.file_size_limit,
+    allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+DROP POLICY IF EXISTS "sala_operativa_aree_foto_select" ON storage.objects;
+CREATE POLICY "sala_operativa_aree_foto_select"
+    ON storage.objects
+    FOR SELECT
+    TO authenticated
+    USING (
+        bucket_id = 'sala-operativa-aree-foto'
+        AND (public.is_master() OR public.is_super_user() OR public.is_sala_operativa() OR public.is_capo_squadra())
+    );
+
+DROP POLICY IF EXISTS "sala_operativa_aree_foto_insert" ON storage.objects;
+CREATE POLICY "sala_operativa_aree_foto_insert"
+    ON storage.objects
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        bucket_id = 'sala-operativa-aree-foto'
+        AND (public.is_master() OR public.is_super_user() OR public.is_sala_operativa())
+    );
+
+DROP POLICY IF EXISTS "sala_operativa_aree_foto_update" ON storage.objects;
+CREATE POLICY "sala_operativa_aree_foto_update"
+    ON storage.objects
+    FOR UPDATE
+    TO authenticated
+    USING (
+        bucket_id = 'sala-operativa-aree-foto'
+        AND (public.is_master() OR public.is_super_user() OR public.is_sala_operativa())
+    )
+    WITH CHECK (
+        bucket_id = 'sala-operativa-aree-foto'
+        AND (public.is_master() OR public.is_super_user() OR public.is_sala_operativa())
+    );
+
+DROP POLICY IF EXISTS "sala_operativa_aree_foto_delete" ON storage.objects;
+CREATE POLICY "sala_operativa_aree_foto_delete"
+    ON storage.objects
+    FOR DELETE
+    TO authenticated
+    USING (
+        bucket_id = 'sala-operativa-aree-foto'
+        AND (public.is_master() OR public.is_super_user() OR public.is_sala_operativa())
+    );
+
+-- ============================================================================
+-- supabase/migrations/047_single_active_session.sql
+-- ============================================================================
+ALTER TABLE public.profiles
+    ADD COLUMN IF NOT EXISTS active_session_id TEXT;
+
+CREATE OR REPLACE FUNCTION public.claim_active_session(p_session_id TEXT)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF auth.uid() IS NULL OR NULLIF(trim(p_session_id), '') IS NULL THEN
+        RAISE EXCEPTION 'Sessione non valida';
+    END IF;
+
+    UPDATE public.profiles
+    SET active_session_id = p_session_id
+    WHERE id = auth.uid();
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Profilo non configurato';
+    END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_active_session(p_session_id TEXT)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT EXISTS (
+        SELECT 1
+        FROM public.profiles
+        WHERE id = auth.uid()
+          AND active_session_id = p_session_id
+    );
+$$;
+
+REVOKE ALL ON FUNCTION public.claim_active_session(TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.is_active_session(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.claim_active_session(TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.is_active_session(TEXT) TO authenticated;
+
+-- ============================================================================
+-- supabase/migrations/048_volontari_associazione_fkey.sql
+-- ============================================================================
+-- Sostituisce l'elenco statico delle associazioni con l'anagrafica gestibile dall'app.
+-- Le associazioni dei volontari esistenti devono essere presenti in public.associazioni.
+
+
+
+ALTER TABLE public.volontari
+    DROP CONSTRAINT IF EXISTS volontari_associazione_appartenenza_check;
+
+-- Consente di rieseguire lo script anche se la correzione è già stata applicata.
+ALTER TABLE public.volontari
+    DROP CONSTRAINT IF EXISTS volontari_associazione_appartenenza_fkey;
+
+ALTER TABLE public.volontari
+    ADD CONSTRAINT volontari_associazione_appartenenza_fkey
+    FOREIGN KEY (associazione_appartenenza)
+    REFERENCES public.associazioni (nome)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT;
+
+COMMIT;

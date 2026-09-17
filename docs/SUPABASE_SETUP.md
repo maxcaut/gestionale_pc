@@ -2,6 +2,46 @@
 
 ## 1. Esegui le migration SQL
 
+### Nuova istanza: un solo script
+
+Su un **nuovo progetto Supabase**, apri **SQL → New query**, incolla tutto il
+contenuto di [`supabase/migration_unica_supabase.sql`](../supabase/migration_unica_supabase.sql)
+ed eseguilo come `postgres`. Non serve eseguire prima `db.txt` o dopo i singoli
+file in `supabase/migrations`.
+
+Lo script crea le tabelle iniziali e applica tutti i **51 file SQL**, dalla 001
+alla 048 (006, 030 e 041 hanno due file ciascuno), in un'unica transazione.
+Include ruoli e policy RLS, volontari e documenti, mezzi, servizi e report,
+squadre AIB, magazzino e RPC di prelievo/rientro, associazioni, protocolli,
+operatore di turno, aree sulla mappa e sessione attiva unica. Crea anche tutti
+gli otto bucket Storage privati con le rispettive policy. Le colonne delle
+coordinate, dell'indirizzo e degli enti coinvolti nei servizi, usate dall'app
+ma assenti dalle migration storiche, sono comprese nello schema iniziale.
+
+Usalo una sola volta, con le tabelle applicative ancora assenti. Occorre un
+progetto Supabase con Authentication e Storage già predisposti: lo script
+non installa questi servizi su un server PostgreSQL generico. In caso di
+errore, la transazione annulla tutte le modifiche.
+
+La nuova istanza parte senza utenti e dati operativi: crea il primo utente
+master seguendo i punti 2 e 3. Per trasferire anche i dati precedenti occorre
+una copia separata di utenti, record e file Storage.
+
+Sul nuovo host configura `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`
+e `SUPABASE_SERVICE_ROLE_KEY` con i valori del **nuovo** progetto, poi rigenera
+gli asset con `npm run build` e aggiorna la cache di configurazione Laravel
+con `php artisan config:cache`. Le migration Laravel in `database/migrations`
+restano separate da questo script Supabase; se il nuovo host usa un database
+Laravel vuoto per utenti, cache o job, esegui anche `php artisan migrate --force`.
+
+Per rigenerare il file unico dopo modifiche alle migration:
+
+```bash
+node scripts/build-supabase-migration.mjs
+```
+
+### Istanza esistente: migration individuali
+
 1. Apri il progetto su [Supabase](https://supabase.com) → **SQL** → **New query**.
 2. Incolla ed esegui `supabase/migrations/001_profiles_rls_volontari.sql`.
 3. Incolla ed esegui `supabase/migrations/002_profiles_admin_rls.sql` (schermata **Utenti** nell’app).
