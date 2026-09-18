@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="icon" type="image/png" sizes="64x64" href="{{ asset('img/favicon-20260709.png') }}?v={{ filemtime(public_path('img/favicon-20260709.png')) }}">
     <link rel="shortcut icon" type="image/png" sizes="64x64" href="{{ asset('img/favicon-20260709.png') }}?v={{ filemtime(public_path('img/favicon-20260709.png')) }}">
-    <title>{{ config('app.name') }} - Protezione Civile - Coordinamento Vesuvius</title>
+    <title>{{ config('app.name') }} - Protezione Civile - {{ config('app.surname') }}</title>
     
     <!-- Google Fonts: Inter per un look moderno e pulito -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
