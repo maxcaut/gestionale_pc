@@ -178,7 +178,7 @@
                 </div>
                 <div>
                     <h2 class="font-extrabold text-base tracking-wide text-white uppercase">{{ config('app.name') }}</h2>
-                    <p class="text-[9px] text-amber-500 font-bold uppercase tracking-widest">Coordinamento Vesuvius</p>
+                    <p class="text-[9px] text-amber-500 font-bold uppercase tracking-widest">{{ config('app.surname') }}</p>
                 </div>
             </div>
 
