@@ -15,6 +15,7 @@ return [
 
     'name' => env('APP_NAME', 'VIGOR'),
     'surname' => env('APP_SURNAME', 'Coordinamento Vesuvius'),
+    'logo' => env('APP_LOGO', 'img/logoapp.png'),
 
     /*
     |--------------------------------------------------------------------------
