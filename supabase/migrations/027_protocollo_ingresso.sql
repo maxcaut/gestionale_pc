@@ -130,3 +130,6 @@ CREATE POLICY "protocollo_ingresso_storage_delete"
         bucket_id = 'protocollo-ingresso'
         AND public.is_master()
     );
+
+-- Accesso Data API del backend Laravel, indipendente dai privilegi automatici.
+GRANT SELECT ON public.protocollo_ingresso TO service_role;

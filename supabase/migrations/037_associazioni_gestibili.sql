@@ -44,3 +44,7 @@ VALUES
     ('NVPC Pomigliano'),
     ('COPCSV Pomigliano')
 ON CONFLICT (nome) DO NOTHING;
+
+-- Accesso Data API del backend Laravel, indipendente dai privilegi automatici.
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.associazioni TO service_role;
+GRANT USAGE ON SEQUENCE public.associazioni_id_seq TO service_role;

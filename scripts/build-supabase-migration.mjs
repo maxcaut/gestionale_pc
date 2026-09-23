@@ -45,7 +45,7 @@ CREATE TABLE public.servizi (
 
 const sections = files.map(name => {
     const original = readFileSync(new URL(name, migrations), 'utf8');
-    // La 048 ha una propria transazione: la inglobiamo nella transazione unica.
+    // Le transazioni delle singole migration confluiscono nella transazione unica.
     const sql = original.replace(/^(?:BEGIN|COMMIT);[ \t]*$/gm, '').trimEnd();
     return `-- ============================================================================
 -- supabase/migrations/${name}
@@ -57,7 +57,7 @@ const output = new URL('supabase/migration_unica_supabase.sql', root);
 writeFileSync(output, `-- Coordinamento Vesuvius: installazione completa su un NUOVO progetto Supabase.
 -- Generato con: node scripts/build-supabase-migration.mjs
 -- Include lo schema iniziale e tutti i ${files.length} file delle migration storiche.
--- La numerazione arriva a 048; 006, 030 e 041 hanno due file ciascuno.
+-- La numerazione arriva a ${files.at(-1).split('_')[0]}; 006, 030 e 041 hanno due file ciascuno.
 -- Eseguire una sola volta nel SQL Editor come postgres, su database applicativo vuoto.
 -- Supabase deve avere gia predisposto auth, storage e i ruoli anon/authenticated/service_role.
 -- Non eseguire anche le migration individuali su questa nuova istanza.

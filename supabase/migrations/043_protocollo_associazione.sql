@@ -219,3 +219,6 @@ CREATE POLICY "protocollo_associazione_storage_delete"
             )
         )
     );
+
+-- Accesso Data API del backend Laravel, indipendente dai privilegi automatici.
+GRANT SELECT ON public.protocollo_associazione TO service_role;

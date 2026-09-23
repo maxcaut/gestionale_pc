@@ -209,3 +209,6 @@ CREATE POLICY "magazzino_prelievi_righe_delete_allowed"
               AND p.associazione = mp.associazione_appartenenza
         )
     );
+
+-- Accesso Data API del backend Laravel, indipendente dai privilegi automatici.
+GRANT SELECT ON public.magazzino_prelievi, public.magazzino_prelievi_righe TO service_role;

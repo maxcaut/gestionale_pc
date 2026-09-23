@@ -136,3 +136,8 @@ GRANT SELECT ON public.profiles TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.volontari TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.mezzi TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.servizi TO authenticated;
+
+-- Accesso Data API del backend Laravel, indipendente dai privilegi automatici.
+GRANT USAGE ON SCHEMA public TO service_role;
+GRANT SELECT, INSERT, UPDATE ON public.profiles TO service_role;
+GRANT SELECT ON public.volontari, public.mezzi, public.servizi TO service_role;

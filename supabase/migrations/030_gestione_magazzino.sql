@@ -176,3 +176,6 @@ CREATE POLICY "magazzino_attrezzature_delete_allowed"
               AND p.associazione = associazione_appartenenza
         )
     );
+
+-- Accesso Data API del backend Laravel, indipendente dai privilegi automatici.
+GRANT SELECT ON public.magazzino_tipi_attrezzatura, public.magazzino_attrezzature TO service_role;

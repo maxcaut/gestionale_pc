@@ -1,7 +1,7 @@
 -- Coordinamento Vesuvius: installazione completa su un NUOVO progetto Supabase.
 -- Generato con: node scripts/build-supabase-migration.mjs
--- Include lo schema iniziale e tutti i 51 file delle migration storiche.
--- La numerazione arriva a 048; 006, 030 e 041 hanno due file ciascuno.
+-- Include lo schema iniziale e tutti i 52 file delle migration storiche.
+-- La numerazione arriva a 049; 006, 030 e 041 hanno due file ciascuno.
 -- Eseguire una sola volta nel SQL Editor come postgres, su database applicativo vuoto.
 -- Supabase deve avere gia predisposto auth, storage e i ruoli anon/authenticated/service_role.
 -- Non eseguire anche le migration individuali su questa nuova istanza.
@@ -187,6 +187,11 @@ GRANT SELECT ON public.profiles TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.volontari TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.mezzi TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.servizi TO authenticated;
+
+-- Accesso Data API del backend Laravel, indipendente dai privilegi automatici.
+GRANT USAGE ON SCHEMA public TO service_role;
+GRANT SELECT, INSERT, UPDATE ON public.profiles TO service_role;
+GRANT SELECT ON public.volontari, public.mezzi, public.servizi TO service_role;
 
 -- ============================================================================
 -- supabase/migrations/002_profiles_admin_rls.sql
@@ -1036,6 +1041,9 @@ CREATE POLICY "squadre_aib_delete"
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.squadre_aib TO authenticated;
 
+-- Accesso Data API del backend Laravel, indipendente dai privilegi automatici.
+GRANT SELECT ON public.squadre_aib TO service_role;
+
 -- ============================================================================
 -- supabase/migrations/018_segreteria_servizi_in_corso.sql
 -- ============================================================================
@@ -1503,6 +1511,9 @@ CREATE POLICY "protocollo_ingresso_storage_delete"
         AND public.is_master()
     );
 
+-- Accesso Data API del backend Laravel, indipendente dai privilegi automatici.
+GRANT SELECT ON public.protocollo_ingresso TO service_role;
+
 -- ============================================================================
 -- supabase/migrations/028_volontari_attestati_storage.sql
 -- ============================================================================
@@ -1768,6 +1779,9 @@ CREATE POLICY "magazzino_attrezzature_delete_allowed"
         )
     );
 
+-- Accesso Data API del backend Laravel, indipendente dai privilegi automatici.
+GRANT SELECT ON public.magazzino_tipi_attrezzatura, public.magazzino_attrezzature TO service_role;
+
 -- ============================================================================
 -- supabase/migrations/030_mezzi_dove_ubicato.sql
 -- ============================================================================
@@ -1988,6 +2002,9 @@ CREATE POLICY "magazzino_prelievi_righe_delete_allowed"
               AND p.associazione = mp.associazione_appartenenza
         )
     );
+
+-- Accesso Data API del backend Laravel, indipendente dai privilegi automatici.
+GRANT SELECT ON public.magazzino_prelievi, public.magazzino_prelievi_righe TO service_role;
 
 -- ============================================================================
 -- supabase/migrations/032_volontari_email.sql
@@ -2410,6 +2427,10 @@ VALUES
     ('COPCSV Pomigliano')
 ON CONFLICT (nome) DO NOTHING;
 
+-- Accesso Data API del backend Laravel, indipendente dai privilegi automatici.
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.associazioni TO service_role;
+GRANT USAGE ON SEQUENCE public.associazioni_id_seq TO service_role;
+
 -- ============================================================================
 -- supabase/migrations/038_associazioni_dettagli.sql
 -- ============================================================================
@@ -2786,6 +2807,9 @@ CREATE POLICY "protocollo_associazione_storage_delete"
         )
     );
 
+-- Accesso Data API del backend Laravel, indipendente dai privilegi automatici.
+GRANT SELECT ON public.protocollo_associazione TO service_role;
+
 -- ============================================================================
 -- supabase/migrations/044_protocollo_associazione_mittente_destinatario.sql
 -- ============================================================================
@@ -2847,6 +2871,9 @@ CREATE POLICY "operatore_sala_turno_update"
     WITH CHECK (public.is_master() OR public.is_sala_operativa());
 
 GRANT SELECT, INSERT, UPDATE ON public.operatore_sala_turno TO authenticated;
+
+-- Accesso Data API del backend Laravel, indipendente dai privilegi automatici.
+GRANT SELECT ON public.operatore_sala_turno TO service_role;
 
 -- ============================================================================
 -- supabase/migrations/046_sala_operativa_aree_intervento.sql
@@ -2986,6 +3013,9 @@ CREATE POLICY "sala_operativa_aree_foto_delete"
         AND (public.is_master() OR public.is_super_user() OR public.is_sala_operativa())
     );
 
+-- Accesso Data API del backend Laravel, indipendente dai privilegi automatici.
+GRANT SELECT ON public.sala_operativa_aree_intervento TO service_role;
+
 -- ============================================================================
 -- supabase/migrations/047_single_active_session.sql
 -- ============================================================================
@@ -3054,5 +3084,63 @@ ALTER TABLE public.volontari
     REFERENCES public.associazioni (nome)
     ON UPDATE CASCADE
     ON DELETE RESTRICT;
+
+-- ============================================================================
+-- supabase/migrations/049_data_api_explicit_grants.sql
+-- ============================================================================
+-- Permessi espliciti per il cambio dei default Supabase del 30 ottobre 2026.
+-- Istanza esistente: eseguire come postgres dopo tutte le migration fino alla 048.
+-- Rieseguibile: aggiunge i permessi necessari senza revocare quelli esistenti.
+-- Non modifica dati, policy RLS, accesso anon o privilegi predefiniti.
+
+
+
+GRANT USAGE ON SCHEMA public TO authenticated, service_role;
+
+-- Frontend: conserva le operazioni previste dalle migration originali.
+GRANT SELECT ON public.profiles TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON
+    public.volontari,
+    public.mezzi,
+    public.servizi,
+    public.squadre_aib,
+    public.magazzino_tipi_attrezzatura,
+    public.magazzino_attrezzature,
+    public.magazzino_prelievi,
+    public.magazzino_prelievi_righe,
+    public.protocollo_ingresso,
+    public.protocollo_associazione,
+    public.sala_operativa_aree_intervento
+TO authenticated;
+GRANT SELECT, INSERT, DELETE ON public.associazioni TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.operatore_sala_turno TO authenticated;
+GRANT USAGE, SELECT ON SEQUENCE
+    public.associazioni_id_seq,
+    public.protocollo_ingresso_seq,
+    public.protocollo_associazione_seq
+TO authenticated;
+
+-- Backend: API esterna di lettura, PDF e controlli sulle associazioni in uso.
+GRANT SELECT ON
+    public.profiles,
+    public.volontari,
+    public.mezzi,
+    public.servizi,
+    public.squadre_aib,
+    public.associazioni,
+    public.magazzino_tipi_attrezzatura,
+    public.magazzino_attrezzature,
+    public.magazzino_prelievi,
+    public.magazzino_prelievi_righe,
+    public.protocollo_ingresso,
+    public.protocollo_associazione,
+    public.operatore_sala_turno,
+    public.sala_operativa_aree_intervento
+TO service_role;
+
+-- La cancellazione dei profili avviene tramite Auth con ON DELETE CASCADE.
+GRANT INSERT, UPDATE ON public.profiles TO service_role;
+GRANT INSERT, UPDATE, DELETE ON public.associazioni TO service_role;
+GRANT USAGE ON SEQUENCE public.associazioni_id_seq TO service_role;
 
 COMMIT;

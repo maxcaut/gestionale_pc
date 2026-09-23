@@ -96,3 +96,6 @@ CREATE POLICY "squadre_aib_delete"
     );
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.squadre_aib TO authenticated;
+
+-- Accesso Data API del backend Laravel, indipendente dai privilegi automatici.
+GRANT SELECT ON public.squadre_aib TO service_role;

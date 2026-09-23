@@ -132,3 +132,6 @@ CREATE POLICY "sala_operativa_aree_foto_delete"
         bucket_id = 'sala-operativa-aree-foto'
         AND (public.is_master() OR public.is_super_user() OR public.is_sala_operativa())
     );
+
+-- Accesso Data API del backend Laravel, indipendente dai privilegi automatici.
+GRANT SELECT ON public.sala_operativa_aree_intervento TO service_role;

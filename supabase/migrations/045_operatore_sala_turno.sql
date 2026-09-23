@@ -32,3 +32,6 @@ CREATE POLICY "operatore_sala_turno_update"
     WITH CHECK (public.is_master() OR public.is_sala_operativa());
 
 GRANT SELECT, INSERT, UPDATE ON public.operatore_sala_turno TO authenticated;
+
+-- Accesso Data API del backend Laravel, indipendente dai privilegi automatici.
+GRANT SELECT ON public.operatore_sala_turno TO service_role;
