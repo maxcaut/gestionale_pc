@@ -8459,6 +8459,53 @@ async function updateServiziMap(filteredServizi) {
     setTimeout(() => serviziMap?.invalidateSize(), 50);
 }
 
+async function exportTuttiInterventi() {
+    if (!currentUserProfile || !canLoadServizi()) return;
+
+    const button = document.getElementById('btn-export-interventi');
+    if (button?.disabled) return;
+    if (button) button.disabled = true;
+
+    try {
+        const interventi = [];
+        const pageSize = 500;
+        // Read every page directly: table filters and the initial load limit must not truncate the export.
+        for (let offset = 0; ; offset += pageSize) {
+            const { data, error } = await supabase.from('servizi')
+                .select('*')
+                .order('id', { ascending: true })
+                .range(offset, offset + pageSize - 1);
+            if (error) throw error;
+            interventi.push(...(data || []));
+            if (!data || data.length < pageSize) break;
+        }
+
+        if (!interventi.length) {
+            showToast('Nessun intervento', 'Non ci sono interventi da esportare.');
+            return;
+        }
+
+        // Include all stored fields, preserving nested data in the same intervention row.
+        const fields = [...new Set(interventi.flatMap(intervento => Object.keys(intervento)))];
+        const headers = fields.map(field => field === 'id' ? 'Protocollo' : field.replaceAll('_', ' '));
+        const rows = interventi.map(intervento => fields.map(field => {
+            const value = intervento[field];
+            if (value === null || value === undefined) return '';
+            if (typeof value === 'object') return JSON.stringify(value);
+            return String(value);
+        }));
+        const xml = createExcelXmlWorksheet('Tutti gli interventi', headers, rows);
+        downloadBlob(new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8;' }),
+            `tutti-interventi-${new Date().toISOString().slice(0, 10)}.xls`);
+        showToast('Export completato', 'Il file Excel con tutti gli interventi è stato scaricato.');
+    } catch (error) {
+        console.error('Errore export interventi:', error);
+        showToast('Errore export', 'Impossibile esportare gli interventi. Riprova.');
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
+
 function renderServizi() {
     const servizi = getDB("pc_servizi");
     const mezzi = getDB("pc_mezzi");
@@ -10768,6 +10815,7 @@ window.closePdfDeliveryModal = closePdfDeliveryModal;
 window.confirmPdfDeliveryDownload = confirmPdfDeliveryDownload;
 window.confirmPdfDeliveryEmail = confirmPdfDeliveryEmail;
 window.exportServizioPdf = exportServizioPdf;
+window.exportTuttiInterventi = exportTuttiInterventi;
 window.exportStatistiche = exportStatistiche;
 window.deleteServizio = deleteServizio;
 window.renderServizi = renderServizi;

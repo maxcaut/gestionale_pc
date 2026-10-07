@@ -2,7 +2,7 @@
                 <section id="tab-servizi" data-servizi-access class="tab-content space-y-6 hidden fade-in">
                     
                     <!-- Barra Superiore Azioni Servizi -->
-                    <div class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+                    <div class="flex flex-col sm:flex-row sm:flex-wrap gap-4 justify-between items-start sm:items-center">
                         <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                             <!-- Input Ricerca -->
                             <div class="relative w-full sm:w-64">
@@ -37,6 +37,9 @@
                             </select>
                         </div>
 
+                        <div class="flex w-full flex-col gap-3 sm:ml-auto sm:w-auto sm:flex-row sm:items-center sm:shrink-0">
+                        <button type="button" id="btn-export-interventi" onclick="exportTuttiInterventi()" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-100 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors">Esporta tutti gli interventi</button>
+
                         <!-- Bottone Inserimento (Apre Modal) -->
                         <button type="button" id="btn-nuovo-servizio" data-hide-for-capo-squadra onclick="openNuovoServizioModal()" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-slate-950 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20 transition-all">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
@@ -44,6 +47,7 @@
                             </svg>
                             <span>Nuova Missione / Servizio</span>
                         </button>
+                        </div>
                     </div>
 
                     <div data-operatore-sala-control class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
