@@ -266,7 +266,7 @@
         OdV: {{ $gruppo ?? '' }}
     </div>
     <div class="info-line">
-        Coordinamento: <span style="font-size: 10px;">COORDINAMENTO TERRITORIALE AREA VESUVIANA "VESUVIUS"</span>
+        Coordinamento: <span style="font-size: 10px;">{{ config('app.surname') }}</span>
     </div>
 
     <table class="form-table">

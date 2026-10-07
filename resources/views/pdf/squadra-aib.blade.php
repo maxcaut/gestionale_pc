@@ -267,7 +267,7 @@
             </td>
             <td class="title-cell">
                 <div class="org-title">Coordinamento Territoriale di Protezione Civile</div>
-                <div class="org-title">Area Vesuviana "Vesuvius"</div>
+                <div class="org-title">{{ config('app.surname') }}</div>
                 <div class="service-title">SERVIZIO SALA OPERATIVA</div>
             </td>
             <td class="logo-cell">
