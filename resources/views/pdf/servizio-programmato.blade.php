@@ -172,7 +172,7 @@
             <img class="logo logo-right" src="{{ $logoDx }}" alt="">
         @endif
         <div class="ente">REGIONE CAMPANIA - PROTEZIONE CIVILE</div>
-        <div class="coord">COORDINAMENTO TERRITORIALE AREA VESUVIANA "VESUVIUS"</div>
+        <div class="coord">{{ config('app.surname') }}</div>
     </div>
 
     <div class="bar bar-title">{{ $titolo }}</div>
